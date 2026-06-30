@@ -1,2 +1,37 @@
+# ---- Node / NestJS (api/, admin/) ----
+node_modules/
+dist/
+*.log
+npm-debug.log*
+coverage/
+.eslintcache
+
+# ---- Env / secrets ----
+.env
+.env.*
+!.env.example
+*-service-account*.json
+firebase-service-account*.json
+
+# ---- Flutter / Dart (mobile/) ----
+mobile/.dart_tool/
+mobile/build/
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+mobile/.packages
+mobile/.pub-cache/
+mobile/.pub/
+**/*.iml
+.idea/
+.vscode/
+
+# ---- Not committing these yet (per maintainer) ----
 /docs
-CLAUDE.md
+/CLAUDE.md
+
+# ---- OS ----
+.DS_Store
+Thumbs.db
+
+# ---- Docker ----
+.postgres-data/

@@ -1,0 +1,30 @@
+import * as Joi from 'joi';
+
+export const validationSchema = Joi.object({
+  NODE_ENV: Joi.string()
+    .valid('development', 'test', 'production')
+    .default('development'),
+  PORT: Joi.number().default(3000),
+  APP_URL: Joi.string().uri().required(),
+  DATABASE_URL: Joi.string().required(),
+
+  JWT_ACCESS_SECRET: Joi.string().min(16).required(),
+  JWT_REFRESH_SECRET: Joi.string().min(16).required(),
+  JWT_ACCESS_TTL: Joi.string().default('15m'),
+  JWT_REFRESH_TTL: Joi.string().default('30d'),
+  ACTION_TOKEN_TTL_HOURS: Joi.number().default(24),
+
+  MAIL_DRIVER: Joi.string().valid('stub', 'sendgrid').default('stub'),
+  SENDGRID_API_KEY: Joi.string().allow('').optional(),
+  SENDGRID_FROM: Joi.string().required(),
+  MAIL_FROM_NAME: Joi.string().default('Loop'),
+
+  ADMIN_EMAIL: Joi.string().email().required(),
+  ADMIN_PASSWORD: Joi.string().min(8).required(),
+  ADMIN_NAME: Joi.string().required(),
+  ADMIN_PHONE: Joi.string().required(),
+
+  STORAGE_DRIVER: Joi.string().valid('stub', 'firebase').default('stub'),
+  FIREBASE_SERVICE_ACCOUNT_PATH: Joi.string().allow('').optional(),
+  FIREBASE_STORAGE_BUCKET: Joi.string().allow('').optional(),
+});
