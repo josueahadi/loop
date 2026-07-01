@@ -58,8 +58,9 @@ export class Job {
   weightKg: number | null;
 
   // RWF, integer whole francs (zero-decimal currency). Never minor units.
-  @Column({ name: 'suggested_price', type: 'integer', nullable: true })
-  suggestedPrice: number | null;
+  // Cost estimate (ride-hailing style), distinct from the owner-set `price`.
+  @Column({ name: 'estimated_price', type: 'integer', nullable: true })
+  estimatedPrice: number | null;
 
   @Column({ type: 'integer', nullable: true })
   price: number | null;

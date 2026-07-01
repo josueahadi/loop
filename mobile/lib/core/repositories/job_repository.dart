@@ -19,7 +19,7 @@ class JobRepository {
     required JobSize size,
     double? weightKg,
     required VehicleType reqVehicleType,
-    required int suggestedPrice,
+    required int estimatedPrice,
     required int price,
   }) async {
     final res = await _api.dio.post('/jobs', data: {
@@ -31,7 +31,7 @@ class JobRepository {
       'size': size.api,
       if (weightKg != null) 'weightKg': weightKg,
       'reqVehicleType': reqVehicleType.api,
-      'suggestedPrice': suggestedPrice,
+      'estimatedPrice': estimatedPrice,
       'price': price,
     });
     return Job.fromJson(res.data as Map<String, dynamic>);

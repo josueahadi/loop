@@ -9,7 +9,7 @@ import { SizeMultiplier } from './entities/size-multiplier.entity';
 // Rule-based pricing (no ML). Reads base_fare / rate_per_km from pricing_config and
 // size_factor from size_multipliers — no magic numbers. Distance is the PostGIS
 // great-circle between the two pins (the same distance matching uses). RWF integer.
-//   suggested_price = base_fare + ( rate_per_km × distance_km ) × size_factor
+//   estimated_price = base_fare + ( rate_per_km × distance_km ) × size_factor
 @Injectable()
 export class PricingService {
   constructor(
@@ -34,7 +34,7 @@ export class PricingService {
     return Number(meters) / 1000;
   }
 
-  async computeSuggestedPrice(params: {
+  async computeEstimatedPrice(params: {
     vehicleType: VehicleType;
     size: JobSize;
     distanceKm: number;
@@ -61,13 +61,13 @@ export class PricingService {
 
   async estimate(dto: EstimateDto): Promise<EstimateResponseDto> {
     const distanceKm = await this.distanceKm(dto.pickup, dto.drop_off);
-    const suggestedPrice = await this.computeSuggestedPrice({
+    const estimatedPrice = await this.computeEstimatedPrice({
       vehicleType: dto.vehicle_type,
       size: dto.size,
       distanceKm,
     });
     return {
-      suggested_price: suggestedPrice,
+      estimated_price: estimatedPrice,
       distance_km: Math.round(distanceKm * 100) / 100,
     };
   }

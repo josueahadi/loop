@@ -18,7 +18,7 @@ const SELECT = `
          ST_Y(drop_off_location::geometry) AS "dropOffLat",
          ST_X(drop_off_location::geometry) AS "dropOffLng",
          cargo_type AS "cargoType", size, weight_kg AS "weightKg",
-         suggested_price AS "suggestedPrice", price,
+         estimated_price AS "estimatedPrice", price,
          req_vehicle_type AS "reqVehicleType", status,
          created_at AS "createdAt", posted_at AS "postedAt",
          matched_at AS "matchedAt", accepted_at AS "acceptedAt",
@@ -50,7 +50,7 @@ export class JobsService {
     const [{ id }] = await this.dataSource.query(
       `INSERT INTO jobs
          (owner_id, pickup, pickup_location, drop_off, drop_off_location,
-          cargo_type, size, weight_kg, suggested_price, price,
+          cargo_type, size, weight_kg, estimated_price, price,
           req_vehicle_type, status, posted_at)
        VALUES
          ($1, $2, ST_SetSRID(ST_MakePoint($4, $3), 4326)::geography,
@@ -68,7 +68,7 @@ export class JobsService {
         dto.cargoType,
         dto.size,
         dto.weightKg ?? null,
-        dto.suggestedPrice,
+        dto.estimatedPrice,
         dto.price,
         dto.reqVehicleType,
       ],

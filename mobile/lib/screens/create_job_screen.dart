@@ -10,7 +10,7 @@ import '../core/repositories/pricing_repository.dart';
 
 /// Owner create-job flow (M3): set pickup + drop-off pins on the map (current
 /// location or drop-a-pin — no address search), enter the load profile, get a
-/// suggested price from the API, edit it if desired, then post. The straight
+/// estimated cost from the API, edit the price if desired, then post. The straight
 /// line between the pins is the same great-circle the pricing uses.
 class CreateJobScreen extends StatefulWidget {
   const CreateJobScreen({super.key});
@@ -111,7 +111,7 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
       if (!mounted) return;
       setState(() {
         _estimate = est;
-        _priceController.text = est.suggestedPrice.toString();
+        _priceController.text = est.estimatedPrice.toString();
       });
     } catch (e) {
       _snack(e.toString().replaceFirst('Exception: ', ''));
@@ -140,7 +140,7 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
         size: _size,
         weightKg: double.tryParse(_weightController.text.trim()),
         reqVehicleType: _vehicleType,
-        suggestedPrice: _estimate!.suggestedPrice,
+        estimatedPrice: _estimate!.estimatedPrice,
         price: price,
       );
       if (!mounted) return;
@@ -314,7 +314,7 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
               ? const SizedBox(
                   height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2))
               : const Icon(Icons.calculate_outlined),
-          label: const Text('Get suggested price'),
+          label: const Text('Get estimated cost'),
         ),
         if (_estimate != null) ...[
           const SizedBox(height: 16),
@@ -328,7 +328,7 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Suggested: ${_estimate!.suggestedPrice} RWF',
+                  'Estimated cost: ~${_estimate!.estimatedPrice} RWF',
                   style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
@@ -338,7 +338,7 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
                     style: const TextStyle(color: textGray, fontSize: 12)),
                 const SizedBox(height: 6),
                 const Text(
-                  'You can adjust the price before posting.',
+                  'This is a reference estimate — you set the price you post.',
                   style: TextStyle(color: textGray, fontSize: 12),
                 ),
               ],

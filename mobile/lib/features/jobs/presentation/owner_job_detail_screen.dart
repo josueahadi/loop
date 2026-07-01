@@ -8,7 +8,7 @@ import '../../../core/models/job.dart';
 import '../../../core/repositories/job_repository.dart';
 
 /// Owner-facing job detail (M3), backed by the jobs API. Shows the load profile,
-/// prices (suggested vs posted), the pin route, and a status timeline. The owner
+/// prices (estimated cost vs posted), the pin route, and a status timeline. The owner
 /// can cancel a job that hasn't been matched yet. Selecting a driver / proposals
 /// is the M4 transaction loop.
 class OwnerJobDetailScreen extends StatefulWidget {
@@ -81,9 +81,8 @@ class _OwnerJobDetailScreenState extends State<OwnerJobDetailScreen> {
                 _row('Pickup', j.pickupLabel ?? _coord(j.pickup)),
                 _row('Drop-off', j.dropOffLabel ?? _coord(j.dropOff)),
                 const Divider(height: 28),
-                _row('Suggested price', '${j.suggestedPrice} RWF'),
-                _row('Posted price', '${j.price} RWF',
-                    emphasize: true),
+                _row('Estimated cost', '~${j.estimatedPrice} RWF'),
+                _row('Posted price', '${j.price} RWF', emphasize: true),
                 const Divider(height: 28),
                 const Text('Timeline',
                     style: TextStyle(fontWeight: FontWeight.bold)),

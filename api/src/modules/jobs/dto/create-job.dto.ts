@@ -14,7 +14,7 @@ import { LatLngDto } from '../../pricing/dto/estimate.dto';
 
 // Owner creates and posts a job. Pins are required (pin-based flow, no geocoding);
 // the *Label fields are optional human labels (default to a coordinate string).
-// Both suggested_price and the final owner-set price are persisted (integer RWF).
+// Both estimated_price and the final owner-set price are persisted (integer RWF).
 export class CreateJobDto {
   @ApiProperty({ type: LatLngDto })
   @ValidateNested()
@@ -56,10 +56,10 @@ export class CreateJobDto {
   @IsEnum(VehicleType)
   reqVehicleType: VehicleType;
 
-  @ApiProperty({ description: 'Suggested price (whole RWF) from /pricing/estimate' })
+  @ApiProperty({ description: 'Estimated cost (whole RWF) from /pricing/estimate' })
   @IsInt()
   @Min(0)
-  suggestedPrice: number;
+  estimatedPrice: number;
 
   @ApiProperty({ description: 'Final price the owner posts (whole RWF)' })
   @IsInt()

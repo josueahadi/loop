@@ -50,8 +50,8 @@ export class EstimateDto {
 }
 
 export class EstimateResponseDto {
-  @ApiProperty({ description: 'Suggested price in whole RWF' })
-  suggested_price: number;
+  @ApiProperty({ description: 'Estimated cost in whole RWF' })
+  estimated_price: number;
 
   @ApiProperty({ description: 'Great-circle distance in km' })
   distance_km: number;
