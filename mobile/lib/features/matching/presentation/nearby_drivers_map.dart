@@ -153,6 +153,9 @@ class _NearbyDriversMapState extends State<NearbyDriversMap> {
                           userAgentPackageName: 'rw.loop.app',
                         ),
                         MarkerLayer(markers: _markers()),
+                        RichAttributionWidget(attributions: [
+                          TextSourceAttribution('OpenStreetMap contributors'),
+                        ]),
                       ],
                     ),
                     if (_loading)

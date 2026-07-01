@@ -5,6 +5,7 @@ import 'package:latlong2/latlong.dart';
 import '../../../constants.dart';
 import '../../../core/enums/app_enums.dart';
 import '../../../core/models/job.dart';
+import '../../../core/navigation/open_in_maps.dart';
 import '../../../core/repositories/job_repository.dart';
 
 /// Owner-facing job detail (M3), backed by the jobs API. Shows the load profile,
@@ -78,8 +79,20 @@ class _OwnerJobDetailScreenState extends State<OwnerJobDetailScreen> {
                 if (j.weightKg != null)
                   _row('Weight', '${j.weightKg!.toStringAsFixed(0)} kg'),
                 _row('Vehicle needed', j.reqVehicleType.label),
-                _row('Pickup', j.pickupLabel ?? _coord(j.pickup)),
-                _row('Drop-off', j.dropOffLabel ?? _coord(j.dropOff)),
+                const Divider(height: 28),
+                _stop(
+                  'Pickup',
+                  j.pickupLabel ?? _coord(j.pickup),
+                  j.pickupNotes,
+                  j.pickup,
+                ),
+                const SizedBox(height: 12),
+                _stop(
+                  'Drop-off',
+                  j.dropOffLabel ?? _coord(j.dropOff),
+                  j.dropOffNotes,
+                  j.dropOff,
+                ),
                 const Divider(height: 28),
                 _row('Estimated cost', '~${j.estimatedPrice} RWF'),
                 _row('Posted price', '${j.price} RWF', emphasize: true),
@@ -138,6 +151,39 @@ class _OwnerJobDetailScreenState extends State<OwnerJobDetailScreen> {
               point: j.dropOff,
               child: const Icon(Icons.place, color: Colors.red, size: 32)),
         ]),
+        RichAttributionWidget(attributions: [
+          TextSourceAttribution('OpenStreetMap contributors'),
+        ]),
+      ],
+    );
+  }
+
+  // A stop (pickup / drop-off): label, optional note, and an "Open in Maps"
+  // directions hand-off to the user's own maps app.
+  Widget _stop(String title, String label, String? note, LatLng point) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title,
+                  style: const TextStyle(
+                      color: textGray, fontSize: 12, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 2),
+              Text(label),
+              if (note != null && note.isNotEmpty)
+                Text('Note: $note',
+                    style: const TextStyle(color: textGray, fontSize: 12)),
+            ],
+          ),
+        ),
+        TextButton.icon(
+          onPressed: () => OpenInMaps.directions(context, point, label: label),
+          icon: const Icon(Icons.directions, size: 18),
+          label: const Text('Open in Maps'),
+        ),
       ],
     );
   }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -5,13 +7,15 @@ import 'package:latlong2/latlong.dart';
 import '../constants.dart';
 import '../core/enums/app_enums.dart';
 import '../core/location/location_service.dart';
+import '../core/repositories/geocode_repository.dart';
 import '../core/repositories/job_repository.dart';
 import '../core/repositories/pricing_repository.dart';
 
-/// Owner create-job flow (M3): set pickup + drop-off pins on the map (current
-/// location or drop-a-pin — no address search), enter the load profile, get a
-/// estimated cost from the API, edit the price if desired, then post. The straight
-/// line between the pins is the same great-circle the pricing uses.
+/// Owner create-job flow (M3/M3.5): set pickup + drop-off by place/landmark
+/// search, current location, or dropping/dragging a pin; pins carry a
+/// reverse-geocoded label + optional note. Enter the load profile, get the
+/// estimated cost from the API, edit the price, then post. The straight line
+/// between the pins is the same great-circle the pricing uses.
 class CreateJobScreen extends StatefulWidget {
   const CreateJobScreen({super.key});
 
@@ -25,18 +29,28 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
   final _location = LocationService();
   final _pricing = PricingRepository();
   final _jobs = JobRepository();
+  final _geocode = GeocodeRepository();
   final _mapController = MapController();
   final _formKey = GlobalKey<FormState>();
 
   final _cargoTypeController = TextEditingController();
   final _weightController = TextEditingController();
   final _priceController = TextEditingController();
+  final _searchController = TextEditingController();
+  final _pickupNotesController = TextEditingController();
+  final _dropOffNotesController = TextEditingController();
 
   LatLng? _pickup;
   LatLng? _dropOff;
+  String? _pickupLabel;
+  String? _dropOffLabel;
   bool _settingPickup = true;
   JobSize _size = JobSize.medium;
   VehicleType _vehicleType = VehicleType.pickup;
+
+  Timer? _debounce;
+  List<GeoResult> _suggestions = [];
+  bool _searching = false;
 
   PriceEstimate? _estimate;
   bool _estimating = false;
@@ -50,9 +64,13 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _cargoTypeController.dispose();
     _weightController.dispose();
     _priceController.dispose();
+    _searchController.dispose();
+    _pickupNotesController.dispose();
+    _dropOffNotesController.dispose();
     super.dispose();
   }
 
@@ -68,35 +86,76 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
     }
   }
 
-  void _onMapTap(LatLng point) {
+  // Sets the active pin (pickup/drop-off) to a point. If a label is given (from
+  // search) it's used directly; otherwise the pin is reverse-geocoded so it shows
+  // a readable place instead of raw coordinates.
+  void _setActivePin(LatLng point, {String? label, bool move = false}) {
     setState(() {
       if (_settingPickup) {
         _pickup = point;
+        _pickupLabel = label;
       } else {
         _dropOff = point;
+        _dropOffLabel = label;
       }
       _estimate = null; // pins changed → estimate stale
     });
+    if (move) _mapController.move(point, 15);
+    if (label == null) _reverseActivePin(point, _settingPickup);
   }
 
-  // Sets the currently-selected pin (pickup or drop-off) to the device location.
+  Future<void> _reverseActivePin(LatLng point, bool forPickup) async {
+    try {
+      final label = await _geocode.reverse(point);
+      if (!mounted || label == null) return;
+      setState(() {
+        if (forPickup) {
+          _pickupLabel = label;
+        } else {
+          _dropOffLabel = label;
+        }
+      });
+    } catch (_) {
+      // Reverse geocode is best-effort; the pin still works without a label.
+    }
+  }
+
+  void _onMapTap(LatLng point) => _setActivePin(point);
+
   Future<void> _useMyLocationForActivePin() async {
     try {
       final pos = await _location.getCurrentPosition();
-      final here = LatLng(pos.latitude, pos.longitude);
       if (!mounted) return;
-      setState(() {
-        if (_settingPickup) {
-          _pickup = here;
-        } else {
-          _dropOff = here;
-        }
-        _estimate = null;
-      });
-      _mapController.move(here, 14);
+      _setActivePin(LatLng(pos.latitude, pos.longitude), move: true);
     } catch (e) {
       _snack(e.toString().replaceFirst('Exception: ', ''));
     }
+  }
+
+  void _onSearchChanged(String q) {
+    _debounce?.cancel();
+    if (q.trim().length < 2) {
+      setState(() => _suggestions = []);
+      return;
+    }
+    _debounce = Timer(const Duration(milliseconds: 350), () async {
+      setState(() => _searching = true);
+      try {
+        final results = await _geocode.search(q);
+        if (mounted) setState(() => _suggestions = results);
+      } catch (_) {
+        if (mounted) setState(() => _suggestions = []);
+      } finally {
+        if (mounted) setState(() => _searching = false);
+      }
+    });
+  }
+
+  void _selectSuggestion(GeoResult r) {
+    _searchController.clear();
+    FocusScope.of(context).unfocus();
+    setState(() => _suggestions = []);
+    _setActivePin(r.point, label: r.label, move: true);
   }
 
   Future<void> _getEstimate() async {
@@ -140,7 +199,11 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
     try {
       await _jobs.create(
         pickup: _pickup!,
+        pickupLabel: _pickupLabel,
+        pickupNotes: _emptyToNull(_pickupNotesController.text),
         dropOff: _dropOff!,
+        dropOffLabel: _dropOffLabel,
+        dropOffNotes: _emptyToNull(_dropOffNotesController.text),
         cargoType: _cargoTypeController.text.trim(),
         size: _size,
         weightKg: double.tryParse(_weightController.text.trim()),
@@ -157,6 +220,8 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
       if (mounted) setState(() => _posting = false);
     }
   }
+
+  String? _emptyToNull(String s) => s.trim().isEmpty ? null : s.trim();
 
   void _snack(String msg, {bool ok = false}) {
     if (!mounted) return;
@@ -226,6 +291,9 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
                       const Icon(Icons.place, color: Colors.red, size: 36),
                 ),
             ]),
+            RichAttributionWidget(attributions: [
+              TextSourceAttribution('OpenStreetMap contributors'),
+            ]),
           ],
         ),
         Positioned(
@@ -247,27 +315,81 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
   }
 
   Widget _buildPinToggle() {
+    final activeLabel = _settingPickup ? _pickupLabel : _dropOffLabel;
+    final activeSet = _settingPickup ? _pickup != null : _dropOff != null;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: SegmentedButton<bool>(
-              segments: const [
-                ButtonSegment(value: true, label: Text('Pickup')),
-                ButtonSegment(value: false, label: Text('Drop-off')),
-              ],
-              selected: {_settingPickup},
-              onSelectionChanged: (s) =>
-                  setState(() => _settingPickup = s.first),
+          SegmentedButton<bool>(
+            segments: const [
+              ButtonSegment(value: true, label: Text('Pickup')),
+              ButtonSegment(value: false, label: Text('Drop-off')),
+            ],
+            selected: {_settingPickup},
+            onSelectionChanged: (s) => setState(() {
+              _settingPickup = s.first;
+              _suggestions = [];
+              _searchController.clear();
+            }),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _searchController,
+            onChanged: _onSearchChanged,
+            decoration: InputDecoration(
+              isDense: true,
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: _searching
+                  ? const Padding(
+                      padding: EdgeInsets.all(12),
+                      child: SizedBox(
+                          height: 16,
+                          width: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2)),
+                    )
+                  : null,
+              hintText: _settingPickup
+                  ? 'Search a pickup place'
+                  : 'Search a drop-off place',
+              border: const OutlineInputBorder(),
             ),
           ),
-          const SizedBox(width: 8),
+          if (_suggestions.isNotEmpty)
+            Container(
+              constraints: const BoxConstraints(maxHeight: 180),
+              margin: const EdgeInsets.only(top: 4),
+              decoration: BoxDecoration(
+                border: Border.all(color: borderGray),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: ListView(
+                shrinkWrap: true,
+                children: [
+                  ..._suggestions.map((r) => ListTile(
+                        dense: true,
+                        leading: const Icon(Icons.place_outlined, size: 20),
+                        title: Text(r.label,
+                            maxLines: 1, overflow: TextOverflow.ellipsis),
+                        onTap: () => _selectSuggestion(r),
+                      )),
+                  const Padding(
+                    padding: EdgeInsets.all(6),
+                    child: Text('© OpenStreetMap contributors',
+                        style: TextStyle(fontSize: 10, color: textGray)),
+                  ),
+                ],
+              ),
+            ),
+          const SizedBox(height: 4),
           Text(
-            _settingPickup
-                ? (_pickup == null ? 'Tap map to set' : 'Set ✓')
-                : (_dropOff == null ? 'Tap map to set' : 'Set ✓'),
+            activeSet
+                ? (activeLabel ?? 'Pin set ✓')
+                : 'Search, use my location, or tap the map',
             style: const TextStyle(color: textGray, fontSize: 12),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
@@ -278,6 +400,20 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        TextFormField(
+          controller: _pickupNotesController,
+          decoration: const InputDecoration(
+              labelText: 'Pickup note (optional)',
+              hintText: 'e.g. blue gate, call on arrival'),
+        ),
+        const SizedBox(height: 12),
+        TextFormField(
+          controller: _dropOffNotesController,
+          decoration: const InputDecoration(
+              labelText: 'Drop-off note (optional)',
+              hintText: 'e.g. 2nd house, ask for Alice'),
+        ),
+        const SizedBox(height: 12),
         TextFormField(
           controller: _cargoTypeController,
           decoration: const InputDecoration(
