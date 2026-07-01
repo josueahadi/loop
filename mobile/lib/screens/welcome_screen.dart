@@ -15,7 +15,7 @@ class WelcomeScreen extends StatelessWidget {
           children: [
             Image.asset("assets/images/welcome.png", height: 250),
             const SizedBox(height: 30),
-            const Text("Welcome to CargoLink", style: welcomeTitleStyle),
+            const Text("Welcome to Loop", style: welcomeTitleStyle),
             const Text(
               "Fill the form to continue",
               style: welcomeSubtitleStyle,

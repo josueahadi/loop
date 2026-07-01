@@ -24,11 +24,11 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
     ),
     FAQItem(
       question: 'How is payment handled?',
-      answer: 'Payment is negotiated directly between you and the cargo owner. CargoLink facilitates the connection but does not handle payments directly. Always agree on payment terms before starting a job.',
+      answer: 'Payment is negotiated directly between you and the cargo owner. Loop facilitates the connection but does not handle payments directly. Always agree on payment terms before starting a job.',
     ),
     FAQItem(
       question: 'What if I have an issue during delivery?',
-      answer: 'If you encounter issues:\n1. Contact the cargo owner through the in-app chat\n2. Document the issue with photos if necessary\n3. Contact CargoLink support if needed\n4. Complete the delivery report accurately',
+      answer: 'If you encounter issues:\n1. Contact the cargo owner through the in-app chat\n2. Document the issue with photos if necessary\n3. Contact Loop support if needed\n4. Complete the delivery report accurately',
     ),
     FAQItem(
       question: 'How do I update my vehicle information?',
@@ -204,7 +204,7 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'CargoLink Support',
+                      'Loop Support',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,

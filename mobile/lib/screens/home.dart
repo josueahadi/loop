@@ -127,7 +127,7 @@ class _LoadingHome extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('CargoLink'),
+        title: const Text('Loop'),
         automaticallyImplyLeading: false,
       ),
       body: const Center(

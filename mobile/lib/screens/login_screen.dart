@@ -59,7 +59,7 @@ class _LoginScreenState extends State<LoginScreen> {
               child: ListView(
                 children: [
                   const SizedBox(height: 80),
-                  const Text("Welcome to CargoLink", style: welcomeTitleStyle),
+                  const Text("Welcome to Loop", style: welcomeTitleStyle),
                   const SizedBox(height: 6),
                   const Text(
                     "Fill the form to continue",

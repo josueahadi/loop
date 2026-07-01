@@ -86,7 +86,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 children: [
                   const SizedBox(height: 80),
                   const Text(
-                    "Register to CargoLink",
+                    "Register to Loop",
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 6),

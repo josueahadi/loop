@@ -351,7 +351,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onTap: () {
                 showAboutDialog(
                   context: context,
-                  applicationName: 'CargoLink Rwanda',
+                  applicationName: 'Loop Rwanda',
                   applicationVersion: '1.0.0',
                   applicationIcon: const Icon(Icons.local_shipping, size: 48),
                   children: [
@@ -375,7 +375,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             _buildActionTile(
               icon: Icons.star_rate,
               title: 'Rate App',
-              subtitle: 'Rate CargoLink on the app store',
+              subtitle: 'Rate Loop on the app store',
               onTap: () {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Rate App - Coming Soon!')),

@@ -1,6 +1,6 @@
 {
-    "name": "cargo_app",
-    "short_name": "cargo_app",
+    "name": "Loop",
+    "short_name": "Loop",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

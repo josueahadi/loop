@@ -76,7 +76,7 @@ class MyApp extends StatelessWidget {
             });
 
             return MaterialApp(
-              title: 'CargoLink',
+              title: 'Loop',
               debugShowCheckedModeBanner: false,
               theme: ThemeData(
                 fontFamily: 'Lexend',
