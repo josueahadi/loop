@@ -27,6 +27,10 @@ export interface AppConfig {
     serviceAccountPath: string;
     bucket: string;
   };
+  matching: {
+    // Default "nearby" search radius in km (owner can pass ?radius= to override).
+    defaultRadiusKm: number;
+  };
 }
 
 export default (): AppConfig => ({
@@ -57,5 +61,8 @@ export default (): AppConfig => ({
     driver: (process.env.STORAGE_DRIVER as 'stub' | 'firebase') ?? 'stub',
     serviceAccountPath: process.env.FIREBASE_SERVICE_ACCOUNT_PATH ?? '',
     bucket: process.env.FIREBASE_STORAGE_BUCKET ?? '',
+  },
+  matching: {
+    defaultRadiusKm: parseFloat(process.env.NEARBY_RADIUS_KM ?? '10'),
   },
 });

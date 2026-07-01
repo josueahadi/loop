@@ -10,6 +10,7 @@ import '../../../features/profile/providers/profile_provider.dart';
 import '../../../screens/create_job_screen.dart';
 import '../../../screens/job_details_screen.dart';
 import '../../../screens/cargo_owner_profile_edit_screen.dart';
+import '../../matching/presentation/nearby_drivers_map.dart';
 
 class CargoOwnerHome extends StatefulWidget {
   const CargoOwnerHome({super.key});
@@ -48,6 +49,7 @@ class _CargoOwnerHomeState extends State<CargoOwnerHome> {
   Widget build(BuildContext context) {
     final List<Widget> pages = [
       const _DashboardTab(),
+      const NearbyDriversMap(),
       const _MyJobsTab(),
       const _ProfileTab(),
     ];
@@ -82,10 +84,15 @@ class _CargoOwnerHomeState extends State<CargoOwnerHome> {
       ),
       body: pages[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             icon: Icon(Icons.dashboard),
             label: 'Dashboard',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.map),
+            label: 'Nearby',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.work),
@@ -100,7 +107,7 @@ class _CargoOwnerHomeState extends State<CargoOwnerHome> {
         selectedItemColor: primaryGreen,
         onTap: _onItemTapped,
       ),
-      floatingActionButton: _selectedIndex == 0 || _selectedIndex == 1
+      floatingActionButton: _selectedIndex == 0 || _selectedIndex == 2
           ? FloatingActionButton.extended(
         onPressed: () {
           Navigator.push(

@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:dio/dio.dart';
 
 import '../core/api/api_client.dart';
@@ -128,6 +129,40 @@ class AuthService {
         if (phoneNumber != null) 'phone': phoneNumber,
         if (profileImageUrl != null) 'photoUrl': profileImageUrl,
       });
+      return UserModel.fromJson(res.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw _mapError(e);
+    }
+  }
+
+  /// PATCH /me/availability — driver online/offline + current location.
+  Future<UserModel> updateAvailability({
+    required bool online,
+    double? lat,
+    double? lng,
+  }) async {
+    try {
+      final res = await _dio.patch('/me/availability', data: {
+        'status': online ? 'online' : 'offline',
+        if (lat != null) 'lat': lat,
+        if (lng != null) 'lng': lng,
+      });
+      return UserModel.fromJson(res.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw _mapError(e);
+    }
+  }
+
+  /// POST /me/photo — multipart upload; server stores the reference on the user.
+  Future<UserModel> uploadProfilePhoto(File file) async {
+    try {
+      final form = FormData.fromMap({
+        'file': await MultipartFile.fromFile(
+          file.path,
+          filename: file.path.split('/').last,
+        ),
+      });
+      final res = await _dio.post('/me/photo', data: form);
       return UserModel.fromJson(res.data as Map<String, dynamic>);
     } on DioException catch (e) {
       throw _mapError(e);

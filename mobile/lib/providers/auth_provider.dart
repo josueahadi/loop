@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import '../core/enums/app_enums.dart';
+import '../core/location/location_service.dart';
 import '../core/models/user_model.dart';
 import '../core/repositories/verification_repository.dart';
 import '../services/auth_service.dart';
@@ -11,10 +12,15 @@ import '../services/auth_service.dart';
 class AuthProvider with ChangeNotifier {
   final AuthService _authService;
   final VerificationRepository _verification;
+  final LocationService _location;
 
-  AuthProvider({AuthService? authService, VerificationRepository? verification})
-      : _authService = authService ?? AuthService(),
-        _verification = verification ?? VerificationRepository();
+  AuthProvider({
+    AuthService? authService,
+    VerificationRepository? verification,
+    LocationService? location,
+  })  : _authService = authService ?? AuthService(),
+        _verification = verification ?? VerificationRepository(),
+        _location = location ?? LocationService();
 
   UserModel? _user;
   bool _isLoading = false;
@@ -171,14 +177,45 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  /// Driver availability toggle. The PATCH /me/availability endpoint (with location)
-  /// lands in M2; for now this updates local state only.
+  /// Driver availability toggle. Going online captures the current device
+  /// location and sends it with the status so the driver becomes matchable.
   Future<bool> updateDriverAvailability(bool isAvailable) async {
-    if (_user != null && _user!.role == UserRole.driver) {
-      _user = _user!.copyWith(isAvailable: isAvailable);
-      notifyListeners();
+    try {
+      _setLoading(true);
+      _clearError();
+      double? lat, lng;
+      if (isAvailable) {
+        final pos = await _location.getCurrentPosition();
+        lat = pos.latitude;
+        lng = pos.longitude;
+      }
+      _user = await _authService.updateAvailability(
+        online: isAvailable,
+        lat: lat,
+        lng: lng,
+      );
+      return true;
+    } catch (e) {
+      _setError(_clean(e));
+      return false;
+    } finally {
+      _setLoading(false);
     }
-    return true;
+  }
+
+  /// Upload a new profile photo (multipart → API → Storage reference).
+  Future<bool> uploadProfilePhoto(File file) async {
+    try {
+      _setLoading(true);
+      _clearError();
+      _user = await _authService.uploadProfilePhoto(file);
+      return true;
+    } catch (e) {
+      _setError(_clean(e));
+      return false;
+    } finally {
+      _setLoading(false);
+    }
   }
 
   void _setLoading(bool loading) {

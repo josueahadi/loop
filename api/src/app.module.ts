@@ -10,8 +10,10 @@ import { RolesGuard } from './common/guards/roles.guard';
 import { AdminModule } from './modules/admin/admin.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { MailModule } from './modules/mail/mail.module';
+import { MatchingModule } from './modules/matching/matching.module';
 import { StorageModule } from './modules/storage/storage.module';
 import { UsersModule } from './modules/users/users.module';
+import { VehiclesModule } from './modules/vehicles/vehicles.module';
 import { VerificationModule } from './modules/verification/verification.module';
 
 @Module({
@@ -35,6 +37,8 @@ import { VerificationModule } from './modules/verification/verification.module';
     UsersModule,
     AuthModule,
     VerificationModule,
+    VehiclesModule,
+    MatchingModule,
     AdminModule,
   ],
   providers: [

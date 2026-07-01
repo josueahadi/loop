@@ -22,7 +22,7 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
   final _specialInstructionsController = TextEditingController();
   final _estimatedPriceController = TextEditingController();
 
-  VehicleType _selectedVehicleType = VehicleType.miniTruck;
+  VehicleType _selectedVehicleType = VehicleType.pickup;
 
   @override
   void dispose() {
@@ -252,18 +252,5 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
     );
   }
 
-  String _getVehicleTypeDisplayName(VehicleType type) {
-    switch (type) {
-      case VehicleType.miniTruck:
-        return 'Mini Truck';
-      case VehicleType.pickup:
-        return 'Pickup';
-      case VehicleType.largeTruck:
-        return 'Large Truck';
-      case VehicleType.van:
-        return 'Van';
-      case VehicleType.motorcycle:
-        return 'Motorcycle';
-    }
-  }
+  String _getVehicleTypeDisplayName(VehicleType type) => type.label;
 }

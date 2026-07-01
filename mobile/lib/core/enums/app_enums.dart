@@ -37,14 +37,55 @@ extension UserRoleX on UserRole {
 /// Job size buckets — key the pricing size-multiplier lookup (used from M3).
 enum JobSize { small, medium, large }
 
-// ---- Legacy booking-surface enums (reconciled in M2/M3) ----
-enum BookingStatus { pending, confirmed, inProgress, completed, cancelled }
+/// Canonical vehicle taxonomy — matches the API (M2). Single source of truth;
+/// the legacy duplicate in booking_model.dart has been removed.
+enum VehicleType { moto, pickup, van, smallTruck, largeTruck }
 
-enum VehicleType { truck, van, pickup, lorry }
+extension VehicleTypeX on VehicleType {
+  /// API snake_case value.
+  String get api {
+    switch (this) {
+      case VehicleType.moto:
+        return 'moto';
+      case VehicleType.pickup:
+        return 'pickup';
+      case VehicleType.van:
+        return 'van';
+      case VehicleType.smallTruck:
+        return 'small_truck';
+      case VehicleType.largeTruck:
+        return 'large_truck';
+    }
+  }
 
-enum VehicleCapacity {
-  small, // Under 1 ton
-  medium, // 1-3 tons
-  large, // 3-5 tons
-  extraLarge, // 5+ tons
+  String get label {
+    switch (this) {
+      case VehicleType.moto:
+        return 'Moto';
+      case VehicleType.pickup:
+        return 'Pickup';
+      case VehicleType.van:
+        return 'Van';
+      case VehicleType.smallTruck:
+        return 'Small Truck';
+      case VehicleType.largeTruck:
+        return 'Large Truck';
+    }
+  }
+
+  static VehicleType fromApi(String? value) {
+    switch (value) {
+      case 'pickup':
+        return VehicleType.pickup;
+      case 'van':
+        return VehicleType.van;
+      case 'small_truck':
+        return VehicleType.smallTruck;
+      case 'large_truck':
+        return VehicleType.largeTruck;
+      case 'moto':
+      default:
+        return VehicleType.moto;
+    }
+  }
 }
