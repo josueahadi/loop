@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../constants.dart';
 import '../providers/auth_provider.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -47,11 +48,15 @@ class _SplashScreenState extends State<SplashScreen> {
               fit: BoxFit.contain,
             ),
             const SizedBox(height: 40),
-            Image.asset(
-              'assets/images/cargolink-logo.png',
-              width: 160,
-              height: 50,
-              fit: BoxFit.contain,
+            // Wordmark: "Loop" in PaytoneOne (brand font).
+            const Text(
+              'Loop',
+              style: TextStyle(
+                fontFamily: 'PaytoneOne',
+                fontSize: 44,
+                color: primaryGreen,
+                letterSpacing: 0.5,
+              ),
             ),
           ],
         ),

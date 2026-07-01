@@ -63,6 +63,24 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  # Generates platform launcher icons from a single source (see config below).
+  flutter_launcher_icons: ^0.14.3
+
+# Launcher icon: "Loop" wordmark (PaytoneOne, white on brand green #008853).
+# Regenerate with:  dart run flutter_launcher_icons
+flutter_launcher_icons:
+  image_path: "assets/icon/loop_icon.png"
+  android: true
+  ios: true
+  remove_alpha_ios: true
+  adaptive_icon_background: "#008853"
+  adaptive_icon_foreground: "assets/icon/loop_icon_fg.png"
+  macos:
+    generate: true
+    image_path: "assets/icon/loop_icon.png"
+  web:
+    generate: true
+    image_path: "assets/icon/loop_icon.png"
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -83,7 +101,7 @@ flutter:
     - assets/images/Anywhere_you_are.svg
     - assets/images/At_anytime.svg
     - assets/images/truck.jpg
-    - assets/images/cargolink-logo.png
+    - assets/images/loop-logo.png
     - assets/images/frame1.svg
     - assets/images/splash-illustration.png
     - assets/images/welcome.png
