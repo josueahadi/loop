@@ -79,13 +79,18 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
     });
   }
 
-  Future<void> _useMyLocationForPickup() async {
+  // Sets the currently-selected pin (pickup or drop-off) to the device location.
+  Future<void> _useMyLocationForActivePin() async {
     try {
       final pos = await _location.getCurrentPosition();
       final here = LatLng(pos.latitude, pos.longitude);
       if (!mounted) return;
       setState(() {
-        _pickup = here;
+        if (_settingPickup) {
+          _pickup = here;
+        } else {
+          _dropOff = here;
+        }
         _estimate = null;
       });
       _mapController.move(here, 14);
@@ -226,12 +231,15 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
         Positioned(
           right: 12,
           bottom: 12,
-          child: FloatingActionButton.small(
+          child: FloatingActionButton.extended(
             heroTag: 'myloc',
-            onPressed: _useMyLocationForPickup,
+            onPressed: _useMyLocationForActivePin,
             backgroundColor: Colors.white,
             foregroundColor: primaryGreen,
-            child: const Icon(Icons.my_location),
+            icon: const Icon(Icons.my_location),
+            label: Text(
+              _settingPickup ? 'Pickup: my location' : 'Drop-off: my location',
+            ),
           ),
         ),
       ],
