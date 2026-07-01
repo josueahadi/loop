@@ -27,4 +27,6 @@ export const validationSchema = Joi.object({
   STORAGE_DRIVER: Joi.string().valid('stub', 'firebase').default('stub'),
   FIREBASE_SERVICE_ACCOUNT_PATH: Joi.string().allow('').optional(),
   FIREBASE_STORAGE_BUCKET: Joi.string().allow('').optional(),
+
+  NEARBY_RADIUS_KM: Joi.number().positive().default(10),
 });

@@ -78,4 +78,31 @@ export class UsersService {
   async markEmailVerified(id: string): Promise<void> {
     await this.users.update({ id }, { emailVerifiedAt: new Date() });
   }
+
+  // Sets driver availability and (when provided) current location as a PostGIS
+  // geography point. Location is only overwritten when both lat and lng are given.
+  async updateAvailability(
+    id: string,
+    status: AvailabilityStatus,
+    lat?: number,
+    lng?: number,
+  ): Promise<User> {
+    await this.users.manager.query(
+      `UPDATE users
+         SET availability_status = $1,
+             location = CASE
+               WHEN $2::float8 IS NULL OR $3::float8 IS NULL THEN location
+               ELSE ST_SetSRID(ST_MakePoint($3, $2), 4326)::geography
+             END,
+             updated_at = now()
+       WHERE id = $4`,
+      [status, lat ?? null, lng ?? null, id],
+    );
+    return this.getByIdOrFail(id);
+  }
+
+  async setPhotoUrl(id: string, photoUrl: string): Promise<User> {
+    await this.users.update({ id }, { photoUrl });
+    return this.getByIdOrFail(id);
+  }
 }
