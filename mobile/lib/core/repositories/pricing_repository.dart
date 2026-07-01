@@ -4,9 +4,9 @@ import '../api/api_client.dart';
 import '../enums/app_enums.dart';
 
 class PriceEstimate {
-  final int suggestedPrice;
+  final int estimatedPrice;
   final double distanceKm;
-  const PriceEstimate({required this.suggestedPrice, required this.distanceKm});
+  const PriceEstimate({required this.estimatedPrice, required this.distanceKm});
 }
 
 /// Pricing estimate against the API (POST /pricing/estimate).
@@ -30,7 +30,7 @@ class PricingRepository {
       if (weightKg != null) 'weight_kg': weightKg,
     });
     return PriceEstimate(
-      suggestedPrice: (res.data['suggested_price'] as num).toInt(),
+      estimatedPrice: (res.data['estimated_price'] as num).toInt(),
       distanceKm: (res.data['distance_km'] as num).toDouble(),
     );
   }

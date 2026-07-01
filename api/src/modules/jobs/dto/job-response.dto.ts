@@ -12,7 +12,7 @@ export class JobResponseDto {
   @ApiProperty() cargoType: string;
   @ApiProperty({ enum: JobSize }) size: JobSize;
   @ApiProperty({ nullable: true }) weightKg: number | null;
-  @ApiProperty() suggestedPrice: number;
+  @ApiProperty() estimatedPrice: number;
   @ApiProperty() price: number;
   @ApiProperty({ enum: VehicleType }) reqVehicleType: VehicleType;
   @ApiProperty({ enum: JobStatus }) status: JobStatus;
@@ -35,7 +35,7 @@ export class JobResponseDto {
       cargoType: r.cargoType as string,
       size: r.size as JobSize,
       weightKg: r.weightKg != null ? Number(r.weightKg) : null,
-      suggestedPrice: Number(r.suggestedPrice),
+      estimatedPrice: Number(r.estimatedPrice),
       price: Number(r.price),
       reqVehicleType: r.reqVehicleType as VehicleType,
       status: r.status as JobStatus,

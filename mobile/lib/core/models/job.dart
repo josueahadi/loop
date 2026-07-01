@@ -13,7 +13,7 @@ class Job {
   final String cargoType;
   final JobSize size;
   final double? weightKg;
-  final int suggestedPrice;
+  final int estimatedPrice;
   final int price;
   final VehicleType reqVehicleType;
   final String status;
@@ -35,7 +35,7 @@ class Job {
     required this.cargoType,
     required this.size,
     this.weightKg,
-    required this.suggestedPrice,
+    required this.estimatedPrice,
     required this.price,
     required this.reqVehicleType,
     required this.status,
@@ -64,7 +64,7 @@ class Job {
       cargoType: json['cargoType'] as String? ?? '',
       size: JobSizeX.fromApi(json['size'] as String?),
       weightKg: (json['weightKg'] as num?)?.toDouble(),
-      suggestedPrice: (json['suggestedPrice'] as num?)?.toInt() ?? 0,
+      estimatedPrice: (json['estimatedPrice'] as num?)?.toInt() ?? 0,
       price: (json['price'] as num?)?.toInt() ?? 0,
       reqVehicleType: VehicleTypeX.fromApi(json['reqVehicleType'] as String?),
       status: json['status'] as String? ?? 'draft',
