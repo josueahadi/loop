@@ -1,6 +1,5 @@
 import 'package:cargo_app/screens/driver_details.dart';
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../core/enums/app_enums.dart';
@@ -257,19 +256,7 @@ class _SignupScreenState extends State<SignupScreen> {
                           ),
                   ),
                   const SizedBox(height: 20),
-                  const Center(child: Text("Or continue with")),
-                  const SizedBox(height: 10),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
-                      FaIcon(FontAwesomeIcons.google, size: 24),
-                      SizedBox(width: 20),
-                      FaIcon(FontAwesomeIcons.facebook, size: 24),
-                      SizedBox(width: 20),
-                      FaIcon(FontAwesomeIcons.instagram, size: 24),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
+                  // Social login is out of MVP scope (email/password only).
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
