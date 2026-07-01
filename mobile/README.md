@@ -8,8 +8,15 @@ Dio client (`lib/core/api/`) that attaches the JWT and refreshes it on 401.
 
 - Flutter (stable) — developed on 3.32.5, Dart SDK `^3.8.1`
 - `provider` (state), `dio` + `flutter_secure_storage` (API + JWT)
+- `flutter_map` + OpenStreetMap tiles (maps, no API key), `latlong2`, `geolocator`
+  (device location)
 - `firebase_core` + `firebase_storage` retained for FCM push / document storage
   (later milestones). **Firebase Auth is not used** — identity is the API's JWT.
+
+> Location search (place/landmark autocomplete + reverse-geocoded pin labels, served by
+> the API's `/geocode/*` proxy over OpenStreetMap) and the "Open in Maps" navigation
+> hand-off (`map_launcher` / `url_launcher` → Google / Apple Maps / Waze) arrive with
+> M3.5–M4. No Google Maps SDK and no API key are used.
 
 ## Run
 
@@ -35,9 +42,12 @@ lib/
 │   ├── config/      # API base URL
 │   ├── enums/  models/  repositories/
 ├── providers/       # AuthProvider, onboarding (provider-based state)
-├── features/        # cargo_owner, driver, chat, booking, profile
+├── features/        # cargo_owner, driver, matching, jobs, chat, booking, profile
 └── screens/  widgets/  mixins/
 ```
 
-> Migration note: auth, profile and driver verification are wired to the API.
-> Booking/chat screens still use Firestore and are migrated to the API in M2–M5.
+> Migration status: auth, profile, driver verification, **matching** (availability
+> toggle + nearby map + vehicle management) and **jobs** (pin-based create/post + owner
+> job detail, on the `estimated_price` + `price` model) are wired to the API (M1–M3).
+> Chat/messaging still uses Firestore and moves to the API (Postgres + a NestJS
+> WebSocket gateway) in M4.

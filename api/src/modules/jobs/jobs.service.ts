@@ -11,10 +11,11 @@ import { JobResponseDto } from './dto/job-response.dto';
 
 // Column projection reused by every read (geography → lat/lng via ST_Y/ST_X).
 const SELECT = `
-  SELECT id, owner_id AS "ownerId", pickup AS "pickupLabel",
+  SELECT id, owner_id AS "ownerId",
+         pickup_label AS "pickupLabel", pickup_notes AS "pickupNotes",
          ST_Y(pickup_location::geometry) AS "pickupLat",
          ST_X(pickup_location::geometry) AS "pickupLng",
-         drop_off AS "dropOffLabel",
+         drop_off_label AS "dropOffLabel", drop_off_notes AS "dropOffNotes",
          ST_Y(drop_off_location::geometry) AS "dropOffLat",
          ST_X(drop_off_location::geometry) AS "dropOffLng",
          cargo_type AS "cargoType", size, weight_kg AS "weightKg",
@@ -42,27 +43,25 @@ export class JobsService {
 
   // Owner creates a posted job. Pins stored as geography; both prices persisted.
   async create(ownerId: string, dto: CreateJobDto): Promise<JobResponseDto> {
-    const pickupLabel =
-      dto.pickupLabel ?? `${dto.pickup.lat}, ${dto.pickup.lng}`;
-    const dropOffLabel =
-      dto.dropOffLabel ?? `${dto.dropOff.lat}, ${dto.dropOff.lng}`;
-
     const [{ id }] = await this.dataSource.query(
       `INSERT INTO jobs
-         (owner_id, pickup, pickup_location, drop_off, drop_off_location,
+         (owner_id, pickup_label, pickup_notes, pickup_location,
+          drop_off_label, drop_off_notes, drop_off_location,
           cargo_type, size, weight_kg, estimated_price, price,
           req_vehicle_type, status, posted_at)
        VALUES
-         ($1, $2, ST_SetSRID(ST_MakePoint($4, $3), 4326)::geography,
-          $5, ST_SetSRID(ST_MakePoint($7, $6), 4326)::geography,
-          $8, $9, $10, $11, $12, $13, 'posted', now())
+         ($1, $2, $3, ST_SetSRID(ST_MakePoint($5, $4), 4326)::geography,
+          $6, $7, ST_SetSRID(ST_MakePoint($9, $8), 4326)::geography,
+          $10, $11, $12, $13, $14, $15, 'posted', now())
        RETURNING id`,
       [
         ownerId,
-        pickupLabel,
+        dto.pickupLabel ?? null,
+        dto.pickupNotes ?? null,
         dto.pickup.lat,
         dto.pickup.lng,
-        dropOffLabel,
+        dto.dropOffLabel ?? null,
+        dto.dropOffNotes ?? null,
         dto.dropOff.lat,
         dto.dropOff.lng,
         dto.cargoType,

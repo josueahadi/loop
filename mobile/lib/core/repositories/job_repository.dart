@@ -13,8 +13,10 @@ class JobRepository {
   Future<Job> create({
     required LatLng pickup,
     String? pickupLabel,
+    String? pickupNotes,
     required LatLng dropOff,
     String? dropOffLabel,
+    String? dropOffNotes,
     required String cargoType,
     required JobSize size,
     double? weightKg,
@@ -25,8 +27,10 @@ class JobRepository {
     final res = await _api.dio.post('/jobs', data: {
       'pickup': {'lat': pickup.latitude, 'lng': pickup.longitude},
       if (pickupLabel != null) 'pickupLabel': pickupLabel,
+      if (pickupNotes != null) 'pickupNotes': pickupNotes,
       'dropOff': {'lat': dropOff.latitude, 'lng': dropOff.longitude},
       if (dropOffLabel != null) 'dropOffLabel': dropOffLabel,
+      if (dropOffNotes != null) 'dropOffNotes': dropOffNotes,
       'cargoType': cargoType,
       'size': size.api,
       if (weightKg != null) 'weightKg': weightKg,

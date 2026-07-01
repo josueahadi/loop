@@ -21,22 +21,34 @@ export class CreateJobDto {
   @Type(() => LatLngDto)
   pickup: LatLngDto;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ description: 'Reverse-geocoded / searched label' })
   @IsOptional()
   @IsString()
-  @MaxLength(160)
+  @MaxLength(200)
   pickupLabel?: string;
+
+  @ApiPropertyOptional({ description: 'Free-text note, e.g. "blue gate"' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  pickupNotes?: string;
 
   @ApiProperty({ type: LatLngDto })
   @ValidateNested()
   @Type(() => LatLngDto)
   dropOff: LatLngDto;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ description: 'Reverse-geocoded / searched label' })
   @IsOptional()
   @IsString()
-  @MaxLength(160)
+  @MaxLength(200)
   dropOffLabel?: string;
+
+  @ApiPropertyOptional({ description: 'Free-text note, e.g. "2nd house"' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  dropOffNotes?: string;
 
   @ApiProperty()
   @IsString()

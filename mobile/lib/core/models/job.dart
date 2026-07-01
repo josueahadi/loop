@@ -7,8 +7,10 @@ class Job {
   final String id;
   final String ownerId;
   final String? pickupLabel;
+  final String? pickupNotes;
   final LatLng pickup;
   final String? dropOffLabel;
+  final String? dropOffNotes;
   final LatLng dropOff;
   final String cargoType;
   final JobSize size;
@@ -29,8 +31,10 @@ class Job {
     required this.id,
     required this.ownerId,
     this.pickupLabel,
+    this.pickupNotes,
     required this.pickup,
     this.dropOffLabel,
+    this.dropOffNotes,
     required this.dropOff,
     required this.cargoType,
     required this.size,
@@ -58,8 +62,10 @@ class Job {
       id: json['id'] as String,
       ownerId: json['ownerId'] as String? ?? '',
       pickupLabel: json['pickupLabel'] as String?,
+      pickupNotes: json['pickupNotes'] as String?,
       pickup: _latLng(json['pickup'] as Map<String, dynamic>),
       dropOffLabel: json['dropOffLabel'] as String?,
+      dropOffNotes: json['dropOffNotes'] as String?,
       dropOff: _latLng(json['dropOff'] as Map<String, dynamic>),
       cargoType: json['cargoType'] as String? ?? '',
       size: JobSizeX.fromApi(json['size'] as String?),

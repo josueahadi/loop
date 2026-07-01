@@ -31,6 +31,17 @@ export interface AppConfig {
     // Default "nearby" search radius in km (owner can pass ?radius= to override).
     defaultRadiusKm: number;
   };
+  geocode: {
+    // OSM providers (swappable). Search = Photon, reverse = Nominatim.
+    searchUrl: string;
+    reverseUrl: string;
+    // Required by OSM usage policy — a descriptive, contactable UA.
+    userAgent: string;
+    // Kigali bias so search-as-you-type prefers local results.
+    biasLat: number;
+    biasLng: number;
+    bbox: string; // "minLon,minLat,maxLon,maxLat"
+  };
 }
 
 export default (): AppConfig => ({
@@ -64,5 +75,17 @@ export default (): AppConfig => ({
   },
   matching: {
     defaultRadiusKm: parseFloat(process.env.NEARBY_RADIUS_KM ?? '10'),
+  },
+  geocode: {
+    searchUrl: process.env.GEOCODE_SEARCH_URL ?? 'https://photon.komoot.io/api',
+    reverseUrl:
+      process.env.GEOCODE_REVERSE_URL ??
+      'https://nominatim.openstreetmap.org/reverse',
+    userAgent:
+      process.env.GEOCODE_USER_AGENT ?? 'LoopApp/0.1 (support@loop.rw)',
+    biasLat: parseFloat(process.env.GEOCODE_BIAS_LAT ?? '-1.9441'),
+    biasLng: parseFloat(process.env.GEOCODE_BIAS_LNG ?? '30.0619'),
+    // Greater Kigali bounding box.
+    bbox: process.env.GEOCODE_BBOX ?? '29.9,-2.10,30.30,-1.80',
   },
 });
