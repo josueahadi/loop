@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/models/user_model.dart';
-import '../../../core/models/booking_model.dart';
 import '../../../core/repositories/user_repository.dart';
-import '../../../providers/auth_provider.dart';
-import '../core/enums/app_enums.dart' hide VehicleType;
+import '../core/enums/app_enums.dart';
 import '../features/booking/providers/booking_provider.dart';
 import 'package:cargo_app/constants.dart';
 
