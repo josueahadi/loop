@@ -41,21 +41,27 @@ class _SplashScreenState extends State<SplashScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Image.asset(
-              'assets/images/splash-illustration.png',
-              width: 280,
-              height: 280,
-              fit: BoxFit.contain,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32),
+              child: Image.asset(
+                'assets/images/splash-illustration-high-res.png',
+                fit: BoxFit.contain,
+              ),
             ),
             const SizedBox(height: 40),
-            // Wordmark: "Loop" in PaytoneOne (brand font).
-            const Text(
-              'Loop',
-              style: TextStyle(
-                fontFamily: 'PaytoneOne',
-                fontSize: 44,
-                color: primaryGreen,
-                letterSpacing: 0.5,
+            // Two-tone "Loop" wordmark (PaytoneOne): dark "L"/"p", green "oo".
+            RichText(
+              text: const TextSpan(
+                style: TextStyle(
+                  fontFamily: 'PaytoneOne',
+                  fontSize: 48,
+                  letterSpacing: 0.5,
+                ),
+                children: [
+                  TextSpan(text: 'L', style: TextStyle(color: textDark)),
+                  TextSpan(text: 'oo', style: TextStyle(color: primaryGreen)),
+                  TextSpan(text: 'p', style: TextStyle(color: textDark)),
+                ],
               ),
             ),
           ],

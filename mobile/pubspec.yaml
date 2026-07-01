@@ -104,6 +104,7 @@ flutter:
     - assets/images/loop-logo.png
     - assets/images/frame1.svg
     - assets/images/splash-illustration.png
+    - assets/images/splash-illustration-high-res.png
     - assets/images/welcome.png
 
   fonts:
