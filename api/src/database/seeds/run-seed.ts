@@ -39,40 +39,39 @@ async function seed() {
   }
 
   // ---- pricing config (per vehicle type, RWF integers) ----
+  // PLACEHOLDER values — NOT field-researched. Replace with real Kigali rates
+  // before launch. Editable at runtime (no redeploy). Upserted so re-seeding
+  // corrects the values.
   const pricing = ds.getRepository(PricingConfig);
-  const defaults: Record<VehicleType, { baseFare: number; ratePerKm: number }> = {
-    [VehicleType.MOTO]: { baseFare: 1000, ratePerKm: 300 },
-    [VehicleType.PICKUP]: { baseFare: 3000, ratePerKm: 600 },
-    [VehicleType.VAN]: { baseFare: 4000, ratePerKm: 800 },
-    [VehicleType.SMALL_TRUCK]: { baseFare: 6000, ratePerKm: 1200 },
-    [VehicleType.LARGE_TRUCK]: { baseFare: 10000, ratePerKm: 2000 },
+  const placeholderFares: Record<
+    VehicleType,
+    { baseFare: number; ratePerKm: number }
+  > = {
+    [VehicleType.MOTO]: { baseFare: 500, ratePerKm: 300 },
+    [VehicleType.PICKUP]: { baseFare: 1000, ratePerKm: 600 },
+    [VehicleType.VAN]: { baseFare: 1500, ratePerKm: 800 },
+    [VehicleType.SMALL_TRUCK]: { baseFare: 2000, ratePerKm: 1200 },
+    [VehicleType.LARGE_TRUCK]: { baseFare: 3000, ratePerKm: 2000 },
   };
-  for (const [vehicleType, vals] of Object.entries(defaults)) {
-    const exists = await pricing.findOne({
-      where: { vehicleType: vehicleType as VehicleType },
-    });
-    if (!exists) {
-      await pricing.save(
-        pricing.create({ vehicleType: vehicleType as VehicleType, ...vals }),
-      );
-    }
+  for (const [vehicleType, vals] of Object.entries(placeholderFares)) {
+    await pricing.upsert(
+      { vehicleType: vehicleType as VehicleType, ...vals },
+      ['vehicleType'],
+    );
   }
-  console.log('Seeded pricing_config');
+  console.log('Seeded pricing_config (PLACEHOLDER rates)');
 
-  // ---- size multipliers ----
+  // ---- size multipliers (PLACEHOLDER) ----
   const sizes = ds.getRepository(SizeMultiplier);
-  const sizeDefaults: Record<JobSize, number> = {
+  const sizeFactors: Record<JobSize, number> = {
     [JobSize.SMALL]: 1.0,
     [JobSize.MEDIUM]: 1.3,
-    [JobSize.LARGE]: 1.7,
+    [JobSize.LARGE]: 1.6,
   };
-  for (const [size, multiplier] of Object.entries(sizeDefaults)) {
-    const exists = await sizes.findOne({ where: { size: size as JobSize } });
-    if (!exists) {
-      await sizes.save(sizes.create({ size: size as JobSize, multiplier }));
-    }
+  for (const [size, multiplier] of Object.entries(sizeFactors)) {
+    await sizes.upsert({ size: size as JobSize, multiplier }, ['size']);
   }
-  console.log('Seeded size_multipliers');
+  console.log('Seeded size_multipliers (PLACEHOLDER factors)');
 
   await ds.destroy();
   console.log('Seed complete.');
