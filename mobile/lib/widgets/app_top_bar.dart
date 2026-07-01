@@ -19,21 +19,32 @@ class AppTopBar extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         children: [
-          // Logo
+          // Logo — "Loop" wordmark (two-tone)
           const Text(
-            'Cargo',
+            'L',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
+              fontFamily: 'PaytoneOne',
               color: Colors.black,
             ),
           ),
           const Text(
-            'Link',
+            'oo',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
+              fontFamily: 'PaytoneOne',
               color: Color(0xFF08914D),
+            ),
+          ),
+          const Text(
+            'p',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              fontFamily: 'PaytoneOne',
+              color: Colors.black,
             ),
           ),
           const Spacer(),

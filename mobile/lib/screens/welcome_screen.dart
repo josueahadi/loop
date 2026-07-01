@@ -16,10 +16,6 @@ class WelcomeScreen extends StatelessWidget {
             Image.asset("assets/images/welcome.png", height: 250),
             const SizedBox(height: 30),
             const Text("Welcome to Loop", style: welcomeTitleStyle),
-            const Text(
-              "Fill the form to continue",
-              style: welcomeSubtitleStyle,
-            ),
             const SizedBox(height: 40),
             ElevatedButton(
               onPressed: () => Navigator.pushNamed(context, '/signup'),

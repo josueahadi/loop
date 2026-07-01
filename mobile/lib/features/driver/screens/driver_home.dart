@@ -70,14 +70,9 @@ class _DriverHomeState extends State<DriverHome> {
               fontFamily: 'PaytoneOne',
             ),
             children: [
-              const TextSpan(
-                text: 'Cargo',
-                style: TextStyle(color: Colors.black),
-              ),
-              TextSpan(
-                text: 'Link',
-                style: TextStyle(color: primaryGreen),
-              ),
+              const TextSpan(text: 'L', style: TextStyle(color: Colors.black)),
+              TextSpan(text: 'oo', style: TextStyle(color: primaryGreen)),
+              const TextSpan(text: 'p', style: TextStyle(color: Colors.black)),
             ],
           ),
         ),

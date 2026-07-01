@@ -88,11 +88,6 @@ class _SignupScreenState extends State<SignupScreen> {
                     "Register to Loop",
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
-                  const SizedBox(height: 6),
-                  const Text(
-                    "Fill the form to continue",
-                    style: TextStyle(color: Colors.grey),
-                  ),
                   const SizedBox(height: 30),
 
                   // Role Selection

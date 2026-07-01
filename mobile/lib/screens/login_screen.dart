@@ -59,11 +59,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 children: [
                   const SizedBox(height: 80),
                   const Text("Welcome to Loop", style: welcomeTitleStyle),
-                  const SizedBox(height: 6),
-                  const Text(
-                    "Fill the form to continue",
-                    style: welcomeSubtitleStyle,
-                  ),
                   const SizedBox(height: 30),
                   TextFormField(
                     controller: emailController,
