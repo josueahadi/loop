@@ -4,6 +4,7 @@ import 'package:latlong2/latlong.dart';
 
 import '../../../constants.dart';
 import '../../../core/enums/app_enums.dart';
+import '../../../core/location/enable_location_prompt.dart';
 import '../../../core/location/location_service.dart';
 import '../../../core/models/nearby_driver.dart';
 import '../../../core/repositories/matching_repository.dart';
@@ -32,7 +33,25 @@ class _NearbyDriversMapState extends State<NearbyDriversMap> {
   @override
   void initState() {
     super.initState();
-    _load();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _primeThenLoad());
+  }
+
+  // Prime the location ask (design 04) before the OS prompt fires.
+  Future<void> _primeThenLoad() async {
+    final proceed = await EnableLocationPrompt.show(
+      context,
+      message: 'See available drivers around you and set your pickup point.',
+    );
+    if (!proceed) {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _error = 'Location off. Enable it to see nearby drivers.';
+        });
+      }
+      return;
+    }
+    await _load();
   }
 
   Future<void> _load() async {

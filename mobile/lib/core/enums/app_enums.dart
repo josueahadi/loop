@@ -37,6 +37,33 @@ extension UserRoleX on UserRole {
 /// Job size buckets — key the pricing size-multiplier lookup (used from M3).
 enum JobSize { small, medium, large }
 
+extension JobSizeX on JobSize {
+  String get api => name; // small | medium | large
+
+  String get label {
+    switch (this) {
+      case JobSize.small:
+        return 'Small';
+      case JobSize.medium:
+        return 'Medium';
+      case JobSize.large:
+        return 'Large';
+    }
+  }
+
+  static JobSize fromApi(String? value) {
+    switch (value) {
+      case 'small':
+        return JobSize.small;
+      case 'large':
+        return JobSize.large;
+      case 'medium':
+      default:
+        return JobSize.medium;
+    }
+  }
+}
+
 /// Canonical vehicle taxonomy — matches the API (M2). Single source of truth;
 /// the legacy duplicate in booking_model.dart has been removed.
 enum VehicleType { moto, pickup, van, smallTruck, largeTruck }

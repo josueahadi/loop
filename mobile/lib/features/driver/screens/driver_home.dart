@@ -1,14 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/models/booking_model.dart';
-import '../../../core/models/user_model.dart';
 import '../../../features/booking/providers/booking_provider.dart';
 import '../../../providers/auth_provider.dart';
-import '../../../widgets/profile_header.dart';
-import '../../../widgets/stats_card.dart';
-import '../../../widgets/app_top_bar.dart';
-import '../../../mixins/image_picker_mixin.dart';
-import '../../../mixins/logout_mixin.dart';
+import '../../../core/location/enable_location_prompt.dart';
 import '../../../constants.dart';
 import '../../../screens/driver_profile_edit_screen.dart';
 import '../../../screens/vehicle_details_screen.dart';
@@ -88,6 +83,16 @@ class _DriverHomeState extends State<DriverHome> {
                 onChanged: authProvider.isLoading
                     ? null
                     : (value) async {
+                        // Prime the location ask before going online.
+                        if (value) {
+                          final proceed = await EnableLocationPrompt.show(
+                            context,
+                            message:
+                                'Share your location while online so cargo owners nearby can find you and send jobs.',
+                          );
+                          if (!proceed) return;
+                        }
+                        if (!context.mounted) return;
                         final ok =
                             await authProvider.updateDriverAvailability(value);
                         if (!ok && context.mounted) {

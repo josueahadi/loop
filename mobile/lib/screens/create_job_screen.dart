@@ -1,11 +1,17 @@
-import 'package:cargo_app/constants.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../../../core/models/booking_model.dart';
-import '../../../features/booking/providers/booking_provider.dart';
-import '../../../providers/auth_provider.dart';
-import 'driver_selection_screen.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 
+import '../constants.dart';
+import '../core/enums/app_enums.dart';
+import '../core/location/location_service.dart';
+import '../core/repositories/job_repository.dart';
+import '../core/repositories/pricing_repository.dart';
+
+/// Owner create-job flow (M3): set pickup + drop-off pins on the map (current
+/// location or drop-a-pin — no address search), enter the load profile, get a
+/// suggested price from the API, edit it if desired, then post. The straight
+/// line between the pins is the same great-circle the pricing uses.
 class CreateJobScreen extends StatefulWidget {
   const CreateJobScreen({super.key});
 
@@ -14,243 +20,356 @@ class CreateJobScreen extends StatefulWidget {
 }
 
 class _CreateJobScreenState extends State<CreateJobScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _pickupController = TextEditingController();
-  final _dropoffController = TextEditingController();
-  final _cargoDescriptionController = TextEditingController();
-  final _weightController = TextEditingController();
-  final _specialInstructionsController = TextEditingController();
-  final _estimatedPriceController = TextEditingController();
+  static const _kigali = LatLng(-1.9441, 30.0619);
 
-  VehicleType _selectedVehicleType = VehicleType.pickup;
+  final _location = LocationService();
+  final _pricing = PricingRepository();
+  final _jobs = JobRepository();
+  final _mapController = MapController();
+  final _formKey = GlobalKey<FormState>();
+
+  final _cargoTypeController = TextEditingController();
+  final _weightController = TextEditingController();
+  final _priceController = TextEditingController();
+
+  LatLng? _pickup;
+  LatLng? _dropOff;
+  bool _settingPickup = true;
+  JobSize _size = JobSize.medium;
+  VehicleType _vehicleType = VehicleType.pickup;
+
+  PriceEstimate? _estimate;
+  bool _estimating = false;
+  bool _posting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _centerOnCurrentLocation();
+  }
 
   @override
   void dispose() {
-    _pickupController.dispose();
-    _dropoffController.dispose();
-    _cargoDescriptionController.dispose();
+    _cargoTypeController.dispose();
     _weightController.dispose();
-    _specialInstructionsController.dispose();
-    _estimatedPriceController.dispose();
+    _priceController.dispose();
     super.dispose();
   }
 
-  Future<void> _createJob() async {
-    if (!_formKey.currentState!.validate()) return;
+  Future<void> _centerOnCurrentLocation() async {
+    try {
+      final pos = await _location.getCurrentPosition();
+      final here = LatLng(pos.latitude, pos.longitude);
+      if (!mounted) return;
+      _mapController.move(here, 14);
+      setState(() => _pickup ??= here);
+    } catch (_) {
+      // Fall back to the default centre; the owner can still drop pins.
+    }
+  }
 
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final bookingProvider = Provider.of<BookingProvider>(context, listen: false);
+  void _onMapTap(LatLng point) {
+    setState(() {
+      if (_settingPickup) {
+        _pickup = point;
+      } else {
+        _dropOff = point;
+      }
+      _estimate = null; // pins changed → estimate stale
+    });
+  }
 
-    if (authProvider.user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please log in to create a job')),
-      );
+  Future<void> _useMyLocationForPickup() async {
+    try {
+      final pos = await _location.getCurrentPosition();
+      final here = LatLng(pos.latitude, pos.longitude);
+      if (!mounted) return;
+      setState(() {
+        _pickup = here;
+        _estimate = null;
+      });
+      _mapController.move(here, 14);
+    } catch (e) {
+      _snack(e.toString().replaceFirst('Exception: ', ''));
+    }
+  }
+
+  Future<void> _getEstimate() async {
+    if (_pickup == null || _dropOff == null) {
+      _snack('Set both a pickup and a drop-off pin first.');
       return;
     }
-
-    final success = await bookingProvider.createBooking(
-      cargoOwnerId: authProvider.user!.uid,
-      pickupLocation: _pickupController.text.trim(),
-      dropoffLocation: _dropoffController.text.trim(),
-      cargoDescription: _cargoDescriptionController.text.trim(),
-      vehicleType: _selectedVehicleType,
-      weight: _weightController.text.isNotEmpty
-          ? double.tryParse(_weightController.text)
-          : null,
-      specialInstructions: _specialInstructionsController.text.isNotEmpty
-          ? _specialInstructionsController.text.trim()
-          : null,
-      estimatedPrice: _estimatedPriceController.text.isNotEmpty
-          ? double.tryParse(_estimatedPriceController.text)
-          : null,
-    );
-
-    if (success && mounted) {
-      // Navigate to driver selection screen
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => DriverSelectionScreen(
-            vehicleType: _selectedVehicleType,
-            pickupLocation: _pickupController.text.trim(),
-            dropoffLocation: _dropoffController.text.trim(),
-            cargoDescription: _cargoDescriptionController.text.trim(),
-          ),
-        ),
+    setState(() => _estimating = true);
+    try {
+      final est = await _pricing.estimate(
+        pickup: _pickup!,
+        dropOff: _dropOff!,
+        vehicleType: _vehicleType,
+        size: _size,
+        weightKg: double.tryParse(_weightController.text.trim()),
       );
-    } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(bookingProvider.error ?? 'Failed to create job'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (!mounted) return;
+      setState(() {
+        _estimate = est;
+        _priceController.text = est.suggestedPrice.toString();
+      });
+    } catch (e) {
+      _snack(e.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      if (mounted) setState(() => _estimating = false);
     }
+  }
+
+  Future<void> _post() async {
+    if (!_formKey.currentState!.validate()) return;
+    if (_pickup == null || _dropOff == null || _estimate == null) {
+      _snack('Get a price estimate before posting.');
+      return;
+    }
+    final price = int.tryParse(_priceController.text.trim());
+    if (price == null || price < 0) {
+      _snack('Enter a valid price.');
+      return;
+    }
+    setState(() => _posting = true);
+    try {
+      await _jobs.create(
+        pickup: _pickup!,
+        dropOff: _dropOff!,
+        cargoType: _cargoTypeController.text.trim(),
+        size: _size,
+        weightKg: double.tryParse(_weightController.text.trim()),
+        reqVehicleType: _vehicleType,
+        suggestedPrice: _estimate!.suggestedPrice,
+        price: price,
+      );
+      if (!mounted) return;
+      _snack('Job posted', ok: true);
+      Navigator.pop(context, true);
+    } catch (e) {
+      _snack(e.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      if (mounted) setState(() => _posting = false);
+    }
+  }
+
+  void _snack(String msg, {bool ok = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(msg),
+      backgroundColor: ok ? primaryGreen : Colors.red,
+    ));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Create New Job'),
-        backgroundColor: primaryGreen,
-        foregroundColor: Colors.white,
-      ),
-      body: Consumer<BookingProvider>(
-        builder: (context, bookingProvider, child) {
-          return Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Form(
-              key: _formKey,
-              child: ListView(
-                children: [
-                  const Text(
-                    'Job Details',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  // Pickup Location
-                  TextFormField(
-                    controller: _pickupController,
-                    decoration: const InputDecoration(
-                      labelText: 'Pickup Location *',
-                      prefixIcon: Icon(Icons.location_on),
-                      border: OutlineInputBorder(),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter pickup location';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Dropoff Location
-                  TextFormField(
-                    controller: _dropoffController,
-                    decoration: const InputDecoration(
-                      labelText: 'Dropoff Location *',
-                      prefixIcon: Icon(Icons.flag),
-                      border: OutlineInputBorder(),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter dropoff location';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Cargo Description
-                  TextFormField(
-                    controller: _cargoDescriptionController,
-                    decoration: const InputDecoration(
-                      labelText: 'Cargo Description *',
-                      prefixIcon: Icon(Icons.inventory),
-                      border: OutlineInputBorder(),
-                    ),
-                    maxLines: 2,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please describe your cargo';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Vehicle Type
-                  DropdownButtonFormField<VehicleType>(
-                    value: _selectedVehicleType,
-                    decoration: const InputDecoration(
-                      labelText: 'Vehicle Type *',
-                      prefixIcon: Icon(Icons.local_shipping),
-                      border: OutlineInputBorder(),
-                    ),
-                    items: VehicleType.values.map((type) {
-                      return DropdownMenuItem(
-                        value: type,
-                        child: Text(_getVehicleTypeDisplayName(type)),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedVehicleType = value!;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Weight (Optional)
-                  TextFormField(
-                    controller: _weightController,
-                    decoration: const InputDecoration(
-                      labelText: 'Weight (kg)',
-                      prefixIcon: Icon(Icons.scale),
-                      border: OutlineInputBorder(),
-                    ),
-                    keyboardType: TextInputType.number,
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Estimated Price (Optional)
-                  TextFormField(
-                    controller: _estimatedPriceController,
-                    decoration: const InputDecoration(
-                      labelText: 'Estimated Price (RWF)',
-                      prefixIcon: Icon(Icons.money),
-                      border: OutlineInputBorder(),
-                    ),
-                    keyboardType: TextInputType.number,
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Special Instructions (Optional)
-                  TextFormField(
-                    controller: _specialInstructionsController,
-                    decoration: const InputDecoration(
-                      labelText: 'Special Instructions',
-                      prefixIcon: Icon(Icons.note),
-                      border: OutlineInputBorder(),
-                    ),
-                    maxLines: 3,
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Create Job Button
-                  SizedBox(
-                    height: 50,
-                    child: ElevatedButton(
-                      onPressed: bookingProvider.isLoading ? null : _createJob,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: primaryGreen,
-                        foregroundColor: Colors.white,
-                      ),
-                      child: bookingProvider.isLoading
-                          ? const CircularProgressIndicator(color: Colors.white)
-                          : const Text(
-                        'CREATE JOB',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+      appBar: AppBar(title: const Text('New Job')),
+      body: Column(
+        children: [
+          SizedBox(height: 280, child: _buildMap()),
+          _buildPinToggle(),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Form(key: _formKey, child: _buildForm()),
             ),
-          );
-        },
+          ),
+        ],
       ),
     );
   }
 
-  String _getVehicleTypeDisplayName(VehicleType type) => type.label;
+  Widget _buildMap() {
+    return Stack(
+      children: [
+        FlutterMap(
+          mapController: _mapController,
+          options: MapOptions(
+            initialCenter: _pickup ?? _kigali,
+            initialZoom: 13,
+            onTap: (_, point) => _onMapTap(point),
+          ),
+          children: [
+            TileLayer(
+              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+              userAgentPackageName: 'rw.loop.app',
+            ),
+            if (_pickup != null && _dropOff != null)
+              PolylineLayer(polylines: [
+                Polyline(
+                  points: [_pickup!, _dropOff!],
+                  strokeWidth: 3,
+                  color: primaryGreen,
+                ),
+              ]),
+            MarkerLayer(markers: [
+              if (_pickup != null)
+                Marker(
+                  point: _pickup!,
+                  width: 40,
+                  height: 40,
+                  child: const Icon(Icons.trip_origin,
+                      color: primaryGreen, size: 32),
+                ),
+              if (_dropOff != null)
+                Marker(
+                  point: _dropOff!,
+                  width: 40,
+                  height: 40,
+                  child:
+                      const Icon(Icons.place, color: Colors.red, size: 36),
+                ),
+            ]),
+          ],
+        ),
+        Positioned(
+          right: 12,
+          bottom: 12,
+          child: FloatingActionButton.small(
+            heroTag: 'myloc',
+            onPressed: _useMyLocationForPickup,
+            backgroundColor: Colors.white,
+            foregroundColor: primaryGreen,
+            child: const Icon(Icons.my_location),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPinToggle() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: SegmentedButton<bool>(
+              segments: const [
+                ButtonSegment(value: true, label: Text('Pickup')),
+                ButtonSegment(value: false, label: Text('Drop-off')),
+              ],
+              selected: {_settingPickup},
+              onSelectionChanged: (s) =>
+                  setState(() => _settingPickup = s.first),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            _settingPickup
+                ? (_pickup == null ? 'Tap map to set' : 'Set ✓')
+                : (_dropOff == null ? 'Tap map to set' : 'Set ✓'),
+            style: const TextStyle(color: textGray, fontSize: 12),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildForm() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        TextFormField(
+          controller: _cargoTypeController,
+          decoration: const InputDecoration(
+              labelText: 'Cargo type', hintText: 'e.g. Furniture, produce'),
+          validator: (v) =>
+              v == null || v.trim().isEmpty ? 'Describe the cargo' : null,
+        ),
+        const SizedBox(height: 12),
+        DropdownButtonFormField<JobSize>(
+          initialValue: _size,
+          decoration: const InputDecoration(labelText: 'Load size'),
+          items: JobSize.values
+              .map((s) => DropdownMenuItem(value: s, child: Text(s.label)))
+              .toList(),
+          onChanged: (v) => setState(() {
+            _size = v ?? _size;
+            _estimate = null;
+          }),
+        ),
+        const SizedBox(height: 12),
+        TextFormField(
+          controller: _weightController,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(labelText: 'Weight (kg, optional)'),
+        ),
+        const SizedBox(height: 12),
+        DropdownButtonFormField<VehicleType>(
+          initialValue: _vehicleType,
+          decoration: const InputDecoration(labelText: 'Required vehicle type'),
+          items: VehicleType.values
+              .map((t) => DropdownMenuItem(value: t, child: Text(t.label)))
+              .toList(),
+          onChanged: (v) => setState(() {
+            _vehicleType = v ?? _vehicleType;
+            _estimate = null;
+          }),
+        ),
+        const SizedBox(height: 20),
+        OutlinedButton.icon(
+          onPressed: _estimating ? null : _getEstimate,
+          icon: _estimating
+              ? const SizedBox(
+                  height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2))
+              : const Icon(Icons.calculate_outlined),
+          label: const Text('Get suggested price'),
+        ),
+        if (_estimate != null) ...[
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: searchBg,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Suggested: ${_estimate!.suggestedPrice} RWF',
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: primaryGreen),
+                ),
+                Text('Distance: ${_estimate!.distanceKm.toStringAsFixed(1)} km',
+                    style: const TextStyle(color: textGray, fontSize: 12)),
+                const SizedBox(height: 6),
+                const Text(
+                  'You can adjust the price before posting.',
+                  style: TextStyle(color: textGray, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: _priceController,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(
+                labelText: 'Price to post (RWF)', prefixText: 'RWF '),
+            validator: (v) => v == null || int.tryParse(v.trim()) == null
+                ? 'Enter a valid whole-franc price'
+                : null,
+          ),
+          const SizedBox(height: 20),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: primaryGreen,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+            ),
+            onPressed: _posting ? null : _post,
+            child: _posting
+                ? const SizedBox(
+                    height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                : const Text('Post job'),
+          ),
+        ],
+        const SizedBox(height: 24),
+      ],
+    );
+  }
 }

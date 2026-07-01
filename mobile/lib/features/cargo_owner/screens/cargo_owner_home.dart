@@ -2,8 +2,12 @@
 import 'package:cargo_app/constants.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../core/enums/app_enums.dart';
 import '../../../core/models/booking_model.dart';
+import '../../../core/models/job.dart';
 import '../../../core/models/user_model.dart';
+import '../../../core/repositories/job_repository.dart';
+import '../../jobs/presentation/owner_job_detail_screen.dart';
 import '../../../features/booking/providers/booking_provider.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../features/profile/providers/profile_provider.dart';
@@ -290,55 +294,101 @@ class _DashboardTab extends StatelessWidget {
 }
 
 
-class _MyJobsTab extends StatelessWidget {
+// Owner's posted jobs, loaded from the jobs API (M3). The driver's booking view
+// stays on Firestore until the M4 transaction loop.
+class _MyJobsTab extends StatefulWidget {
   const _MyJobsTab();
 
   @override
+  State<_MyJobsTab> createState() => _MyJobsTabState();
+}
+
+class _MyJobsTabState extends State<_MyJobsTab> {
+  final _jobs = JobRepository();
+  late Future<List<Job>> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = _jobs.listOwn();
+  }
+
+  Future<void> _refresh() async {
+    setState(() => _future = _jobs.listOwn());
+    await _future;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Consumer<BookingProvider>(
-      builder: (context, bookingProvider, child) {
-        if (bookingProvider.isLoading) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        if (bookingProvider.myBookings.isEmpty) {
-          return const Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.work_off,
-                  size: 64,
-                  color: Colors.grey,
+    return RefreshIndicator(
+      onRefresh: _refresh,
+      child: FutureBuilder<List<Job>>(
+        future: _future,
+        builder: (context, snap) {
+          if (snap.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snap.hasError) {
+            return ListView(children: [
+              const SizedBox(height: 120),
+              Center(
+                child: Text(
+                  snap.error.toString().replaceFirst('Exception: ', ''),
+                  style: const TextStyle(color: Colors.red),
                 ),
-                SizedBox(height: 16),
-                Text(
-                  'No jobs yet',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey,
+              ),
+            ]);
+          }
+          final jobs = snap.data ?? [];
+          if (jobs.isEmpty) {
+            return ListView(children: const [
+              SizedBox(height: 120),
+              Icon(Icons.work_off, size: 64, color: Colors.grey),
+              SizedBox(height: 16),
+              Center(
+                child: Text('No jobs yet',
+                    style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey)),
+              ),
+              SizedBox(height: 8),
+              Center(
+                child: Text('Create your first job to get started',
+                    style: TextStyle(color: Colors.grey)),
+              ),
+            ]);
+          }
+          return ListView.separated(
+            padding: const EdgeInsets.all(16),
+            itemCount: jobs.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 8),
+            itemBuilder: (context, i) {
+              final j = jobs[i];
+              return Card(
+                child: ListTile(
+                  title: Text(j.cargoType),
+                  subtitle: Text(
+                      '${j.reqVehicleType.label} · ${j.size.label} · ${j.price} RWF'),
+                  trailing: Chip(
+                    label: Text(j.status.replaceAll('_', ' ')),
+                    visualDensity: VisualDensity.compact,
                   ),
+                  onTap: () async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => OwnerJobDetailScreen(job: j),
+                      ),
+                    );
+                    _refresh();
+                  },
                 ),
-                SizedBox(height: 8),
-                Text(
-                  'Create your first job to get started',
-                  style: TextStyle(color: Colors.grey),
-                ),
-              ],
-            ),
+              );
+            },
           );
-        }
-
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: bookingProvider.myBookings.length,
-          itemBuilder: (context, index) {
-            final booking = bookingProvider.myBookings[index];
-            return _JobCard(booking: booking);
-          },
-        );
-      },
+        },
+      ),
     );
   }
 }
