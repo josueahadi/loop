@@ -6,8 +6,10 @@ export class JobResponseDto {
   @ApiProperty() id: string;
   @ApiProperty() ownerId: string;
   @ApiProperty({ nullable: true }) pickupLabel: string | null;
+  @ApiProperty({ nullable: true }) pickupNotes: string | null;
   @ApiProperty() pickup: { lat: number; lng: number };
   @ApiProperty({ nullable: true }) dropOffLabel: string | null;
+  @ApiProperty({ nullable: true }) dropOffNotes: string | null;
   @ApiProperty() dropOff: { lat: number; lng: number };
   @ApiProperty() cargoType: string;
   @ApiProperty({ enum: JobSize }) size: JobSize;
@@ -29,8 +31,10 @@ export class JobResponseDto {
       id: r.id as string,
       ownerId: r.ownerId as string,
       pickupLabel: (r.pickupLabel as string) ?? null,
+      pickupNotes: (r.pickupNotes as string) ?? null,
       pickup: { lat: Number(r.pickupLat), lng: Number(r.pickupLng) },
       dropOffLabel: (r.dropOffLabel as string) ?? null,
+      dropOffNotes: (r.dropOffNotes as string) ?? null,
       dropOff: { lat: Number(r.dropOffLat), lng: Number(r.dropOffLng) },
       cargoType: r.cargoType as string,
       size: r.size as JobSize,

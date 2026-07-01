@@ -29,4 +29,11 @@ export const validationSchema = Joi.object({
   FIREBASE_STORAGE_BUCKET: Joi.string().allow('').optional(),
 
   NEARBY_RADIUS_KM: Joi.number().positive().default(10),
+
+  GEOCODE_SEARCH_URL: Joi.string().uri().optional(),
+  GEOCODE_REVERSE_URL: Joi.string().uri().optional(),
+  GEOCODE_USER_AGENT: Joi.string().optional(),
+  GEOCODE_BIAS_LAT: Joi.number().optional(),
+  GEOCODE_BIAS_LNG: Joi.number().optional(),
+  GEOCODE_BBOX: Joi.string().optional(),
 });

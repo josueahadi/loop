@@ -24,8 +24,13 @@ export class Job {
   @JoinColumn({ name: 'owner_id' })
   owner: User;
 
-  @Column()
-  pickup: string;
+  // Reverse-geocoded display text for the pin (nullable). The pin itself is the
+  // geography point below.
+  @Column({ name: 'pickup_label', type: 'varchar', nullable: true })
+  pickupLabel: string | null;
+
+  @Column({ name: 'pickup_notes', type: 'text', nullable: true })
+  pickupNotes: string | null;
 
   @Column({
     name: 'pickup_location',
@@ -36,8 +41,11 @@ export class Job {
   })
   pickupLocation: string | null;
 
-  @Column({ name: 'drop_off' })
-  dropOff: string;
+  @Column({ name: 'drop_off_label', type: 'varchar', nullable: true })
+  dropOffLabel: string | null;
+
+  @Column({ name: 'drop_off_notes', type: 'text', nullable: true })
+  dropOffNotes: string | null;
 
   @Column({
     name: 'drop_off_location',

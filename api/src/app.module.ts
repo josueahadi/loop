@@ -9,6 +9,7 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { AdminModule } from './modules/admin/admin.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { GeocodeModule } from './modules/geocode/geocode.module';
 import { JobsModule } from './modules/jobs/jobs.module';
 import { MailModule } from './modules/mail/mail.module';
 import { MatchingModule } from './modules/matching/matching.module';
@@ -43,6 +44,7 @@ import { VerificationModule } from './modules/verification/verification.module';
     MatchingModule,
     PricingModule,
     JobsModule,
+    GeocodeModule,
     AdminModule,
   ],
   providers: [
