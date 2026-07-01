@@ -1,5 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../enums/app_enums.dart';
 
+// VehicleType is the canonical enum from app_enums (reconciled in M2).
+// BookingStatus stays local to the legacy booking flow (reconciled with jobs in M3).
 enum BookingStatus {
   pending,
   accepted,
@@ -7,14 +10,6 @@ enum BookingStatus {
   inProgress,
   completed,
   cancelled
-}
-
-enum VehicleType {
-  miniTruck,
-  pickup,
-  largeTruck,
-  van,
-  motorcycle
 }
 
 class BookingModel {
@@ -65,8 +60,8 @@ class BookingModel {
       dropoffLocation: data['dropoffLocation'] ?? '',
       cargoDescription: data['cargoDescription'] ?? '',
       vehicleType: VehicleType.values.firstWhere(
-            (e) => e.toString().split('.').last == data['vehicleType'],
-        orElse: () => VehicleType.miniTruck,
+            (e) => e.name == data['vehicleType'] || e.api == data['vehicleType'],
+        orElse: () => VehicleType.pickup,
       ),
       weight: data['weight']?.toDouble(),
       specialInstructions: data['specialInstructions'],
@@ -145,20 +140,7 @@ class BookingModel {
     );
   }
 
-  String get vehicleTypeDisplayName {
-    switch (vehicleType) {
-      case VehicleType.miniTruck:
-        return 'Mini Truck';
-      case VehicleType.pickup:
-        return 'Pickup';
-      case VehicleType.largeTruck:
-        return 'Large Truck';
-      case VehicleType.van:
-        return 'Van';
-      case VehicleType.motorcycle:
-        return 'Motorcycle';
-    }
-  }
+  String get vehicleTypeDisplayName => vehicleType.label;
 
   String get statusDisplayName {
     switch (status) {

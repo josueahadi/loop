@@ -106,8 +106,13 @@ class _CargoOwnerProfileEditScreenState extends State<CargoOwnerProfileEditScree
         throw Exception('No user logged in');
       }
 
+      // Profile photo → POST /me/photo (API-mediated upload to Storage).
+      if (_profileImage != null) {
+        await authProvider.uploadProfilePhoto(_profileImage!);
+      }
+
       // Update basic profile information. (Cargo owners need only an account — no
-      // business credentials; profile photo upload is wired in a later milestone.)
+      // business credentials.)
       final updatedUser = currentUser.copyWith(
         name: _nameController.text.trim(),
         phoneNumber: _phoneController.text.trim(),

@@ -1,11 +1,11 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../core/models/user_model.dart';
-import '../core/repositories/user_repository.dart';
-import '../providers/auth_provider.dart';
-import '../mixins/image_picker_mixin.dart';
 
+import '../core/enums/app_enums.dart';
+import '../core/models/vehicle.dart';
+import '../core/repositories/vehicle_repository.dart';
+
+/// Driver vehicle management (M2), backed by the API (/vehicles). A driver must
+/// have at least one vehicle to appear in owners' nearby-driver results.
 class VehicleDetailsScreen extends StatefulWidget {
   const VehicleDetailsScreen({super.key});
 
@@ -13,446 +13,235 @@ class VehicleDetailsScreen extends StatefulWidget {
   State<VehicleDetailsScreen> createState() => _VehicleDetailsScreenState();
 }
 
-class _VehicleDetailsScreenState extends State<VehicleDetailsScreen> with ImagePickerMixin {
+class _VehicleDetailsScreenState extends State<VehicleDetailsScreen> {
+  final _repo = VehicleRepository();
   final _formKey = GlobalKey<FormState>();
-  final _vehicleTypeController = TextEditingController();
-  final _vehicleCapacityController = TextEditingController();
-  final _plateNumberController = TextEditingController();
-  final _insuranceController = TextEditingController();
-  final _vehicleRegistrationController = TextEditingController();
-  
-  final UserRepository _userRepository = ApiUserRepository();
-  
-  bool _isLoading = false;
-  UserModel? _user;
-  
-  // Vehicle document files
-  File? _vehicleImageFile;
-  File? _vehicleRegistrationFile;
-  File? _insuranceDocumentFile;
-  
-  // Upload states
-  bool _vehicleImageUploading = false;
-  bool _vehicleRegistrationUploading = false;
-  bool _insuranceDocumentUploading = false;
+  final _regNoController = TextEditingController();
+  final _capacityController = TextEditingController();
+
+  VehicleType _type = VehicleType.pickup;
+  List<Vehicle> _vehicles = [];
+  String? _editingId;
+  bool _loading = true;
+  bool _saving = false;
+  String? _error;
 
   @override
   void initState() {
     super.initState();
-    _loadUserData();
+    _load();
   }
 
   @override
   void dispose() {
-    _vehicleTypeController.dispose();
-    _vehicleCapacityController.dispose();
-    _plateNumberController.dispose();
-    _insuranceController.dispose();
-    _vehicleRegistrationController.dispose();
+    _regNoController.dispose();
+    _capacityController.dispose();
     super.dispose();
   }
 
-  Future<void> _loadUserData() async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final currentUser = authProvider.user;
-    
-    if (currentUser != null) {
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final vehicles = await _repo.list();
+      if (!mounted) return;
       setState(() {
-        _user = currentUser;
-        _vehicleTypeController.text = currentUser.vehicleType ?? '';
-        _vehicleCapacityController.text = currentUser.vehicleCapacity ?? '';
-        _plateNumberController.text = currentUser.plateNumber ?? '';
-        // Insurance is not a mandated verification document (MVP scope).
-        _vehicleRegistrationController.text = currentUser.vehicleRegistration ?? '';
+        _vehicles = vehicles;
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString().replaceFirst('Exception: ', '');
+        _loading = false;
       });
     }
   }
 
-  Future<void> _saveVehicleDetails() async {
-    if (!_formKey.currentState!.validate()) return;
-    
+  void _resetForm() {
     setState(() {
-      _isLoading = true;
+      _editingId = null;
+      _type = VehicleType.pickup;
+      _regNoController.clear();
+      _capacityController.clear();
     });
+  }
 
+  void _startEdit(Vehicle v) {
+    setState(() {
+      _editingId = v.id;
+      _type = v.type;
+      _regNoController.text = v.regNo;
+      _capacityController.text = v.capacityKg?.toStringAsFixed(0) ?? '';
+    });
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _saving = true);
+    final capacity = double.tryParse(_capacityController.text.trim());
+    final regNo = _regNoController.text.trim();
     try {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      final currentUser = authProvider.user;
-      
-      if (currentUser == null) {
-        throw Exception('No user logged in');
+      if (_editingId == null) {
+        await _repo.create(type: _type, regNo: regNo, capacityKg: capacity);
+      } else {
+        await _repo.update(_editingId!,
+            type: _type, regNo: regNo, capacityKg: capacity);
       }
-
-      // Upload documents if selected
-      Map<String, String> documentUpdates = {};
-      
-      if (_vehicleImageFile != null) {
-        setState(() {
-          _vehicleImageUploading = true;
-        });
-        final url = await _userRepository.uploadDocument(currentUser.uid, _vehicleImageFile!, 'vehicle_image');
-        documentUpdates['vehicleImageUrl'] = url;
-        setState(() {
-          _vehicleImageUploading = false;
-        });
-      }
-      
-      if (_vehicleRegistrationFile != null) {
-        setState(() {
-          _vehicleRegistrationUploading = true;
-        });
-        final url = await _userRepository.uploadDocument(currentUser.uid, _vehicleRegistrationFile!, 'vehicle_registration');
-        documentUpdates['vehicleRegistration'] = url;
-        setState(() {
-          _vehicleRegistrationUploading = false;
-        });
-      }
-      
-      if (_insuranceDocumentFile != null) {
-        setState(() {
-          _insuranceDocumentUploading = true;
-        });
-        final url = await _userRepository.uploadDocument(currentUser.uid, _insuranceDocumentFile!, 'insurance_document');
-        documentUpdates['insurance'] = url;
-        setState(() {
-          _insuranceDocumentUploading = false;
-        });
-      }
-
-      // Update vehicle information
-      final updatedUser = currentUser.copyWith(
-        vehicleType: _vehicleTypeController.text.trim(),
-        vehicleCapacity: _vehicleCapacityController.text.trim(),
-        plateNumber: _plateNumberController.text.trim(),
-        updatedAt: DateTime.now(),
-      );
-
-      await _userRepository.updateUser(updatedUser);
-      
-      // Update documents if any were uploaded
-      if (documentUpdates.isNotEmpty) {
-        await _userRepository.updateUserWithDocuments(currentUser.uid, documentUpdates);
-      }
-
-      // Refresh auth provider with updated user
-      await authProvider.refreshUserData();
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Vehicle details updated successfully!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        Navigator.pop(context);
-      }
+      _resetForm();
+      await _load();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error updating vehicle details: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(e.toString().replaceFirst('Exception: ', '')),
+          backgroundColor: Colors.red,
+        ));
       }
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) setState(() => _saving = false);
     }
   }
 
-  Widget _buildDocumentUploadCard({
-    required String title,
-    required String description,
-    required VoidCallback onTap,
-    required bool isUploading,
-    String? currentUrl,
-    File? selectedFile,
-  }) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+  Future<void> _delete(Vehicle v) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Delete vehicle?'),
+        content: Text('${v.type.label} · ${v.regNo}'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Delete')),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+    try {
+      await _repo.delete(v.id);
+      if (_editingId == v.id) _resetForm();
+      await _load();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(e.toString().replaceFirst('Exception: ', '')),
+          backgroundColor: Colors.red,
+        ));
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('My Vehicles')),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : ListView(
+              padding: const EdgeInsets.all(16),
               children: [
-                Icon(
-                  selectedFile != null || currentUrl != null 
-                    ? Icons.check_circle 
-                    : Icons.upload_file,
-                  color: selectedFile != null || currentUrl != null 
-                    ? Colors.green 
-                    : Colors.grey,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
+                if (_error != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Text(_error!,
+                        style: const TextStyle(color: Colors.red)),
+                  ),
+                if (_vehicles.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: Text(
+                        'No vehicles yet. Add one below so cargo owners can find you.'),
+                  ),
+                ..._vehicles.map((v) => Card(
+                      child: ListTile(
+                        leading: const Icon(Icons.local_shipping),
+                        title: Text(v.type.label),
+                        subtitle: Text(
+                          '${v.regNo}${v.capacityKg != null ? ' · ${v.capacityKg!.toStringAsFixed(0)} kg' : ''}',
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                                icon: const Icon(Icons.edit),
+                                onPressed: () => _startEdit(v)),
+                            IconButton(
+                                icon: const Icon(Icons.delete_outline),
+                                onPressed: () => _delete(v)),
+                          ],
                         ),
                       ),
-                      Text(
-                        description,
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 12,
-                        ),
+                    )),
+                const Divider(height: 32),
+                Text(_editingId == null ? 'Add a vehicle' : 'Edit vehicle',
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 12),
+                Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      DropdownButtonFormField<VehicleType>(
+                        initialValue: _type,
+                        decoration:
+                            const InputDecoration(labelText: 'Vehicle type'),
+                        items: VehicleType.values
+                            .map((t) => DropdownMenuItem(
+                                value: t, child: Text(t.label)))
+                            .toList(),
+                        onChanged: (v) => setState(() => _type = v ?? _type),
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _regNoController,
+                        decoration: const InputDecoration(
+                            labelText: 'Registration / plate number'),
+                        validator: (v) => v == null || v.trim().isEmpty
+                            ? 'Enter the registration number'
+                            : null,
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _capacityController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                            labelText: 'Capacity (kg, optional)'),
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: _saving ? null : _submit,
+                              child: _saving
+                                  ? const SizedBox(
+                                      height: 20,
+                                      width: 20,
+                                      child: CircularProgressIndicator(
+                                          strokeWidth: 2))
+                                  : Text(_editingId == null
+                                      ? 'Add vehicle'
+                                      : 'Save changes'),
+                            ),
+                          ),
+                          if (_editingId != null) ...[
+                            const SizedBox(width: 12),
+                            OutlinedButton(
+                                onPressed: _saving ? null : _resetForm,
+                                child: const Text('Cancel')),
+                          ],
+                        ],
                       ),
                     ],
                   ),
                 ),
               ],
             ),
-            if (selectedFile != null) ...[
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.green[50],
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.file_present, color: Colors.green, size: 16),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        selectedFile.path.split('/').last,
-                        style: const TextStyle(fontSize: 12),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ] else if (currentUrl != null) ...[
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.blue[50],
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Row(
-                  children: [
-                    Icon(Icons.cloud_done, color: Colors.blue, size: 16),
-                    SizedBox(width: 8),
-                    Text(
-                      'Document uploaded',
-                      style: TextStyle(fontSize: 12, color: Colors.blue),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: isUploading ? null : onTap,
-                icon: isUploading 
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.upload, size: 18),
-                label: Text(
-                  isUploading 
-                    ? 'Uploading...' 
-                    : selectedFile != null || currentUrl != null 
-                      ? 'Replace Document' 
-                      : 'Upload Document',
-                  style: const TextStyle(fontSize: 14),
-                ),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Vehicle Details'),
-        actions: [
-          TextButton(
-            onPressed: _isLoading ? null : _saveVehicleDetails,
-            child: _isLoading
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Text('Save'),
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Vehicle Information
-              const Text(
-                'Vehicle Information',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 16),
-              
-              TextFormField(
-                controller: _vehicleTypeController,
-                decoration: const InputDecoration(
-                  labelText: 'Vehicle Type *',
-                  hintText: 'e.g., Pickup Truck, Mini Truck, Large Truck',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Please enter your vehicle type';
-                  }
-                  return null;
-                },
-              ),
-              
-              const SizedBox(height: 16),
-              
-              TextFormField(
-                controller: _vehicleCapacityController,
-                decoration: const InputDecoration(
-                  labelText: 'Vehicle Capacity *',
-                  hintText: 'e.g., 1 ton, 5 tons, 500 kg',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Please enter your vehicle capacity';
-                  }
-                  return null;
-                },
-              ),
-              
-              const SizedBox(height: 16),
-              
-              TextFormField(
-                controller: _plateNumberController,
-                decoration: const InputDecoration(
-                  labelText: 'Plate Number *',
-                  hintText: 'e.g., RAB 123 A',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Please enter your vehicle plate number';
-                  }
-                  return null;
-                },
-              ),
-              
-              const SizedBox(height: 32),
-              
-              // Vehicle Documents
-              const Text(
-                'Vehicle Documents',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Upload your vehicle-related documents for verification',
-                style: TextStyle(
-                  color: Colors.grey[600],
-                  fontSize: 14,
-                ),
-              ),
-              const SizedBox(height: 16),
-              
-              _buildDocumentUploadCard(
-                title: 'Vehicle Photo',
-                description: 'Upload a clear photo of your vehicle',
-                onTap: () {
-                  showDocumentPickerDialog(
-                    context,
-                    'Vehicle Photo',
-                    onDocumentSelected: (file) {
-                      setState(() {
-                        _vehicleImageFile = file;
-                      });
-                    },
-                  );
-                },
-                isUploading: _vehicleImageUploading,
-                currentUrl: _user?.vehicleImageUrl,
-                selectedFile: _vehicleImageFile,
-              ),
-              
-              _buildDocumentUploadCard(
-                title: 'Vehicle Registration',
-                description: 'Upload your vehicle registration certificate',
-                onTap: () {
-                  showDocumentPickerDialog(
-                    context,
-                    'Vehicle Registration',
-                    onDocumentSelected: (file) {
-                      setState(() {
-                        _vehicleRegistrationFile = file;
-                      });
-                    },
-                  );
-                },
-                isUploading: _vehicleRegistrationUploading,
-                currentUrl: _user?.vehicleRegistration,
-                selectedFile: _vehicleRegistrationFile,
-              ),
-              
-              // Insurance is not a mandated verification document (MVP scope).
-              const SizedBox(height: 32),
-              
-              // Save Button
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _saveVehicleDetails,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Theme.of(context).primaryColor,
-                    foregroundColor: Colors.white,
-                  ),
-                  child: _isLoading
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text(
-                          'Save Vehicle Details',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                        ),
-                ),
-              ),
-              
-              const SizedBox(height: 16),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }

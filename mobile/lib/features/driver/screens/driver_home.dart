@@ -85,9 +85,23 @@ class _DriverHomeState extends State<DriverHome> {
               final isAvailable = authProvider.user?.isAvailable ?? false;
               return Switch(
                 value: isAvailable,
-                onChanged: (value) async {
-                  await authProvider.updateDriverAvailability(value);
-                },
+                onChanged: authProvider.isLoading
+                    ? null
+                    : (value) async {
+                        final ok =
+                            await authProvider.updateDriverAvailability(value);
+                        if (!ok && context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                authProvider.error ??
+                                    'Could not update availability',
+                              ),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      },
                 activeColor: Colors.white,
                 activeTrackColor: primaryGreen,
               );

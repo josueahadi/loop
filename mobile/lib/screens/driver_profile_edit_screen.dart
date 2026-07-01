@@ -160,8 +160,12 @@ class _DriverProfileEditScreenState extends State<DriverProfileEditScreen> with 
         setState(() => _vehicleRegistrationUploading = false);
       }
 
+      // Profile photo → POST /me/photo (API-mediated upload to Storage).
+      if (_profileImage != null) {
+        await authProvider.uploadProfilePhoto(_profileImage!);
+      }
+
       // Update the editable profile fields (name/phone) via PATCH /me.
-      // Vehicle details + photo move to the /vehicles endpoint in M2.
       final updatedUser = currentUser.copyWith(
         name: _nameController.text.trim(),
         phoneNumber: _phoneController.text.trim(),
