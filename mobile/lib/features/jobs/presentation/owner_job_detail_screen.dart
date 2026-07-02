@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../constants.dart';
 import '../../../core/enums/app_enums.dart';
 import '../../../core/models/job.dart';
+import '../../../core/models/proposal.dart';
 import '../../../core/navigation/open_in_maps.dart';
 import '../../../core/repositories/job_repository.dart';
+import '../../../core/repositories/proposal_repository.dart';
+import '../../chat/presentation/job_chat_screen.dart';
+import '../../matching/presentation/nearby_drivers_map.dart';
 
 /// Owner-facing job detail (M3), backed by the jobs API. Shows the load profile,
 /// prices (estimated cost vs posted), the pin route, and a status timeline. The owner
@@ -22,8 +27,53 @@ class OwnerJobDetailScreen extends StatefulWidget {
 
 class _OwnerJobDetailScreenState extends State<OwnerJobDetailScreen> {
   final _jobs = JobRepository();
+  final _proposals = ProposalRepository();
   late Job _job = widget.job;
+  Proposal? _accepted;
   bool _busy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAccepted();
+  }
+
+  Future<void> _loadAccepted() async {
+    if (_job.status != 'matched') return;
+    try {
+      final accepted =
+          (await _proposals.forJob(_job.id)).where((p) => p.isAccepted).toList();
+      if (mounted) {
+        setState(() => _accepted = accepted.isNotEmpty ? accepted.first : null);
+      }
+    } catch (_) {
+      // best-effort; contact card just won't render
+    }
+  }
+
+  Future<void> _refresh() async {
+    try {
+      final updated = await _jobs.getById(_job.id);
+      if (mounted) setState(() => _job = updated);
+      await _loadAccepted();
+    } catch (_) {}
+  }
+
+  Future<void> _findDrivers() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => Scaffold(
+          appBar: AppBar(title: const Text('Find a driver')),
+          body: NearbyDriversMap(forJob: _job),
+        ),
+      ),
+    );
+    _refresh(); // a driver may have accepted while we were away
+  }
+
+  Future<void> _call(String phone) async =>
+      launchUrl(Uri(scheme: 'tel', path: phone));
 
   Future<void> _cancel() async {
     final confirm = await showDialog<bool>(
@@ -102,6 +152,23 @@ class _OwnerJobDetailScreenState extends State<OwnerJobDetailScreen> {
                 const SizedBox(height: 8),
                 ..._timeline(j),
                 const SizedBox(height: 24),
+                // Posted → find drivers and send a proposal at the posted price.
+                if (j.status == 'posted')
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor: primaryGreen,
+                          foregroundColor: Colors.white),
+                      onPressed: _findDrivers,
+                      icon: const Icon(Icons.search),
+                      label: const Text('Find drivers & send proposal'),
+                    ),
+                  ),
+                // Matched → the assigned driver's contact, call, and chat appear.
+                if (j.status == 'matched' && _accepted?.contact != null)
+                  _assignedDriver(_accepted!),
+                const SizedBox(height: 12),
                 if (j.status == 'posted' || j.status == 'draft')
                   SizedBox(
                     width: double.infinity,
@@ -185,6 +252,52 @@ class _OwnerJobDetailScreenState extends State<OwnerJobDetailScreen> {
           label: const Text('Open in Maps'),
         ),
       ],
+    );
+  }
+
+  // Shown only once matched: the accepted driver's contact + call + chat.
+  Widget _assignedDriver(Proposal accepted) {
+    final c = accepted.contact!;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: lightGreen,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Assigned driver',
+              style: TextStyle(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 4),
+          Text(c.name),
+          Text(c.phone, style: const TextStyle(color: textGray)),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            children: [
+              OutlinedButton.icon(
+                onPressed: () => _call(c.phone),
+                icon: const Icon(Icons.call, size: 18),
+                label: const Text('Call'),
+              ),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: primaryGreen, foregroundColor: Colors.white),
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => JobChatScreen(jobId: _job.id, contact: c),
+                  ),
+                ),
+                icon: const Icon(Icons.chat, size: 18),
+                label: const Text('Chat'),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 

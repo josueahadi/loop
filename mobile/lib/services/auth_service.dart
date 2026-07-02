@@ -110,6 +110,16 @@ class AuthService {
     }
   }
 
+  /// Register this device's FCM token for push. Best-effort — a failure here must
+  /// never block anything (mirrors the server's graceful push).
+  Future<void> registerPushToken(String token) async {
+    try {
+      await _dio.post('/me/push-token', data: {'token': token});
+    } catch (_) {
+      // ignore — push is a delight, not a dependency
+    }
+  }
+
   Future<void> requestEmailVerification() async {
     try {
       await _dio.post('/auth/email/verify/request');

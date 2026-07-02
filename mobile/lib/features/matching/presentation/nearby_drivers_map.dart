@@ -6,14 +6,18 @@ import '../../../constants.dart';
 import '../../../core/enums/app_enums.dart';
 import '../../../core/location/enable_location_prompt.dart';
 import '../../../core/location/location_service.dart';
+import '../../../core/models/job.dart';
 import '../../../core/models/nearby_driver.dart';
 import '../../../core/repositories/matching_repository.dart';
+import '../../../core/repositories/proposal_repository.dart';
 
-/// Owner home map (M2): shows nearby available, verified drivers on an OSM map,
-/// filtered by vehicle type and ordered by proximity (the API does the PostGIS
-/// distance work). Tapping a driver shows their details.
+/// Owner home map (M2): nearby available, verified drivers on an OSM map, filtered
+/// by vehicle type, ordered by proximity. When opened for a specific posted job
+/// ([forJob]), tapping a driver lets the owner send a proposal at the posted price
+/// (M4) — otherwise it's the browse-only home tab.
 class NearbyDriversMap extends StatefulWidget {
-  const NearbyDriversMap({super.key});
+  final Job? forJob;
+  const NearbyDriversMap({super.key, this.forJob});
 
   @override
   State<NearbyDriversMap> createState() => _NearbyDriversMapState();
@@ -22,6 +26,7 @@ class NearbyDriversMap extends StatefulWidget {
 class _NearbyDriversMapState extends State<NearbyDriversMap> {
   final _matching = MatchingRepository();
   final _location = LocationService();
+  final _proposals = ProposalRepository();
   final _mapController = MapController();
 
   LatLng? _center;
@@ -33,6 +38,8 @@ class _NearbyDriversMapState extends State<NearbyDriversMap> {
   @override
   void initState() {
     super.initState();
+    // Pre-filter to the job's required vehicle type when proposing.
+    _filter = widget.forJob?.reqVehicleType;
     WidgetsBinding.instance.addPostFrameCallback((_) => _primeThenLoad());
   }
 
@@ -83,6 +90,26 @@ class _NearbyDriversMapState extends State<NearbyDriversMap> {
     }
   }
 
+  Future<void> _sendProposal(NearbyDriver d) async {
+    final job = widget.forJob!;
+    try {
+      await _proposals.send(jobId: job.id, driverId: d.id);
+      if (!mounted) return;
+      Navigator.pop(context); // close the driver sheet
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Proposal sent to ${d.name}'),
+        backgroundColor: primaryGreen,
+      ));
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(e.toString().replaceFirst('Exception: ', '')),
+          backgroundColor: Colors.red,
+        ));
+      }
+    }
+  }
+
   void _showDriver(NearbyDriver d) {
     showModalBottomSheet(
       context: context,
@@ -108,13 +135,20 @@ class _NearbyDriversMapState extends State<NearbyDriversMap> {
             const SizedBox(height: 12),
             Text('Vehicles: ${d.vehicles.map((v) => v.type.label).join(', ')}'),
             const SizedBox(height: 20),
-            // Sending a proposal at the posted price is the M4 transaction loop.
             SizedBox(
               width: double.infinity,
-              child: ElevatedButton(
-                onPressed: null,
-                child: const Text('Send proposal (coming soon)'),
-              ),
+              child: widget.forJob == null
+                  ? const OutlinedButton(
+                      onPressed: null,
+                      child: Text('Post a job, then propose to a driver'),
+                    )
+                  : ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor: primaryGreen,
+                          foregroundColor: Colors.white),
+                      onPressed: () => _sendProposal(d),
+                      child: Text('Send proposal · ${widget.forJob!.price} RWF'),
+                    ),
             ),
           ],
         ),
