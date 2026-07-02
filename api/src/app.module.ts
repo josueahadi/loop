@@ -17,6 +17,7 @@ import { MessagingModule } from './modules/messaging/messaging.module';
 import { PricingModule } from './modules/pricing/pricing.module';
 import { ProposalsModule } from './modules/proposals/proposals.module';
 import { PushModule } from './modules/push/push.module';
+import { RatingsModule } from './modules/ratings/ratings.module';
 import { StorageModule } from './modules/storage/storage.module';
 import { UsersModule } from './modules/users/users.module';
 import { VehiclesModule } from './modules/vehicles/vehicles.module';
@@ -50,6 +51,7 @@ import { VerificationModule } from './modules/verification/verification.module';
     JobsModule,
     ProposalsModule,
     MessagingModule,
+    RatingsModule,
     GeocodeModule,
     AdminModule,
   ],

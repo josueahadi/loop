@@ -1,5 +1,5 @@
 import {
-  BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -27,14 +27,21 @@ const SELECT = `
          cancelled_at AS "cancelledAt"
   FROM jobs`;
 
-// Which *_at column a status transition stamps (accepted_at is set on proposal
-// acceptance in M4, not via a direct job-status PATCH).
+// Which *_at column a status transition stamps.
 const STATUS_TIMESTAMP: Partial<Record<JobStatus, string>> = {
-  [JobStatus.POSTED]: 'posted_at',
-  [JobStatus.MATCHED]: 'matched_at',
   [JobStatus.IN_PROGRESS]: 'in_progress_at',
   [JobStatus.COMPLETED]: 'completed_at',
   [JobStatus.CANCELLED]: 'cancelled_at',
+};
+
+// Owner-driven lifecycle via PATCH /jobs/:id. A job becomes 'matched' only through
+// proposal acceptance (M4), not here. From there the owner advances the job:
+// matched → in_progress (driver has started) → completed (delivered); posted/matched
+// jobs can be cancelled. Each transition is only valid from its prior state.
+const ALLOWED_TRANSITIONS: Partial<Record<JobStatus, JobStatus[]>> = {
+  [JobStatus.POSTED]: [JobStatus.CANCELLED],
+  [JobStatus.MATCHED]: [JobStatus.IN_PROGRESS, JobStatus.CANCELLED],
+  [JobStatus.IN_PROGRESS]: [JobStatus.COMPLETED],
 };
 
 @Injectable()
@@ -97,18 +104,21 @@ export class JobsService {
     ownerId: string,
     status: JobStatus,
   ): Promise<JobResponseDto> {
-    await this.getOwned(id, ownerId); // ownership + existence
-    const tsColumn = STATUS_TIMESTAMP[status];
-    if (!tsColumn) {
-      throw new BadRequestException(`Cannot transition to ${status}`);
+    const job = await this.getOwned(id, ownerId); // ownership + existence
+    const allowed = ALLOWED_TRANSITIONS[job.status] ?? [];
+    if (!allowed.includes(status)) {
+      throw new ConflictException(
+        `Cannot move a ${job.status} job to ${status}`,
+      );
     }
-    // Stamp the transition time only the first time it happens.
+    const tsColumn = STATUS_TIMESTAMP[status]!;
+    // Guard the transition at the DB too: only flip if still in the prior state.
     await this.dataSource.query(
       `UPDATE jobs
          SET status = $1,
              ${tsColumn} = COALESCE(${tsColumn}, now())
-       WHERE id = $2 AND owner_id = $3`,
-      [status, id, ownerId],
+       WHERE id = $2 AND owner_id = $3 AND status = $4`,
+      [status, id, ownerId, job.status],
     );
     return this.getOwned(id, ownerId);
   }

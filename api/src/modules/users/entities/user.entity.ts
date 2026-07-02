@@ -62,6 +62,7 @@ export class User {
   })
   location: string | null;
 
+  // Reputation aggregate (two-way — applies to owners and drivers once rated).
   @Column({
     name: 'average_rating',
     type: 'numeric',
@@ -70,6 +71,9 @@ export class User {
     default: 0,
   })
   averageRating: number;
+
+  @Column({ name: 'rating_count', type: 'integer', default: 0 })
+  ratingCount: number;
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;

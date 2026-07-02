@@ -14,6 +14,7 @@ export class UserResponseDto {
   @ApiProperty({ enum: AvailabilityStatus, nullable: true })
   availabilityStatus: AvailabilityStatus | null;
   @ApiProperty() averageRating: number;
+  @ApiProperty() ratingCount: number;
   @ApiProperty() createdAt: Date;
 
   static from(user: User): UserResponseDto {
@@ -27,6 +28,7 @@ export class UserResponseDto {
       emailVerified: user.emailVerifiedAt != null,
       availabilityStatus: user.availabilityStatus,
       averageRating: Number(user.averageRating),
+      ratingCount: user.ratingCount,
       createdAt: user.createdAt,
     };
   }
