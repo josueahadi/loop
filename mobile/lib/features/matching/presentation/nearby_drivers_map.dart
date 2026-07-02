@@ -126,7 +126,9 @@ class _NearbyDriversMapState extends State<NearbyDriversMap> {
             Row(children: [
               const Icon(Icons.star, size: 18, color: Colors.orange),
               const SizedBox(width: 4),
-              Text(d.averageRating.toStringAsFixed(1)),
+              Text(d.ratingCount == 0
+                  ? 'No ratings yet'
+                  : '${d.averageRating.toStringAsFixed(1)} (${d.ratingCount})'),
               const SizedBox(width: 16),
               const Icon(Icons.near_me, size: 18, color: primaryGreen),
               const SizedBox(width: 4),

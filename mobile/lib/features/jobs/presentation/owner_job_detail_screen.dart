@@ -12,6 +12,7 @@ import '../../../core/repositories/job_repository.dart';
 import '../../../core/repositories/proposal_repository.dart';
 import '../../chat/presentation/job_chat_screen.dart';
 import '../../matching/presentation/nearby_drivers_map.dart';
+import '../../ratings/presentation/rating_screen.dart';
 
 /// Owner-facing job detail (M3), backed by the jobs API. Shows the load profile,
 /// prices (estimated cost vs posted), the pin route, and a status timeline. The owner
@@ -30,7 +31,10 @@ class _OwnerJobDetailScreenState extends State<OwnerJobDetailScreen> {
   final _proposals = ProposalRepository();
   late Job _job = widget.job;
   Proposal? _accepted;
+  bool _ownerRated = false;
   bool _busy = false;
+
+  static const _assignedStatuses = {'matched', 'in_progress', 'completed'};
 
   @override
   void initState() {
@@ -39,7 +43,7 @@ class _OwnerJobDetailScreenState extends State<OwnerJobDetailScreen> {
   }
 
   Future<void> _loadAccepted() async {
-    if (_job.status != 'matched') return;
+    if (!_assignedStatuses.contains(_job.status)) return;
     try {
       final accepted =
           (await _proposals.forJob(_job.id)).where((p) => p.isAccepted).toList();
@@ -74,6 +78,36 @@ class _OwnerJobDetailScreenState extends State<OwnerJobDetailScreen> {
 
   Future<void> _call(String phone) async =>
       launchUrl(Uri(scheme: 'tel', path: phone));
+
+  // Owner-driven lifecycle: matched → in_progress → completed.
+  Future<void> _advance(String toStatus) async {
+    setState(() => _busy = true);
+    try {
+      final updated = await _jobs.updateStatus(_job.id, toStatus);
+      if (mounted) setState(() => _job = updated);
+      await _loadAccepted();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(e.toString().replaceFirst('Exception: ', '')),
+          backgroundColor: Colors.red,
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _rateDriver() async {
+    final name = _accepted?.contact?.name ?? 'the driver';
+    final done = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => RatingScreen(jobId: _job.id, counterpartyName: name),
+      ),
+    );
+    if (done == true && mounted) setState(() => _ownerRated = true);
+  }
 
   Future<void> _cancel() async {
     final confirm = await showDialog<bool>(
@@ -165,9 +199,13 @@ class _OwnerJobDetailScreenState extends State<OwnerJobDetailScreen> {
                       label: const Text('Find drivers & send proposal'),
                     ),
                   ),
-                // Matched → the assigned driver's contact, call, and chat appear.
-                if (j.status == 'matched' && _accepted?.contact != null)
+                // Once assigned, the driver's contact, call, and chat appear.
+                if (_assignedStatuses.contains(j.status) &&
+                    _accepted?.contact != null) ...[
                   _assignedDriver(_accepted!),
+                  const SizedBox(height: 12),
+                  ..._lifecycleControls(j),
+                ],
                 const SizedBox(height: 12),
                 if (j.status == 'posted' || j.status == 'draft')
                   SizedBox(
@@ -255,7 +293,35 @@ class _OwnerJobDetailScreenState extends State<OwnerJobDetailScreen> {
     );
   }
 
-  // Shown only once matched: the accepted driver's contact + call + chat.
+  // Owner controls to move the job forward and, once completed, rate the driver.
+  List<Widget> _lifecycleControls(Job j) {
+    Widget btn(String text, VoidCallback? onTap) => SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+                backgroundColor: primaryGreen, foregroundColor: Colors.white),
+            onPressed: _busy ? null : onTap,
+            child: Text(text),
+          ),
+        );
+    if (j.status == 'matched') {
+      return [btn('Driver started — mark in progress',
+          () => _advance('in_progress'))];
+    }
+    if (j.status == 'in_progress') {
+      return [btn('Delivered — mark completed', () => _advance('completed'))];
+    }
+    if (j.status == 'completed') {
+      return [
+        _ownerRated
+            ? const Center(child: Text('You rated this delivery ✓'))
+            : btn('Rate driver', _rateDriver),
+      ];
+    }
+    return const [];
+  }
+
+  // Shown once assigned: the accepted driver's contact + call + chat.
   Widget _assignedDriver(Proposal accepted) {
     final c = accepted.contact!;
     return Container(
