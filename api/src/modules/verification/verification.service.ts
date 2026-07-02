@@ -58,6 +58,12 @@ export class VerificationService {
     });
   }
 
+  async getRecord(id: string): Promise<VerificationRecord> {
+    const record = await this.records.findOne({ where: { id } });
+    if (!record) throw new NotFoundException('Verification record not found');
+    return record;
+  }
+
   // ---- admin side ----
   listByStatus(status?: VerificationStatus): Promise<VerificationRecord[]> {
     return this.records.find({
