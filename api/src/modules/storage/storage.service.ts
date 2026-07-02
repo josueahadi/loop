@@ -57,4 +57,20 @@ export class StorageService implements OnModuleInit {
     });
     return { storageReference: objectPath };
   }
+
+  // Short-lived read URL for a private object (admin document viewing, and later
+  // profile/vehicle photo serving). In stub mode there's no real object, so we
+  // return a placeholder the client renders as "preview unavailable (stub storage)".
+  async signedUrl(
+    storageReference: string,
+  ): Promise<{ url: string | null; stub: boolean }> {
+    if (this.driver !== 'firebase' || !this.bucket) {
+      return { url: null, stub: true };
+    }
+    const [url] = await this.bucket.file(storageReference).getSignedUrl({
+      action: 'read',
+      expires: Date.now() + 15 * 60 * 1000, // 15 minutes
+    });
+    return { url, stub: false };
+  }
 }

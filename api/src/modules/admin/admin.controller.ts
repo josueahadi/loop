@@ -11,8 +11,10 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { UserRole, VerificationStatus } from '../../common/enums';
+import { StorageService } from '../storage/storage.service';
 import { VerificationResponseDto } from '../verification/dto/verification-response.dto';
 import { VerificationService } from '../verification/verification.service';
+import { AdminMetricsService } from './admin-metrics.service';
 import { ListVerificationsQuery } from './dto/list-verifications.query';
 import { ReviewVerificationDto } from './dto/review-verification.dto';
 
@@ -22,7 +24,27 @@ import { ReviewVerificationDto } from './dto/review-verification.dto';
 @Roles(UserRole.ADMIN)
 @Controller('admin')
 export class AdminController {
-  constructor(private readonly verification: VerificationService) {}
+  constructor(
+    private readonly verification: VerificationService,
+    private readonly metrics: AdminMetricsService,
+    private readonly storage: StorageService,
+  ) {}
+
+  // Server-computed evaluation metrics — the dashboard only renders these.
+  @Get('metrics')
+  getMetrics() {
+    return this.metrics.getMetrics();
+  }
+
+  // Short-lived viewable URL for a verification document (signed when Firebase,
+  // stub placeholder otherwise). Admin-only, like every /admin/* route.
+  @Get('verifications/:id/document-url')
+  async documentUrl(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<{ url: string | null; stub: boolean }> {
+    const record = await this.verification.getRecord(id);
+    return this.storage.signedUrl(record.storageReference);
+  }
 
   @Get('verifications')
   async listVerifications(
