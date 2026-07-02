@@ -1,16 +1,29 @@
 'use client';
 
+import { Bar, BarChart, CartesianGrid, Cell, XAxis, YAxis } from 'recharts';
 import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
-import { Card, EmptyState } from '@/components/ui';
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from '@/components/ui/chart';
+import { EmptyState } from '@/components/ui/states';
+
+const config = { count: { label: 'Count' } } satisfies ChartConfig;
+// Theme-aware palette — the chart tokens flip with light/dark automatically.
+const PALETTE = [
+  'var(--chart-1)',
+  'var(--chart-2)',
+  'var(--chart-3)',
+  'var(--chart-4)',
+  'var(--chart-5)',
+];
 
 // Renders a pre-computed count map ({ label: count }) as a bar chart. Purely a
 // view over server data — no aggregation happens here. Empty map → honest empty
@@ -18,49 +31,48 @@ import { Card, EmptyState } from '@/components/ui';
 export function CountsChart({
   title,
   data,
-  colors,
 }: {
   title: string;
   data: Record<string, number>;
-  colors?: string[];
 }) {
   const rows = Object.entries(data).map(([name, count]) => ({ name, count }));
-  const palette = colors ?? ['#111111', '#4b5563', '#9ca3af', '#d1d5db'];
 
   return (
-    <Card className="space-y-3">
-      <p className="text-sm font-medium">{title}</p>
-      {rows.length === 0 ? (
-        <EmptyState message="No data yet." />
-      ) : (
-        <div className="h-56 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={rows}
-              margin={{ top: 8, right: 8, bottom: 8, left: -16 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" stroke="#00000010" />
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm font-medium">{title}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {rows.length === 0 ? (
+          <EmptyState message="No data yet." />
+        ) : (
+          <ChartContainer config={config} className="h-56 w-full">
+            <BarChart data={rows} margin={{ top: 8, right: 8, bottom: 0, left: -20 }}>
+              <CartesianGrid vertical={false} strokeDasharray="3 3" />
               <XAxis
                 dataKey="name"
-                tick={{ fontSize: 12 }}
                 tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+                tick={{ fontSize: 12 }}
               />
               <YAxis
                 allowDecimals={false}
-                tick={{ fontSize: 12 }}
                 tickLine={false}
                 axisLine={false}
+                tick={{ fontSize: 12 }}
+                width={28}
               />
-              <Tooltip cursor={{ fill: '#00000008' }} />
+              <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
               <Bar dataKey="count" radius={[4, 4, 0, 0]}>
                 {rows.map((_, i) => (
-                  <Cell key={i} fill={palette[i % palette.length]} />
+                  <Cell key={i} fill={PALETTE[i % PALETTE.length]} />
                 ))}
               </Bar>
             </BarChart>
-          </ResponsiveContainer>
-        </div>
-      )}
+          </ChartContainer>
+        )}
+      </CardContent>
     </Card>
   );
 }

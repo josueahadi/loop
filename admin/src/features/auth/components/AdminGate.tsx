@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { useSession } from '../hooks/useSession';
-import { Spinner } from '@/components/ui';
+import { Spinner } from '@/components/ui/states';
 
 // Client-side guard for the dashboard. The API's RolesGuard is the real
 // authorization boundary; this prevents the admin shell from flashing for an

@@ -6,7 +6,10 @@ import {
 } from '../hooks/useVerifications';
 import { DOCUMENT_LABELS } from '../types';
 import { DocumentViewer } from './DocumentViewer';
-import { Badge, Button, Card, EmptyState, Spinner } from '@/components/ui';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { EmptyState, Spinner } from '@/components/ui/states';
 
 export function VerificationQueue() {
   const { data, isLoading, isError, refetch } = usePendingVerifications();
@@ -16,10 +19,10 @@ export function VerificationQueue() {
   if (isError) {
     return (
       <div className="space-y-3">
-        <p className="text-sm text-red-600">
+        <p className="text-sm text-destructive">
           Could not load the verification queue.
         </p>
-        <Button variant="ghost" onClick={() => refetch()}>
+        <Button variant="outline" onClick={() => refetch()}>
           Retry
         </Button>
       </div>
@@ -32,45 +35,46 @@ export function VerificationQueue() {
   return (
     <div className="space-y-4">
       {data.map((record) => {
-        const pending =
-          review.isPending && review.variables?.id === record.id;
+        const pending = review.isPending && review.variables?.id === record.id;
         return (
-          <Card key={record.id} className="space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="font-medium">
-                  {DOCUMENT_LABELS[record.documentType]}
-                </p>
-                <p className="text-xs text-black/50">
-                  Driver {record.driverId.slice(0, 8)}… · submitted{' '}
-                  {new Date(record.createdAt).toLocaleDateString()}
-                </p>
+          <Card key={record.id}>
+            <CardContent className="space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="font-medium">
+                    {DOCUMENT_LABELS[record.documentType]}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Driver {record.driverId.slice(0, 8)}… · submitted{' '}
+                    {new Date(record.createdAt).toLocaleDateString()}
+                  </p>
+                </div>
+                <Badge variant="secondary">Pending review</Badge>
               </div>
-              <Badge tone="amber">Pending review</Badge>
-            </div>
 
-            <DocumentViewer recordId={record.id} />
+              <DocumentViewer recordId={record.id} />
 
-            <div className="flex gap-3 border-t border-black/5 pt-3">
-              <Button
-                onClick={() =>
-                  review.mutate({ id: record.id, status: 'approved' })
-                }
-                disabled={pending}
-              >
-                Approve
-              </Button>
-              <Button
-                variant="danger"
-                onClick={() =>
-                  review.mutate({ id: record.id, status: 'rejected' })
-                }
-                disabled={pending}
-              >
-                Reject
-              </Button>
-              {pending && <Spinner label="Saving…" />}
-            </div>
+              <div className="flex items-center gap-3 border-t pt-3">
+                <Button
+                  onClick={() =>
+                    review.mutate({ id: record.id, status: 'approved' })
+                  }
+                  disabled={pending}
+                >
+                  Approve
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() =>
+                    review.mutate({ id: record.id, status: 'rejected' })
+                  }
+                  disabled={pending}
+                >
+                  Reject
+                </Button>
+                {pending && <Spinner label="Saving…" />}
+              </div>
+            </CardContent>
           </Card>
         );
       })}

@@ -4,7 +4,9 @@ import { useMetrics } from '../hooks/useMetrics';
 import { CountsChart } from './CountsChart';
 import { formatDuration, formatNumber, formatRate } from './format';
 import { KpiCard } from './KpiCard';
-import { Button, Card, Spinner } from '@/components/ui';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Spinner } from '@/components/ui/states';
 
 export function MetricsDashboard() {
   const { data: m, isLoading, isError, refetch } = useMetrics();
@@ -13,8 +15,8 @@ export function MetricsDashboard() {
   if (isError || !m) {
     return (
       <div className="space-y-3">
-        <p className="text-sm text-red-600">Could not load metrics.</p>
-        <Button variant="ghost" onClick={() => refetch()}>
+        <p className="text-sm text-destructive">Could not load metrics.</p>
+        <Button variant="outline" onClick={() => refetch()}>
           Retry
         </Button>
       </div>
@@ -71,11 +73,7 @@ export function MetricsDashboard() {
 
       {/* Operational breakdowns — rendered straight from the server's count maps. */}
       <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <CountsChart
-          title="Users by role"
-          data={oc.users_by_role}
-          colors={['#111111', '#2563eb', '#16a34a']}
-        />
+        <CountsChart title="Users by role" data={oc.users_by_role} />
         <CountsChart title="Jobs by status" data={oc.jobs_by_status} />
       </section>
 
@@ -93,10 +91,7 @@ export function MetricsDashboard() {
           label="Pending verifications"
           value={formatNumber(oc.pending_verifications)}
         />
-        <KpiCard
-          label="Proposals sent"
-          value={formatNumber(oc.proposals.sent)}
-        />
+        <KpiCard label="Proposals sent" value={formatNumber(oc.proposals.sent)} />
         <KpiCard
           label="Proposals accepted"
           value={formatNumber(oc.proposals.accepted)}
@@ -106,27 +101,33 @@ export function MetricsDashboard() {
       {/* Survey-only metrics: collected off-platform. Shown as pending, never
           fabricated with a number. */}
       <section>
-        <Card className="space-y-3 bg-black/[0.02]">
-          <p className="text-sm font-medium">Survey metrics</p>
-          <p className="text-xs text-black/50">{m.survey_metrics.note}</p>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <p className="text-xs uppercase tracking-wide text-black/45">
-                Trust perception change
-              </p>
-              <p className="text-lg font-medium text-black/40">
-                {m.survey_metrics.trust_perception_change ?? 'Awaiting survey'}
-              </p>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Survey metrics</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              {m.survey_metrics.note}
+            </p>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <p className="text-xs tracking-wide text-muted-foreground uppercase">
+                  Trust perception change
+                </p>
+                <p className="text-lg font-medium text-muted-foreground">
+                  {m.survey_metrics.trust_perception_change ?? 'Awaiting survey'}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs tracking-wide text-muted-foreground uppercase">
+                  Empty-trip change
+                </p>
+                <p className="text-lg font-medium text-muted-foreground">
+                  {m.survey_metrics.empty_trip_change ?? 'Awaiting survey'}
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-xs uppercase tracking-wide text-black/45">
-                Empty-trip change
-              </p>
-              <p className="text-lg font-medium text-black/40">
-                {m.survey_metrics.empty_trip_change ?? 'Awaiting survey'}
-              </p>
-            </div>
-          </div>
+          </CardContent>
         </Card>
       </section>
     </div>

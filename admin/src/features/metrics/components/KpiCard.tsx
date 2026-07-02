@@ -1,7 +1,7 @@
-import { Card } from '@/components/ui';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 // A single KPI: headline value + the underlying n/denominator, always shown so a
-// small sample is visible (e.g. "1 / 19 drivers") rather than hidden behind a
+// small sample is visible (e.g. "1 / 20 drivers") rather than hidden behind a
 // smoothed percentage.
 export function KpiCard({
   label,
@@ -16,21 +16,27 @@ export function KpiCard({
 }) {
   const noData = value === 'No data yet';
   return (
-    <Card className="space-y-1">
-      <p className="text-xs font-medium uppercase tracking-wide text-black/45">
-        {label}
-      </p>
-      <p
-        className={
-          noData
-            ? 'text-lg font-medium text-black/40'
-            : 'text-3xl font-semibold tabular-nums'
-        }
-      >
-        {value}
-      </p>
-      {detail && <p className="text-sm text-black/55 tabular-nums">{detail}</p>}
-      {hint && <p className="text-xs text-black/40">{hint}</p>}
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+          {label}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-1">
+        <p
+          className={
+            noData
+              ? 'text-lg font-medium text-muted-foreground'
+              : 'text-3xl font-semibold tabular-nums'
+          }
+        >
+          {value}
+        </p>
+        {detail && (
+          <p className="text-sm text-muted-foreground tabular-nums">{detail}</p>
+        )}
+        {hint && <p className="text-xs text-muted-foreground/70">{hint}</p>}
+      </CardContent>
     </Card>
   );
 }

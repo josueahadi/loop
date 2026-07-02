@@ -2,7 +2,16 @@
 
 import { FormEvent, useState } from 'react';
 import { useLogin } from '../hooks/useLogin';
-import { Button, Card } from '@/components/ui';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 export function LoginForm() {
   const [email, setEmail] = useState('');
@@ -15,41 +24,44 @@ export function LoginForm() {
   }
 
   return (
-    <Card className="w-full max-w-sm space-y-5">
-      <div className="space-y-1">
-        <h1 className="text-xl font-semibold">Loop Admin</h1>
-        <p className="text-sm text-black/50">
+    <Card className="w-full max-w-sm">
+      <CardHeader>
+        <CardTitle className="text-xl">Loop Admin</CardTitle>
+        <CardDescription>
           Sign in with your administrator account.
-        </p>
-      </div>
-      <form onSubmit={onSubmit} className="space-y-4">
-        <label className="block space-y-1">
-          <span className="text-sm font-medium">Email</span>
-          <input
-            type="email"
-            required
-            autoComplete="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-lg border border-black/15 px-3 py-2 text-sm outline-none focus:border-black/40"
-          />
-        </label>
-        <label className="block space-y-1">
-          <span className="text-sm font-medium">Password</span>
-          <input
-            type="password"
-            required
-            autoComplete="current-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-lg border border-black/15 px-3 py-2 text-sm outline-none focus:border-black/40"
-          />
-        </label>
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        <Button type="submit" className="w-full" disabled={isPending}>
-          {isPending ? 'Signing in…' : 'Sign in'}
-        </Button>
-      </form>
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={onSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              required
+              autoComplete="email"
+              placeholder="admin@loop.rw"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
+              type="password"
+              required
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </div>
+          {error && <p className="text-sm text-destructive">{error}</p>}
+          <Button type="submit" className="w-full" disabled={isPending}>
+            {isPending ? 'Signing in…' : 'Sign in'}
+          </Button>
+        </form>
+      </CardContent>
     </Card>
   );
 }
