@@ -13,8 +13,10 @@ import { GeocodeModule } from './modules/geocode/geocode.module';
 import { JobsModule } from './modules/jobs/jobs.module';
 import { MailModule } from './modules/mail/mail.module';
 import { MatchingModule } from './modules/matching/matching.module';
+import { MessagingModule } from './modules/messaging/messaging.module';
 import { PricingModule } from './modules/pricing/pricing.module';
 import { ProposalsModule } from './modules/proposals/proposals.module';
+import { PushModule } from './modules/push/push.module';
 import { StorageModule } from './modules/storage/storage.module';
 import { UsersModule } from './modules/users/users.module';
 import { VehiclesModule } from './modules/vehicles/vehicles.module';
@@ -38,6 +40,7 @@ import { VerificationModule } from './modules/verification/verification.module';
     }),
     MailModule,
     StorageModule,
+    PushModule,
     UsersModule,
     AuthModule,
     VerificationModule,
@@ -46,6 +49,7 @@ import { VerificationModule } from './modules/verification/verification.module';
     PricingModule,
     JobsModule,
     ProposalsModule,
+    MessagingModule,
     GeocodeModule,
     AdminModule,
   ],

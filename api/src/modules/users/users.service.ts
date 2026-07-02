@@ -105,4 +105,8 @@ export class UsersService {
     await this.users.update({ id }, { photoUrl });
     return this.getByIdOrFail(id);
   }
+
+  async setPushToken(id: string, token: string | null): Promise<void> {
+    await this.users.update({ id }, { fcmToken: token });
+  }
 }

@@ -9,6 +9,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { JobStatus, ProposalStatus, UserRole } from '../../common/enums';
 import { Job } from '../jobs/entities/job.entity';
+import { PushService } from '../push/push.service';
 import { User } from '../users/entities/user.entity';
 import {
   ContactDto,
@@ -24,6 +25,7 @@ export class ProposalsService {
     private readonly proposals: Repository<Proposal>,
     @InjectRepository(Job) private readonly jobs: Repository<Job>,
     @InjectRepository(User) private readonly users: Repository<User>,
+    private readonly push: PushService,
   ) {}
 
   // Owner sends a proposal to a driver, at the job's posted price. Only while the
@@ -57,6 +59,11 @@ export class ProposalsService {
     const saved = await this.proposals.save(
       this.proposals.create({ jobId, driverId, status: ProposalStatus.SENT }),
     );
+    void this.push.sendToUser(driverId, {
+      title: 'New job proposal',
+      body: `${job.cargoType} · ${job.price ?? 0} RWF`,
+      data: { type: 'proposal', jobId, proposalId: saved.id },
+    });
     return this.toDto(saved, { job });
   }
 
@@ -121,6 +128,11 @@ export class ProposalsService {
       proposal.status = ProposalStatus.DECLINED;
       proposal.respondedAt = new Date();
       await this.proposals.save(proposal);
+      void this.push.sendToUser(proposal.job.ownerId, {
+        title: 'Proposal declined',
+        body: 'A driver declined your proposal.',
+        data: { type: 'proposal_declined', jobId: proposal.jobId },
+      });
       return this.toDto(proposal, { job: proposal.job });
     }
 
@@ -152,6 +164,11 @@ export class ProposalsService {
     });
     proposal.status = ProposalStatus.ACCEPTED;
     proposal.respondedAt = new Date();
+    void this.push.sendToUser(proposal.job.ownerId, {
+      title: 'Proposal accepted',
+      body: 'A driver accepted — you can now chat and share contact.',
+      data: { type: 'proposal_accepted', jobId: proposal.jobId },
+    });
     return this.toDto(proposal, {
       job: proposal.job,
       contact: contactOf(proposal.job.owner),

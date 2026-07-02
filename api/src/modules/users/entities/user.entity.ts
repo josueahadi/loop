@@ -39,6 +39,10 @@ export class User {
   @Column({ name: 'email_verified_at', type: 'timestamptz', nullable: true })
   emailVerifiedAt: Date | null;
 
+  // Device FCM registration token for push (nullable until the client registers).
+  @Column({ name: 'fcm_token', type: 'varchar', nullable: true })
+  fcmToken: string | null;
+
   // ---- Driver-only fields (null for cargo owners / admin) ----
   @Column({
     name: 'availability_status',
