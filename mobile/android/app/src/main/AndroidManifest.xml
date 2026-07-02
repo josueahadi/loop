@@ -48,5 +48,16 @@
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
+        <!-- map_launcher: needed on Android 11+ (API 30+) to detect installed
+             map apps for the "Open in Maps" chooser. Without this, availableMaps
+             returns empty on real devices. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="geo" />
+        </intent>
+        <package android:name="com.google.android.apps.maps" />
+        <package android:name="com.waze" />
+        <package android:name="ru.yandex.yandexnavi" />
+        <package android:name="ru.yandex.yandexmaps" />
     </queries>
 </manifest>

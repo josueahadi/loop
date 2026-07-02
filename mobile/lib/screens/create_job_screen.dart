@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_map_dragmarker/flutter_map_dragmarker.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../constants.dart';
@@ -121,6 +122,21 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
   }
 
   void _onMapTap(LatLng point) => _setActivePin(point);
+
+  // Fired once when a pin drag settles — a single reverse-geocode call, not per frame.
+  void _onPinDragEnd(LatLng point, bool isPickup) {
+    setState(() {
+      if (isPickup) {
+        _pickup = point;
+        _pickupLabel = null;
+      } else {
+        _dropOff = point;
+        _dropOffLabel = null;
+      }
+      _estimate = null;
+    });
+    _reverseActivePin(point, isPickup);
+  }
 
   Future<void> _useMyLocationForActivePin() async {
     try {
@@ -273,22 +289,27 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
                   color: primaryGreen,
                 ),
               ]),
-            MarkerLayer(markers: [
+            // Draggable pins: drag to reposition; the label is reverse-geocoded
+            // once on drag-END (not per frame), so the shared OSM instance isn't
+            // hammered while dragging.
+            DragMarkers(markers: [
               if (_pickup != null)
-                Marker(
+                DragMarker(
+                  key: const ValueKey('pickup'),
                   point: _pickup!,
-                  width: 40,
-                  height: 40,
-                  child: const Icon(Icons.trip_origin,
+                  size: const Size(40, 40),
+                  builder: (_, _, _) => const Icon(Icons.trip_origin,
                       color: primaryGreen, size: 32),
+                  onDragEnd: (_, point) => _onPinDragEnd(point, true),
                 ),
               if (_dropOff != null)
-                Marker(
+                DragMarker(
+                  key: const ValueKey('dropoff'),
                   point: _dropOff!,
-                  width: 40,
-                  height: 40,
-                  child:
+                  size: const Size(40, 40),
+                  builder: (_, _, _) =>
                       const Icon(Icons.place, color: Colors.red, size: 36),
+                  onDragEnd: (_, point) => _onPinDragEnd(point, false),
                 ),
             ]),
             RichAttributionWidget(attributions: [

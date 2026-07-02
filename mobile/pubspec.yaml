@@ -54,6 +54,7 @@ dependencies:
   # Matching (M2): device location + OSM map (no API key).
   geolocator: ^13.0.2
   flutter_map: ^7.0.2
+  flutter_map_dragmarker: ^7.0.0
   latlong2: ^0.9.1
   # Navigation hand-off (M3.5): launch the user's own maps app for directions.
   # Deep link only — NO Maps SDK, NO API key.
