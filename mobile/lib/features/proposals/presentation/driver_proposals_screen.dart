@@ -7,6 +7,7 @@ import '../../../core/models/proposal.dart';
 import '../../../core/navigation/open_in_maps.dart';
 import '../../../core/repositories/proposal_repository.dart';
 import '../../chat/presentation/job_chat_screen.dart';
+import '../../ratings/presentation/rating_screen.dart';
 
 /// Driver's incoming proposals (M4): accept / decline. Once accepted, the owner's
 /// contact, a call button, Open in Maps, and chat appear — never before.
@@ -19,6 +20,7 @@ class DriverProposalsScreen extends StatefulWidget {
 
 class _DriverProposalsScreenState extends State<DriverProposalsScreen> {
   final _repo = ProposalRepository();
+  final _rated = <String>{}; // jobIds the driver has rated this session
   late Future<List<Proposal>> _future;
 
   @override
@@ -168,10 +170,29 @@ class _DriverProposalsScreenState extends State<DriverProposalsScreen> {
               icon: const Icon(Icons.chat, size: 18),
               label: const Text('Chat'),
             ),
+            // Rate the owner once the job is completed.
+            if (job.status == 'completed')
+              _rated.contains(p.jobId)
+                  ? const Chip(label: Text('Rated ✓'))
+                  : OutlinedButton.icon(
+                      onPressed: () => _rate(p.jobId, c.name),
+                      icon: const Icon(Icons.star_border, size: 18),
+                      label: const Text('Rate owner'),
+                    ),
           ],
         ),
       ],
     );
+  }
+
+  Future<void> _rate(String jobId, String name) async {
+    final done = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => RatingScreen(jobId: jobId, counterpartyName: name),
+      ),
+    );
+    if (done == true && mounted) setState(() => _rated.add(jobId));
   }
 
   Widget _statusChip(String s) => Chip(

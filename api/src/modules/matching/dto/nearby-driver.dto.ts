@@ -13,6 +13,7 @@ export class NearbyDriverDto {
   @ApiProperty() id: string;
   @ApiProperty() name: string;
   @ApiProperty() averageRating: number;
+  @ApiProperty() ratingCount: number;
   @ApiProperty() lat: number;
   @ApiProperty() lng: number;
   @ApiProperty({ description: 'Straight-line distance in metres' })
