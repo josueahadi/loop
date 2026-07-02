@@ -18,6 +18,7 @@ matching, pricing, jobs, proposals, messaging and reputation. The Flutter app
 | Auth | JWT (access + rotating refresh), argon2 password hashing |
 | Mail | SendGrid (`@sendgrid/mail`) with a console-log dev stub |
 | Object storage | Firebase Storage (private bucket) via `firebase-admin`, with a dev stub |
+| Geocoding (M3.5) | OpenStreetMap via Photon (search) + Nominatim (reverse), API-proxied |
 | API docs | OpenAPI / Swagger at `/docs` (source of truth for generated clients) |
 
 ## Prerequisites
@@ -64,6 +65,7 @@ All variables are validated on boot (`src/config/validation.ts`). See
 | `SENDGRID_API_KEY` / `SENDGRID_FROM` | Required when `MAIL_DRIVER=sendgrid` |
 | `STORAGE_DRIVER` | `stub` (no upload) or `firebase` |
 | `FIREBASE_SERVICE_ACCOUNT_PATH` / `FIREBASE_STORAGE_BUCKET` | Private bucket for verification docs |
+| `NEARBY_RADIUS_KM` | Default matching radius (overridable per request) |
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` / `ADMIN_NAME` / `ADMIN_PHONE` | Seeded admin account |
 
 > Secrets never go in git. `.env` is git-ignored; commit only `.env.example`.
@@ -78,9 +80,10 @@ All variables are validated on boot (`src/config/validation.ts`). See
 | `npm run migration:revert` | Roll back the last migration |
 | `npm run seed` | Seed admin + pricing/size config (idempotent) |
 
-## Endpoints (M1)
+## Endpoints (M1–M3)
 
-Full, always-current schema is at **`/docs`**. Summary of what's wired today:
+Full, always-current schema is at **`/docs`**. Summary of what's wired today
+(M1–M3); the `/geocode/*` proxy lands in M3.5, and proposals/messaging/ratings in M4–M5.
 
 **Auth** (public unless noted)
 - `POST /auth/register` — cargo_owner | driver only (no admin self-signup)
@@ -98,6 +101,25 @@ Full, always-current schema is at **`/docs`**. Summary of what's wired today:
 **Admin** (`admin` role only — all `/admin/*` is role-guarded)
 - `GET /admin/verifications?status=pending`
 - `PATCH /admin/verifications/:id` — `{ "status": "approved" | "rejected" }`
+
+**Availability & vehicles** (driver) — *M2*
+- `PATCH /me/availability` — `{ status, lat, lng }` (online/offline + location, `geography(Point,4326)`)
+- `GET /vehicles` · `POST /vehicles` · `PATCH /vehicles/:id` · `DELETE /vehicles/:id`
+- `POST /me/photo` — profile photo (multipart → private Storage)
+
+**Matching** (cargo owner) — *M2*
+- `GET /drivers/nearby?lat=&lng=&vehicle_type=&radius=` — approved **and** online drivers within radius, nearest first (PostGIS `ST_DWithin`/`ST_Distance`)
+
+**Pricing** — *M3*
+- `POST /pricing/estimate` — `{ pickup, drop_off, vehicle_type, size, weight }` → `{ estimated_price, distance_km }` (rule-based; config-driven; integer RWF)
+
+**Jobs** (cargo owner) — *M3*
+- `POST /jobs` · `GET /jobs` (own) · `GET /jobs/:id` · `PATCH /jobs/:id` (status transitions)
+- Persists both `estimated_price` and the owner-set `price`; status-transition timestamps stamped on `PATCH`.
+
+**Geocoding** (OpenStreetMap proxy) — *M3.5, pending*
+- `GET /geocode/search?q=&limit=` → `[{ label, lat, lng }]` (Photon, Kigali-biased)
+- `GET /geocode/reverse?lat=&lng=` → `{ label }` (Nominatim)
 
 ### Quick smoke test
 
@@ -120,7 +142,9 @@ api/src/
 └── modules/
     ├── auth/   users/  verification/  admin/
     ├── mail/   storage/                      # SendGrid + Firebase, each with a dev stub
-    └── pricing/ vehicles/ jobs/ proposals/ messaging/ ratings/   # entities seeded in M1; endpoints land M2–M5
+    ├── vehicles/ matching/ pricing/ jobs/    # wired (M2–M3)
+    ├── geocode/                              # OSM search/reverse proxy (M3.5)
+    └── proposals/ messaging/ ratings/        # entities seeded in M1; endpoints land M4–M5
 ```
 
 ## Conventions
@@ -130,13 +154,18 @@ api/src/
   `@Roles(UserRole.ADMIN)` restricts `/admin/*`.
 - **Email verification is non-blocking for login** in the MVP (it sets
   `email_verified_at` but is not a login gate).
-- **Driver gating (from M2):** a driver appears in matching only when verification is
-  approved **AND** availability is online.
+- **Driver gating:** a driver appears in matching only when verification is approved
+  **AND** availability is online.
 - **PostGIS** handles all distance/proximity — no geospatial math in app code.
+- **Pricing** is a rule-based *estimate* the owner can override; the JOB stores both
+  `estimated_price` and the posted `price` so estimate-acceptance can be measured.
+- **Geocoding** is OpenStreetMap-only (Photon/Nominatim) and API-proxied; there is no
+  routing endpoint — turn-by-turn is handed off to the driver's maps app client-side.
 
 ## Milestone status
 
-M1 (Foundation) is implemented: schema for all 8 entities (+ pricing/token tables),
-JWT auth, driver verification + admin review. M2–M6 (matching, pricing, jobs,
-proposals/messaging, ratings, admin dashboard) build on this schema. See
-`../docs/BUILD_SPEC.md` §6 for the milestone plan.
+Built through **M3**: schema for all 8 entities (+ pricing/token tables), JWT auth,
+driver verification + admin review (M1); availability, PostGIS nearby-driver query,
+vehicle CRUD (M2); rule-based cost estimate + jobs create/post (M3). **Next:** the
+`/geocode/*` OSM proxy (M3.5), then proposals/messaging + push (M4), ratings (M5), and
+the Next.js admin dashboard (M6). See `../docs/BUILD_SPEC.md` §6 for the plan.

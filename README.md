@@ -28,5 +28,17 @@ full endpoint list are in [`api/README.md`](api/README.md).
 
 ## Status
 
-M1 (Foundation) is built: monorepo, database schema for all core entities, JWT auth,
-driver verification + admin review. Milestone plan (M1–M6) is in `docs/BUILD_SPEC.md` §6.
+Built through **M3** (milestone plan in `docs/BUILD_SPEC.md` §6):
+
+- **M1 — Foundation:** monorepo, database schema for all core entities, NestJS-issued
+  JWT auth (argon2, access + rotating refresh), driver verification + admin review.
+- **M2 — Matching:** availability + location capture, PostGIS nearby-driver query
+  (approved **and** online, nearest first), `flutter_map`/OpenStreetMap map view +
+  vehicle-type filter, vehicle CRUD.
+- **M3 — Pricing + jobs:** rule-based **cost-estimate** endpoint + editable config,
+  pin-based job creation and posting (both the estimated cost and the owner-set price
+  are persisted).
+
+**Next:** **M3.5** — OpenStreetMap place/landmark search + reverse-geocoding + an
+"Open in Maps" navigation hand-off — then **M4** (proposals + messaging + `tel:` call
+button + FCM push), **M5** (two-way ratings), **M6** (Next.js admin + metrics dashboard).
