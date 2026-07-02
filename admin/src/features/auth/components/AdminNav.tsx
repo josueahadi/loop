@@ -6,7 +6,9 @@ import { useQueryClient } from '@tanstack/react-query';
 import { logout } from '../api/auth.api';
 import { useSession } from '../hooks/useSession';
 import { clearTokens, getRefreshToken } from '@/lib/auth';
-import { clsx } from '@/components/ui/clsx';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { ThemeToggle } from '@/components/theme-toggle';
 
 const LINKS = [
   { href: '/metrics', label: 'Metrics' },
@@ -28,7 +30,7 @@ export function AdminNav() {
   }
 
   return (
-    <header className="border-b border-black/10 bg-white">
+    <header className="border-b bg-card">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
         <div className="flex items-center gap-6">
           <span className="text-lg font-semibold">Loop Admin</span>
@@ -37,11 +39,11 @@ export function AdminNav() {
               <Link
                 key={l.href}
                 href={l.href}
-                className={clsx(
-                  'rounded-lg px-3 py-1.5 text-sm font-medium transition',
+                className={cn(
+                  'rounded-lg px-3 py-1.5 text-sm font-medium transition-colors',
                   pathname === l.href
-                    ? 'bg-black text-white'
-                    : 'text-black/60 hover:bg-black/5',
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
                 )}
               >
                 {l.label}
@@ -50,13 +52,15 @@ export function AdminNav() {
           </nav>
         </div>
         <div className="flex items-center gap-3 text-sm">
-          {user && <span className="text-black/50">{user.email}</span>}
-          <button
-            onClick={onLogout}
-            className="rounded-lg border border-black/15 px-3 py-1.5 font-medium hover:bg-black/5"
-          >
+          {user && (
+            <span className="hidden text-muted-foreground sm:inline">
+              {user.email}
+            </span>
+          )}
+          <ThemeToggle />
+          <Button variant="outline" size="sm" onClick={onLogout}>
             Sign out
-          </button>
+          </Button>
         </div>
       </div>
     </header>

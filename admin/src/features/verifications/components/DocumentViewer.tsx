@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { getDocumentUrl } from '../api/verifications.api';
-import { Button, Spinner } from '@/components/ui';
+import { Button } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/states';
 
 // Fetches a short-lived, admin-only view URL on demand and displays the document.
 // When storage is the dev stub the API returns { url: null, stub: true } — we say
@@ -29,7 +30,7 @@ export function DocumentViewer({ recordId }: { recordId: string }) {
 
   if (state.status === 'idle') {
     return (
-      <Button variant="ghost" onClick={load}>
+      <Button variant="outline" size="sm" onClick={load}>
         View document
       </Button>
     );
@@ -37,7 +38,7 @@ export function DocumentViewer({ recordId }: { recordId: string }) {
   if (state.status === 'loading') return <Spinner label="Fetching document…" />;
   if (state.status === 'stub') {
     return (
-      <p className="text-xs text-black/50">
+      <p className="text-xs text-muted-foreground">
         Document preview is unavailable in this environment (storage stub). Enable
         Firebase storage to view uploaded files.
       </p>
@@ -46,8 +47,8 @@ export function DocumentViewer({ recordId }: { recordId: string }) {
   if (state.status === 'error') {
     return (
       <div className="space-y-2">
-        <p className="text-xs text-red-600">Could not load the document.</p>
-        <Button variant="ghost" onClick={load}>
+        <p className="text-xs text-destructive">Could not load the document.</p>
+        <Button variant="outline" size="sm" onClick={load}>
           Retry
         </Button>
       </div>
@@ -61,13 +62,13 @@ export function DocumentViewer({ recordId }: { recordId: string }) {
       <img
         src={state.url}
         alt="Verification document"
-        className="max-h-80 w-auto rounded-lg border border-black/10 object-contain"
+        className="max-h-80 w-auto rounded-lg border object-contain"
       />
       <a
         href={state.url}
         target="_blank"
         rel="noreferrer"
-        className="text-xs font-medium text-blue-600 hover:underline"
+        className="text-xs font-medium text-primary hover:underline"
       >
         Open in new tab ↗
       </a>

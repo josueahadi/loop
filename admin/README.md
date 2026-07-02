@@ -8,9 +8,15 @@ figure is computed server-side by `GET /admin/metrics` and rendered verbatim.
 ## Stack
 
 - Next.js (App Router, TypeScript) + Tailwind CSS v4
+- shadcn/ui (Radix primitives, tokenised light/dark theme) + `next-themes`
 - TanStack Query (data fetching/caching)
-- Recharts (charts)
+- Recharts via shadcn `chart` (theme-aware `--chart-*` tokens)
 - axios (one API client in `src/lib/api.ts`, JWT attach + refresh-on-401)
+
+All colours come from shadcn design tokens (`background`/`foreground`/`card`/
+`muted-foreground`/…) that invert together in dark mode — no hardcoded
+black/white, so both themes stay readable. Toggle via the sun/moon in the nav;
+defaults to the OS preference.
 
 ## Structure (feature-based, per BUILD_SPEC §9)
 
