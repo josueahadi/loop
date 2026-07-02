@@ -20,12 +20,15 @@ export class ContactDto {
   @ApiProperty() phone: string;
 }
 
-// Compact job summary shown with a driver's incoming proposal.
+// Compact job summary shown with a driver's incoming proposal. Pins are included
+// so the driver can navigate (Open in Maps) once accepted.
 export class ProposalJobDto {
   @ApiProperty() id: string;
   @ApiProperty() cargoType: string;
   @ApiProperty({ nullable: true }) pickupLabel: string | null;
   @ApiProperty({ nullable: true }) dropOffLabel: string | null;
+  @ApiProperty() pickup: { lat: number; lng: number };
+  @ApiProperty() dropOff: { lat: number; lng: number };
   @ApiProperty() price: number;
   @ApiProperty() reqVehicleType: string;
   @ApiProperty() status: string;

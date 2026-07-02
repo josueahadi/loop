@@ -64,7 +64,8 @@ export class ProposalsService {
       body: `${job.cargoType} · ${job.price ?? 0} RWF`,
       data: { type: 'proposal', jobId, proposalId: saved.id },
     });
-    return this.toDto(saved, { job });
+    const coords = (await this.coordsFor([jobId])).get(jobId);
+    return this.toDto(saved, { job, coords });
   }
 
   // Driver's incoming proposals, newest first. Owner contact is attached ONLY on
@@ -75,9 +76,11 @@ export class ProposalsService {
       relations: ['job', 'job.owner'],
       order: { createdAt: 'DESC' },
     });
+    const coords = await this.coordsFor(rows.map((r) => r.jobId));
     return rows.map((p) =>
       this.toDto(p, {
         job: p.job,
+        coords: coords.get(p.jobId),
         contact:
           p.status === ProposalStatus.ACCEPTED ? contactOf(p.job.owner) : null,
       }),
@@ -133,7 +136,8 @@ export class ProposalsService {
         body: 'A driver declined your proposal.',
         data: { type: 'proposal_declined', jobId: proposal.jobId },
       });
-      return this.toDto(proposal, { job: proposal.job });
+      const coords = (await this.coordsFor([proposal.jobId])).get(proposal.jobId);
+      return this.toDto(proposal, { job: proposal.job, coords });
     }
 
     // Accept — the job must still be open (no other accepted proposal).
@@ -169,15 +173,39 @@ export class ProposalsService {
       body: 'A driver accepted — you can now chat and share contact.',
       data: { type: 'proposal_accepted', jobId: proposal.jobId },
     });
+    const coords = (await this.coordsFor([proposal.jobId])).get(proposal.jobId);
     return this.toDto(proposal, {
       job: proposal.job,
+      coords,
       contact: contactOf(proposal.job.owner),
     });
   }
 
+  // Pickup/drop-off lat-lng for the given jobs (geography → ST_X/ST_Y), batched.
+  private async coordsFor(jobIds: string[]): Promise<Map<string, JobCoords>> {
+    const map = new Map<string, JobCoords>();
+    if (jobIds.length === 0) return map;
+    const rows = await this.jobs.manager.query(
+      `SELECT id,
+              ST_Y(pickup_location::geometry) AS "pLat",
+              ST_X(pickup_location::geometry) AS "pLng",
+              ST_Y(drop_off_location::geometry) AS "dLat",
+              ST_X(drop_off_location::geometry) AS "dLng"
+       FROM jobs WHERE id = ANY($1)`,
+      [jobIds],
+    );
+    for (const r of rows) {
+      map.set(r.id, {
+        pickup: { lat: Number(r.pLat), lng: Number(r.pLng) },
+        dropOff: { lat: Number(r.dLat), lng: Number(r.dLng) },
+      });
+    }
+    return map;
+  }
+
   private toDto(
     p: Proposal,
-    extra: { job?: Job; contact?: ContactDto | null } = {},
+    extra: { job?: Job; coords?: JobCoords; contact?: ContactDto | null } = {},
   ): ProposalResponseDto {
     return {
       id: p.id,
@@ -186,22 +214,29 @@ export class ProposalsService {
       status: p.status,
       createdAt: p.createdAt,
       respondedAt: p.respondedAt,
-      job: extra.job ? jobSummary(extra.job) : undefined,
+      job: extra.job ? jobSummary(extra.job, extra.coords) : undefined,
       contact: extra.contact ?? null,
     };
   }
+}
+
+interface JobCoords {
+  pickup: { lat: number; lng: number };
+  dropOff: { lat: number; lng: number };
 }
 
 function contactOf(u: User): ContactDto {
   return { name: u.name, phone: u.phone };
 }
 
-function jobSummary(j: Job): ProposalJobDto {
+function jobSummary(j: Job, coords?: JobCoords): ProposalJobDto {
   return {
     id: j.id,
     cargoType: j.cargoType,
     pickupLabel: j.pickupLabel,
     dropOffLabel: j.dropOffLabel,
+    pickup: coords?.pickup ?? { lat: 0, lng: 0 },
+    dropOff: coords?.dropOff ?? { lat: 0, lng: 0 },
     price: j.price ?? 0,
     reqVehicleType: j.reqVehicleType,
     status: j.status,
