@@ -14,6 +14,7 @@ import { JobsModule } from './modules/jobs/jobs.module';
 import { MailModule } from './modules/mail/mail.module';
 import { MatchingModule } from './modules/matching/matching.module';
 import { PricingModule } from './modules/pricing/pricing.module';
+import { ProposalsModule } from './modules/proposals/proposals.module';
 import { StorageModule } from './modules/storage/storage.module';
 import { UsersModule } from './modules/users/users.module';
 import { VehiclesModule } from './modules/vehicles/vehicles.module';
@@ -44,6 +45,7 @@ import { VerificationModule } from './modules/verification/verification.module';
     MatchingModule,
     PricingModule,
     JobsModule,
+    ProposalsModule,
     GeocodeModule,
     AdminModule,
   ],
