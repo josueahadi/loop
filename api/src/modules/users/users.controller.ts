@@ -41,6 +41,16 @@ export class UsersController {
     return UserResponseDto.from(await this.users.updateProfile(id, dto));
   }
 
+  // Register/refresh this device's FCM token for push (any signed-in user).
+  @Post('me/push-token')
+  async setPushToken(
+    @CurrentUser('id') id: string,
+    @Body('token') token: string,
+  ): Promise<{ ok: true }> {
+    await this.users.setPushToken(id, token ?? null);
+    return { ok: true };
+  }
+
   // Driver online/offline toggle + current location (M2 matching).
   @Roles(UserRole.DRIVER)
   @Patch('me/availability')

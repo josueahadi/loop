@@ -29,6 +29,7 @@ export const validationSchema = Joi.object({
   FIREBASE_STORAGE_BUCKET: Joi.string().allow('').optional(),
 
   NEARBY_RADIUS_KM: Joi.number().positive().default(10),
+  PUSH_DRIVER: Joi.string().valid('stub', 'fcm').default('stub'),
 
   GEOCODE_SEARCH_URL: Joi.string().uri().optional(),
   GEOCODE_REVERSE_URL: Joi.string().uri().optional(),

@@ -6,6 +6,7 @@ import '../../../providers/auth_provider.dart';
 import '../../../core/location/enable_location_prompt.dart';
 import '../../../constants.dart';
 import '../../../screens/driver_profile_edit_screen.dart';
+import '../../proposals/presentation/driver_proposals_screen.dart';
 import '../../../screens/vehicle_details_screen.dart';
 import '../../../screens/settings_screen.dart';
 import '../../../screens/help_support_screen.dart';
@@ -113,10 +114,14 @@ class _DriverHomeState extends State<DriverHome> {
             },
           ),
           IconButton(
-            icon: const Icon(Icons.notifications),
-            onPressed: () {
-              // TODO: Implement notifications
-            },
+            icon: const Icon(Icons.inbox),
+            tooltip: 'Proposals',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const DriverProposalsScreen(),
+              ),
+            ),
           ),
         ],
       ),

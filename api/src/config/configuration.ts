@@ -31,6 +31,10 @@ export interface AppConfig {
     // Default "nearby" search radius in km (owner can pass ?radius= to override).
     defaultRadiusKm: number;
   };
+  push: {
+    // stub = log notifications (dev); fcm = real Firebase Cloud Messaging.
+    driver: 'stub' | 'fcm';
+  };
   geocode: {
     // OSM providers (swappable). Search = Photon, reverse = Nominatim.
     searchUrl: string;
@@ -75,6 +79,9 @@ export default (): AppConfig => ({
   },
   matching: {
     defaultRadiusKm: parseFloat(process.env.NEARBY_RADIUS_KM ?? '10'),
+  },
+  push: {
+    driver: (process.env.PUSH_DRIVER as 'stub' | 'fcm') ?? 'stub',
   },
   geocode: {
     searchUrl: process.env.GEOCODE_SEARCH_URL ?? 'https://photon.komoot.io/api',
