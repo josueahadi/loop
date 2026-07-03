@@ -9,8 +9,7 @@ export default function DashboardLayout({
 }) {
   return (
     <AdminGate>
-      <AdminNav />
-      <main className="mx-auto max-w-6xl px-6 py-8">{children}</main>
+      <AdminNav>{children}</AdminNav>
     </AdminGate>
   );
 }

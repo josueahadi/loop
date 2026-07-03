@@ -1,24 +1,50 @@
 'use client';
 
+import { useState } from 'react';
+import { Check, Eye, RefreshCw, X } from 'lucide-react';
 import {
   usePendingVerifications,
   useReviewVerification,
 } from '../hooks/useVerifications';
-import { DOCUMENT_LABELS } from '../types';
+import { DOCUMENT_LABELS, type VerificationRecord } from '../types';
 import { DocumentViewer } from './DocumentViewer';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState, Spinner } from '@/components/ui/states';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 
 export function VerificationQueue() {
   const { data, isLoading, isError, refetch } = usePendingVerifications();
   const review = useReviewVerification();
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const selectedRecord = data?.find((record) => record.id === selectedId);
+
+  function reviewDocument(
+    record: VerificationRecord,
+    status: 'approved' | 'rejected',
+  ) {
+    review.mutate(
+      { id: record.id, status },
+      {
+        onSuccess: () => {
+          if (selectedId === record.id) setSelectedId(null);
+        },
+      },
+    );
+  }
 
   if (isLoading) return <Spinner label="Loading pending verifications…" />;
   if (isError) {
     return (
-      <div className="space-y-3">
+      <div className="flex flex-col items-start gap-3">
         <p className="text-sm text-destructive">
           Could not load the verification queue.
         </p>
@@ -33,51 +59,150 @@ export function VerificationQueue() {
   }
 
   return (
-    <div className="space-y-4">
-      {data.map((record) => {
-        const pending = review.isPending && review.variables?.id === record.id;
-        return (
-          <Card key={record.id}>
-            <CardContent className="space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <p className="font-medium">
-                    {DOCUMENT_LABELS[record.documentType]}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Driver {record.driverId.slice(0, 8)}… · submitted{' '}
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <Badge variant="secondary">{data.length} pending</Badge>
+          <span className="text-sm text-muted-foreground">
+            Driver documents awaiting admin decision
+          </span>
+        </div>
+        <Button variant="outline" size="sm" onClick={() => refetch()}>
+          <RefreshCw data-icon="inline-start" />
+          Refresh
+        </Button>
+      </div>
+
+      <div className="overflow-hidden rounded-lg border bg-card">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Driver</TableHead>
+              <TableHead>Document</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Submitted</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {data.map((record) => {
+              const pending =
+                review.isPending && review.variables?.id === record.id;
+              const driverLabel =
+                record.driver?.name ?? `Driver ${record.driverId.slice(0, 8)}`;
+
+              return (
+                <TableRow key={record.id}>
+                  <TableCell>
+                    <div className="flex flex-col">
+                      <span className="font-medium">{driverLabel}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {record.driver?.email ?? record.driverId}
+                      </span>
+                      {record.driver?.phone && (
+                        <span className="text-xs text-muted-foreground">
+                          {record.driver.phone}
+                        </span>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>{DOCUMENT_LABELS[record.documentType]}</TableCell>
+                  <TableCell>
+                    <Badge variant="secondary">Pending</Badge>
+                  </TableCell>
+                  <TableCell>
                     {new Date(record.createdAt).toLocaleDateString()}
-                  </p>
-                </div>
-                <Badge variant="secondary">Pending review</Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSelectedId(record.id)}
+                      >
+                        <Eye data-icon="inline-start" />
+                        View
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => reviewDocument(record, 'approved')}
+                        disabled={pending}
+                      >
+                        <Check data-icon="inline-start" />
+                        Approve
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => reviewDocument(record, 'rejected')}
+                        disabled={pending}
+                      >
+                        <X data-icon="inline-start" />
+                        Reject
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </div>
+
+      {selectedRecord && (
+        <Card>
+          <CardHeader>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="flex flex-col gap-1">
+                <CardTitle>Document preview</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  {selectedRecord.driver?.name ??
+                    `Driver ${selectedRecord.driverId.slice(0, 8)}`}{' '}
+                  · {DOCUMENT_LABELS[selectedRecord.documentType]}
+                </p>
               </div>
-
-              <DocumentViewer recordId={record.id} />
-
-              <div className="flex items-center gap-3 border-t pt-3">
+              <div className="flex gap-2">
                 <Button
-                  onClick={() =>
-                    review.mutate({ id: record.id, status: 'approved' })
+                  size="sm"
+                  onClick={() => reviewDocument(selectedRecord, 'approved')}
+                  disabled={
+                    review.isPending &&
+                    review.variables?.id === selectedRecord.id
                   }
-                  disabled={pending}
                 >
+                  <Check data-icon="inline-start" />
                   Approve
                 </Button>
                 <Button
                   variant="destructive"
-                  onClick={() =>
-                    review.mutate({ id: record.id, status: 'rejected' })
+                  size="sm"
+                  onClick={() => reviewDocument(selectedRecord, 'rejected')}
+                  disabled={
+                    review.isPending &&
+                    review.variables?.id === selectedRecord.id
                   }
-                  disabled={pending}
                 >
+                  <X data-icon="inline-start" />
                   Reject
                 </Button>
-                {pending && <Spinner label="Saving…" />}
               </div>
-            </CardContent>
-          </Card>
-        );
-      })}
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                className="self-start"
+                onClick={() => setSelectedId(null)}
+              >
+                Close
+              </Button>
+              <DocumentViewer recordId={selectedRecord.id} />
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

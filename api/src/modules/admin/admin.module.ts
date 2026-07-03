@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { VerificationModule } from '../verification/verification.module';
+import { AdminDirectoryService } from './admin-directory.service';
 import { AdminMetricsService } from './admin-metrics.service';
 import { AdminController } from './admin.controller';
 
@@ -7,6 +8,6 @@ import { AdminController } from './admin.controller';
 @Module({
   imports: [VerificationModule],
   controllers: [AdminController],
-  providers: [AdminMetricsService],
+  providers: [AdminDirectoryService, AdminMetricsService],
 })
 export class AdminModule {}

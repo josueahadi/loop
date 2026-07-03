@@ -14,6 +14,7 @@ import { UserRole, VerificationStatus } from '../../common/enums';
 import { StorageService } from '../storage/storage.service';
 import { VerificationResponseDto } from '../verification/dto/verification-response.dto';
 import { VerificationService } from '../verification/verification.service';
+import { AdminDirectoryService } from './admin-directory.service';
 import { AdminMetricsService } from './admin-metrics.service';
 import { ListVerificationsQuery } from './dto/list-verifications.query';
 import { ReviewVerificationDto } from './dto/review-verification.dto';
@@ -26,6 +27,7 @@ import { ReviewVerificationDto } from './dto/review-verification.dto';
 export class AdminController {
   constructor(
     private readonly verification: VerificationService,
+    private readonly directory: AdminDirectoryService,
     private readonly metrics: AdminMetricsService,
     private readonly storage: StorageService,
   ) {}
@@ -49,10 +51,24 @@ export class AdminController {
   @Get('verifications')
   async listVerifications(
     @Query() query: ListVerificationsQuery,
-  ): Promise<VerificationResponseDto[]> {
+  ) {
     const status = query.status ?? VerificationStatus.PENDING;
-    const records = await this.verification.listByStatus(status);
-    return records.map(VerificationResponseDto.from);
+    return this.directory.listVerifications(status);
+  }
+
+  @Get('drivers')
+  async listDrivers() {
+    return this.directory.listDrivers();
+  }
+
+  @Get('users')
+  async listUsers() {
+    return this.directory.listUsers();
+  }
+
+  @Get('jobs')
+  async listJobs() {
+    return this.directory.listJobs();
   }
 
   @Patch('verifications/:id')

@@ -29,6 +29,7 @@ export function useReviewVerification() {
       qc.invalidateQueries({ queryKey: ['verifications'] });
       // Verification completion feeds a dashboard metric — refresh it too.
       qc.invalidateQueries({ queryKey: ['metrics'] });
+      qc.invalidateQueries({ queryKey: ['drivers'] });
     },
   });
 }

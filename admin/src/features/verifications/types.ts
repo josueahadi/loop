@@ -1,10 +1,16 @@
-// Mirrors VerificationResponseDto from the API.
+// Mirrors admin verification rows from the API.
 export type DocumentType = 'licence' | 'national_id' | 'vehicle_reg';
 export type VerificationStatus = 'pending' | 'approved' | 'rejected';
 
 export interface VerificationRecord {
   id: string;
   driverId: string;
+  driver?: {
+    id: string;
+    name: string;
+    email: string;
+    phone: string;
+  };
   documentType: DocumentType;
   status: VerificationStatus;
   reviewedAt: string | null;
