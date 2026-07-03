@@ -1,4 +1,9 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AvailabilityStatus, UserRole } from '../../common/enums';
@@ -87,6 +92,10 @@ export class UsersService {
     lat?: number,
     lng?: number,
   ): Promise<User> {
+    if (status === AvailabilityStatus.ONLINE) {
+      await this.assertDriverCanGoOnline(id);
+    }
+
     await this.users.manager.query(
       `UPDATE users
          SET availability_status = $1,
@@ -99,6 +108,43 @@ export class UsersService {
       [status, lat ?? null, lng ?? null, id],
     );
     return this.getByIdOrFail(id);
+  }
+
+  private async assertDriverCanGoOnline(id: string): Promise<void> {
+    const [vehicleRow] = await this.users.manager.query(
+      `SELECT COUNT(*)::int AS count FROM vehicles WHERE driver_id = $1`,
+      [id],
+    );
+    if ((vehicleRow?.count ?? 0) < 1) {
+      throw new ForbiddenException('Add a vehicle before going online.');
+    }
+
+    const records = await this.users.manager.query(
+      `SELECT document_type AS "documentType", status
+       FROM verification_records
+       WHERE driver_id = $1
+         AND document_type IN ('licence', 'national_id', 'vehicle_reg')`,
+      [id],
+    );
+    const approved = new Set(
+      records
+        .filter((r: { status: string }) => r.status === 'approved')
+        .map((r: { documentType: string }) => r.documentType),
+    );
+    if (approved.size === 3) return;
+
+    if (records.some((r: { status: string }) => r.status === 'rejected')) {
+      throw new ForbiddenException(
+        'A document was rejected. Please re-upload it.',
+      );
+    }
+    if (records.some((r: { status: string }) => r.status === 'pending')) {
+      throw new ForbiddenException('Your documents are still under review.');
+    }
+
+    throw new ForbiddenException(
+      'Upload all required documents before going online.',
+    );
   }
 
   async setPhotoUrl(id: string, photoUrl: string): Promise<User> {

@@ -4,6 +4,8 @@ import '../core/enums/app_enums.dart';
 import '../core/models/vehicle.dart';
 import '../core/repositories/vehicle_repository.dart';
 
+enum _CapacityUnit { kg, tonnes }
+
 /// Driver vehicle management (M2), backed by the API (/vehicles). A driver must
 /// have at least one vehicle to appear in owners' nearby-driver results.
 class VehicleDetailsScreen extends StatefulWidget {
@@ -20,6 +22,7 @@ class _VehicleDetailsScreenState extends State<VehicleDetailsScreen> {
   final _capacityController = TextEditingController();
 
   VehicleType _type = VehicleType.pickup;
+  _CapacityUnit _capacityUnit = _CapacityUnit.kg;
   List<Vehicle> _vehicles = [];
   String? _editingId;
   bool _loading = true;
@@ -64,40 +67,55 @@ class _VehicleDetailsScreenState extends State<VehicleDetailsScreen> {
     setState(() {
       _editingId = null;
       _type = VehicleType.pickup;
+      _capacityUnit = _CapacityUnit.kg;
       _regNoController.clear();
       _capacityController.clear();
     });
   }
 
   void _startEdit(Vehicle v) {
+    final capacityKg = v.capacityKg;
+    final useTonnes =
+        capacityKg != null && capacityKg >= 1000 && capacityKg % 1000 == 0;
     setState(() {
       _editingId = v.id;
       _type = v.type;
+      _capacityUnit = useTonnes ? _CapacityUnit.tonnes : _CapacityUnit.kg;
       _regNoController.text = v.regNo;
-      _capacityController.text = v.capacityKg?.toStringAsFixed(0) ?? '';
+      _capacityController.text = capacityKg == null
+          ? ''
+          : useTonnes
+          ? (capacityKg / 1000).toStringAsFixed(0)
+          : capacityKg.toStringAsFixed(0);
     });
   }
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _saving = true);
-    final capacity = double.tryParse(_capacityController.text.trim());
+    final capacity = _capacityKgFromInput();
     final regNo = _regNoController.text.trim();
     try {
       if (_editingId == null) {
         await _repo.create(type: _type, regNo: regNo, capacityKg: capacity);
       } else {
-        await _repo.update(_editingId!,
-            type: _type, regNo: regNo, capacityKg: capacity);
+        await _repo.update(
+          _editingId!,
+          type: _type,
+          regNo: regNo,
+          capacityKg: capacity,
+        );
       }
       _resetForm();
       await _load();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(e.toString().replaceFirst('Exception: ', '')),
-          backgroundColor: Colors.red,
-        ));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceFirst('Exception: ', '')),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -112,11 +130,13 @@ class _VehicleDetailsScreenState extends State<VehicleDetailsScreen> {
         content: Text('${v.type.label} · ${v.regNo}'),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel')),
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
           TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Delete')),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
         ],
       ),
     );
@@ -127,12 +147,46 @@ class _VehicleDetailsScreenState extends State<VehicleDetailsScreen> {
       await _load();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(e.toString().replaceFirst('Exception: ', '')),
-          backgroundColor: Colors.red,
-        ));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceFirst('Exception: ', '')),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     }
+  }
+
+  String _vehicleTypeHint(VehicleType type) {
+    switch (type) {
+      case VehicleType.moto:
+        return 'Motorbike deliveries';
+      case VehicleType.pickup:
+        return 'Small loads and quick moves';
+      case VehicleType.van:
+        return 'Covered medium cargo';
+      case VehicleType.smallTruck:
+        return 'Heavier city loads';
+      case VehicleType.largeTruck:
+        return 'Bulk or long-haul cargo';
+    }
+  }
+
+  double? _capacityKgFromInput() {
+    final raw = _capacityController.text.trim();
+    if (raw.isEmpty) return null;
+    final value = double.tryParse(raw);
+    if (value == null) return null;
+    return _capacityUnit == _CapacityUnit.tonnes ? value * 1000 : value;
+  }
+
+  String _formatCapacity(double? capacityKg) {
+    if (capacityKg == null) return '';
+    if (capacityKg >= 1000 && capacityKg % 1000 == 0) {
+      final tonnes = capacityKg / 1000;
+      return ' · ${tonnes.toStringAsFixed(0)} ${tonnes == 1 ? 'tonne' : 'tonnes'}';
+    }
+    return ' · ${capacityKg.toStringAsFixed(0)} kg';
   }
 
   @override
@@ -147,39 +201,50 @@ class _VehicleDetailsScreenState extends State<VehicleDetailsScreen> {
                 if (_error != null)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 12),
-                    child: Text(_error!,
-                        style: const TextStyle(color: Colors.red)),
+                    child: Text(
+                      _error!,
+                      style: const TextStyle(color: Colors.red),
+                    ),
                   ),
                 if (_vehicles.isEmpty)
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 8),
                     child: Text(
-                        'No vehicles yet. Add one below so cargo owners can find you.'),
+                      'No vehicles yet. Add one below so cargo owners can find you.',
+                    ),
                   ),
-                ..._vehicles.map((v) => Card(
-                      child: ListTile(
-                        leading: const Icon(Icons.local_shipping),
-                        title: Text(v.type.label),
-                        subtitle: Text(
-                          '${v.regNo}${v.capacityKg != null ? ' · ${v.capacityKg!.toStringAsFixed(0)} kg' : ''}',
-                        ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                                icon: const Icon(Icons.edit),
-                                onPressed: () => _startEdit(v)),
-                            IconButton(
-                                icon: const Icon(Icons.delete_outline),
-                                onPressed: () => _delete(v)),
-                          ],
-                        ),
+                ..._vehicles.map(
+                  (v) => Card(
+                    child: ListTile(
+                      leading: const Icon(Icons.local_shipping),
+                      title: Text(v.type.label),
+                      subtitle: Text(
+                        '${v.regNo}${_formatCapacity(v.capacityKg)}',
                       ),
-                    )),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.edit),
+                            onPressed: () => _startEdit(v),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete_outline),
+                            onPressed: () => _delete(v),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
                 const Divider(height: 32),
-                Text(_editingId == null ? 'Add a vehicle' : 'Edit vehicle',
-                    style: const TextStyle(
-                        fontSize: 16, fontWeight: FontWeight.bold)),
+                Text(
+                  _editingId == null ? 'Add a vehicle' : 'Edit vehicle',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 const SizedBox(height: 12),
                 Form(
                   key: _formKey,
@@ -188,11 +253,38 @@ class _VehicleDetailsScreenState extends State<VehicleDetailsScreen> {
                     children: [
                       DropdownButtonFormField<VehicleType>(
                         initialValue: _type,
-                        decoration:
-                            const InputDecoration(labelText: 'Vehicle type'),
+                        decoration: const InputDecoration(
+                          labelText: 'Vehicle type',
+                        ),
+                        itemHeight: 64,
                         items: VehicleType.values
-                            .map((t) => DropdownMenuItem(
-                                value: t, child: Text(t.label)))
+                            .map(
+                              (t) => DropdownMenuItem(
+                                value: t,
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(t.label),
+                                    Text(
+                                      _vehicleTypeHint(t),
+                                      style: TextStyle(
+                                        color: Colors.grey[600],
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            )
+                            .toList(),
+                        selectedItemBuilder: (context) => VehicleType.values
+                            .map(
+                              (t) => Align(
+                                alignment: Alignment.centerLeft,
+                                child: Text(t.label),
+                              ),
+                            )
                             .toList(),
                         onChanged: (v) => setState(() => _type = v ?? _type),
                       ),
@@ -200,7 +292,8 @@ class _VehicleDetailsScreenState extends State<VehicleDetailsScreen> {
                       TextFormField(
                         controller: _regNoController,
                         decoration: const InputDecoration(
-                            labelText: 'Registration / plate number'),
+                          labelText: 'Registration / plate number',
+                        ),
                         validator: (v) => v == null || v.trim().isEmpty
                             ? 'Enter the registration number'
                             : null,
@@ -208,9 +301,41 @@ class _VehicleDetailsScreenState extends State<VehicleDetailsScreen> {
                       const SizedBox(height: 12),
                       TextFormField(
                         controller: _capacityController,
-                        keyboardType: TextInputType.number,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
                         decoration: const InputDecoration(
-                            labelText: 'Capacity (kg, optional)'),
+                          labelText: 'Capacity',
+                          hintText: 'Enter a value',
+                        ),
+                        validator: (v) {
+                          final raw = v?.trim() ?? '';
+                          if (raw.isEmpty) return null;
+                          final value = double.tryParse(raw);
+                          if (value == null || value <= 0) {
+                            return 'Enter a valid capacity';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<_CapacityUnit>(
+                        initialValue: _capacityUnit,
+                        decoration: const InputDecoration(
+                          labelText: 'Capacity unit',
+                        ),
+                        items: const [
+                          DropdownMenuItem(
+                            value: _CapacityUnit.kg,
+                            child: Text('Kilograms (kg)'),
+                          ),
+                          DropdownMenuItem(
+                            value: _CapacityUnit.tonnes,
+                            child: Text('Tonnes'),
+                          ),
+                        ],
+                        onChanged: (v) =>
+                            setState(() => _capacityUnit = v ?? _capacityUnit),
                       ),
                       const SizedBox(height: 16),
                       Row(
@@ -223,17 +348,22 @@ class _VehicleDetailsScreenState extends State<VehicleDetailsScreen> {
                                       height: 20,
                                       width: 20,
                                       child: CircularProgressIndicator(
-                                          strokeWidth: 2))
-                                  : Text(_editingId == null
-                                      ? 'Add vehicle'
-                                      : 'Save changes'),
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : Text(
+                                      _editingId == null
+                                          ? 'Add vehicle'
+                                          : 'Save changes',
+                                    ),
                             ),
                           ),
                           if (_editingId != null) ...[
                             const SizedBox(width: 12),
                             OutlinedButton(
-                                onPressed: _saving ? null : _resetForm,
-                                child: const Text('Cancel')),
+                              onPressed: _saving ? null : _resetForm,
+                              child: const Text('Cancel'),
+                            ),
                           ],
                         ],
                       ),

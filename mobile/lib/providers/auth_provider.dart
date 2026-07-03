@@ -18,13 +18,14 @@ class AuthProvider with ChangeNotifier {
     AuthService? authService,
     VerificationRepository? verification,
     LocationService? location,
-  })  : _authService = authService ?? AuthService(),
-        _verification = verification ?? VerificationRepository(),
-        _location = location ?? LocationService();
+  }) : _authService = authService ?? AuthService(),
+       _verification = verification ?? VerificationRepository(),
+       _location = location ?? LocationService();
 
   UserModel? _user;
   bool _isLoading = false;
   String? _error;
+  bool _disposed = false;
 
   UserModel? get user => _user;
   bool get isLoading => _isLoading;
@@ -39,7 +40,7 @@ class AuthProvider with ChangeNotifier {
     } catch (e) {
       _error = e.toString();
     }
-    notifyListeners();
+    _notify();
   }
 
   Future<bool> signUp({
@@ -72,7 +73,10 @@ class AuthProvider with ChangeNotifier {
     try {
       _setLoading(true);
       _clearError();
-      _user = await _authService.signInWithEmail(email: email, password: password);
+      _user = await _authService.signInWithEmail(
+        email: email,
+        password: password,
+      );
       return true;
     } catch (e) {
       _setError(_clean(e));
@@ -130,7 +134,7 @@ class AuthProvider with ChangeNotifier {
   Future<void> refreshUserData() async {
     try {
       _user = await _authService.getCurrentUserData();
-      notifyListeners();
+      _notify();
     } catch (e) {
       _setError(_clean(e));
     }
@@ -167,7 +171,10 @@ class AuthProvider with ChangeNotifier {
     try {
       _setLoading(true);
       _clearError();
-      await _verification.submitDocument(documentType: documentType, file: file);
+      await _verification.submitDocument(
+        documentType: documentType,
+        file: file,
+      );
       return true;
     } catch (e) {
       _setError(_clean(e));
@@ -220,12 +227,12 @@ class AuthProvider with ChangeNotifier {
 
   void _setLoading(bool loading) {
     _isLoading = loading;
-    notifyListeners();
+    _notify();
   }
 
   void _setError(String error) {
     _error = error;
-    notifyListeners();
+    _notify();
   }
 
   void _clearError() {
@@ -234,9 +241,18 @@ class AuthProvider with ChangeNotifier {
 
   void clearError() {
     _clearError();
-    notifyListeners();
+    _notify();
   }
 
-  String _clean(Object e) =>
-      e.toString().replaceFirst('Exception: ', '');
+  void _notify() {
+    if (!_disposed) notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
+
+  String _clean(Object e) => e.toString().replaceFirst('Exception: ', '');
 }
