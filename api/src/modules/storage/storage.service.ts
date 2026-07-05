@@ -1,7 +1,7 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as fs from 'fs';
 import * as admin from 'firebase-admin';
+import { loadFirebaseServiceAccount } from '../../common/firebase-credentials';
 
 export interface UploadResult {
   // Object PATH inside the private bucket — never a public URL.
@@ -31,22 +31,13 @@ export class StorageService implements OnModuleInit {
     const bucketName = this.config.get<string>('storage.bucket') ?? '';
     if (!admin.apps.length) {
       admin.initializeApp({
-        credential: admin.credential.cert(this.loadServiceAccount()),
+        credential: admin.credential.cert(
+          loadFirebaseServiceAccount(this.config),
+        ),
         storageBucket: bucketName,
       });
     }
     this.bucket = admin.storage().bucket();
-  }
-
-  // Service-account credentials come from inline JSON (FIREBASE_SERVICE_ACCOUNT_JSON,
-  // preferred on Railway — no file to mount) or a JSON file path. Inline wins.
-  private loadServiceAccount(): admin.ServiceAccount {
-    const inline = this.config.get<string>('storage.serviceAccountJson') ?? '';
-    if (inline.trim()) {
-      return JSON.parse(inline) as admin.ServiceAccount;
-    }
-    const path = this.config.get<string>('storage.serviceAccountPath') ?? '';
-    return JSON.parse(fs.readFileSync(path, 'utf8')) as admin.ServiceAccount;
   }
 
   async upload(

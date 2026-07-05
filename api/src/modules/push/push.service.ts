@@ -1,10 +1,10 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import * as fs from 'fs';
 import * as admin from 'firebase-admin';
 import { Repository } from 'typeorm';
 import { User } from '../users/entities/user.entity';
+import { loadFirebaseServiceAccount } from '../../common/firebase-credentials';
 
 export interface PushMessage {
   title: string;
@@ -34,12 +34,13 @@ export class PushService implements OnModuleInit {
       return;
     }
     try {
+      // Reuse the app Storage may have already initialised (same credentials);
+      // only init if neither module has done so yet. Supports inline JSON, the
+      // form used on Railway.
       if (!admin.apps.length) {
-        const path =
-          this.config.get<string>('storage.serviceAccountPath') ?? '';
         admin.initializeApp({
           credential: admin.credential.cert(
-            JSON.parse(fs.readFileSync(path, 'utf8')),
+            loadFirebaseServiceAccount(this.config),
           ),
         });
       }
