@@ -1,16 +1,13 @@
 # Loop API
 
-REST API and **system of record** for Loop — a real-time geo-matching platform
-connecting cargo owners with vehicle drivers in Rwanda.
+REST API and **system of record** for Loop — a real-time geo-matching platform connecting cargo owners with vehicle drivers in Rwanda.
 
-NestJS + TypeORM over PostgreSQL/PostGIS. This service owns identity, verification,
-matching, pricing, jobs, proposals, messaging and reputation. The Flutter app
-(`../mobile`) and the future Next.js admin (`../admin`, M6) are clients of this API.
+NestJS + TypeORM over PostgreSQL/PostGIS. This service owns identity, verification, matching, pricing, jobs, proposals, messaging and reputation. The Flutter app (`../mobile`) and the future Next.js admin (`../admin`, M6) are clients of this API.
 
 ## Stack
 
 | Layer | Choice |
-|---|---|
+| --- | --- |
 | Runtime | Node.js 20+ (developed on 24) |
 | Framework | NestJS 10 (TypeScript) |
 | ORM | TypeORM 0.3 (migrations only — `synchronize: false`) |
@@ -47,16 +44,14 @@ npm run start:dev           # watch mode  →  http://localhost:3000
 # Swagger UI: http://localhost:3000/docs
 ```
 
-> The container maps host **5433** → container 5432 (host 5432 is often taken by a
-> local Postgres). `DATABASE_URL` in `.env` already points at 5433.
+> The container maps host **5433** → container 5432 (host 5432 is often taken by a local Postgres). `DATABASE_URL` in `.env` already points at 5433.
 
 ## Environment
 
-All variables are validated on boot (`src/config/validation.ts`). See
-`.env.example` for the full list. Key ones:
+All variables are validated on boot (`src/config/validation.ts`). See `.env.example` for the full list. Key ones:
 
 | Var | Purpose |
-|---|---|
+| --- | --- |
 | `DATABASE_URL` | Postgres connection (defaults to the Docker DB on 5433) |
 | `JWT_ACCESS_SECRET` / `JWT_REFRESH_SECRET` | Token signing secrets (≥16 chars) |
 | `JWT_ACCESS_TTL` / `JWT_REFRESH_TTL` | Token lifetimes (e.g. `15m`, `30d`) |
@@ -73,7 +68,7 @@ All variables are validated on boot (`src/config/validation.ts`). See
 ## Scripts
 
 | Command | Description |
-|---|---|
+| --- | --- |
 | `npm run start:dev` | Run with hot reload |
 | `npm run build` / `npm run start:prod` | Compile and run from `dist/` |
 | `npm run migration:run` | Apply pending migrations |
@@ -82,42 +77,50 @@ All variables are validated on boot (`src/config/validation.ts`). See
 
 ## Endpoints (M1–M3)
 
-Full, always-current schema is at **`/docs`**. Summary of what's wired today
-(M1–M3); the `/geocode/*` proxy lands in M3.5, and proposals/messaging/ratings in M4–M5.
+Full, always-current schema is at **`/docs`**. Summary of what's wired today (M1–M3); the `/geocode/*` proxy lands in M3.5, and proposals/messaging/ratings in M4–M5.
 
 **Auth** (public unless noted)
+
 - `POST /auth/register` — cargo_owner | driver only (no admin self-signup)
 - `POST /auth/login`, `POST /auth/refresh`, `POST /auth/logout`
 - `POST /auth/password-reset/request` · `POST /auth/password-reset/confirm`
 - `POST /auth/email/verify/request` (authed) · `POST /auth/email/verify/confirm`
 
 **Users** (authed)
+
 - `GET /me` · `PATCH /me`
 
 **Verification** (driver)
+
 - `POST /verification` — multipart upload (`documentType` = `licence|national_id|vehicle_reg` + `file`)
 - `GET /verification` — own records
 
 **Admin** (`admin` role only — all `/admin/*` is role-guarded)
+
 - `GET /admin/verifications?status=pending`
 - `PATCH /admin/verifications/:id` — `{ "status": "approved" | "rejected" }`
 
-**Availability & vehicles** (driver) — *M2*
+**Availability & vehicles** (driver) — _M2_
+
 - `PATCH /me/availability` — `{ status, lat, lng }` (online/offline + location, `geography(Point,4326)`)
 - `GET /vehicles` · `POST /vehicles` · `PATCH /vehicles/:id` · `DELETE /vehicles/:id`
 - `POST /me/photo` — profile photo (multipart → private Storage)
 
-**Matching** (cargo owner) — *M2*
+**Matching** (cargo owner) — _M2_
+
 - `GET /drivers/nearby?lat=&lng=&vehicle_type=&radius=` — approved **and** online drivers within radius, nearest first (PostGIS `ST_DWithin`/`ST_Distance`)
 
-**Pricing** — *M3*
+**Pricing** — _M3_
+
 - `POST /pricing/estimate` — `{ pickup, drop_off, vehicle_type, size, weight }` → `{ estimated_price, distance_km }` (rule-based; config-driven; integer RWF)
 
-**Jobs** (cargo owner) — *M3*
+**Jobs** (cargo owner) — _M3_
+
 - `POST /jobs` · `GET /jobs` (own) · `GET /jobs/:id` · `PATCH /jobs/:id` (status transitions)
 - Persists both `estimated_price` and the owner-set `price`; status-transition timestamps stamped on `PATCH`.
 
-**Geocoding** (OpenStreetMap proxy) — *M3.5, pending*
+**Geocoding** (OpenStreetMap proxy) — _M3.5, pending_
+
 - `GET /geocode/search?q=&limit=` → `[{ label, lat, lng }]` (Photon, Kigali-biased)
 - `GET /geocode/reverse?lat=&lng=` → `{ label }` (Nominatim)
 
@@ -150,22 +153,13 @@ api/src/
 ## Conventions
 
 - **Money:** RWF is zero-decimal → stored as **integer** whole francs. Never minor units.
-- **Auth:** every route requires a valid access token unless marked `@Public()`;
-  `@Roles(UserRole.ADMIN)` restricts `/admin/*`.
-- **Email verification is non-blocking for login** in the MVP (it sets
-  `email_verified_at` but is not a login gate).
-- **Driver gating:** a driver appears in matching only when verification is approved
-  **AND** availability is online.
+- **Auth:** every route requires a valid access token unless marked `@Public()`; `@Roles(UserRole.ADMIN)` restricts `/admin/*`.
+- **Email verification is non-blocking for login** in the MVP (it sets `email_verified_at` but is not a login gate).
+- **Driver gating:** a driver appears in matching only when verification is approved **AND** availability is online.
 - **PostGIS** handles all distance/proximity — no geospatial math in app code.
-- **Pricing** is a rule-based *estimate* the owner can override; the JOB stores both
-  `estimated_price` and the posted `price` so estimate-acceptance can be measured.
-- **Geocoding** is OpenStreetMap-only (Photon/Nominatim) and API-proxied; there is no
-  routing endpoint — turn-by-turn is handed off to the driver's maps app client-side.
+- **Pricing** is a rule-based _estimate_ the owner can override; the JOB stores both `estimated_price` and the posted `price` so estimate-acceptance can be measured.
+- **Geocoding** is OpenStreetMap-only (Photon/Nominatim) and API-proxied; there is no routing endpoint — turn-by-turn is handed off to the driver's maps app client-side.
 
 ## Milestone status
 
-Built through **M3**: schema for all 8 entities (+ pricing/token tables), JWT auth,
-driver verification + admin review (M1); availability, PostGIS nearby-driver query,
-vehicle CRUD (M2); rule-based cost estimate + jobs create/post (M3). **Next:** the
-`/geocode/*` OSM proxy (M3.5), then proposals/messaging + push (M4), ratings (M5), and
-the Next.js admin dashboard (M6). See `../docs/BUILD_SPEC.md` §6 for the plan.
+Built through **M3**: schema for all 8 entities (+ pricing/token tables), JWT auth, driver verification + admin review (M1); availability, PostGIS nearby-driver query, vehicle CRUD (M2); rule-based cost estimate + jobs create/post (M3). **Next:** the `/geocode/*` OSM proxy (M3.5), then proposals/messaging + push (M4), ratings (M5), and the Next.js admin dashboard (M6). See `../docs/BUILD_SPEC.md` §6 for the plan.

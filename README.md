@@ -1,7 +1,6 @@
 # Loop
 
-Real-time geo-matching platform connecting cargo owners with vehicle drivers in
-Rwanda. Monorepo:
+Real-time geo-matching platform connecting cargo owners with vehicle drivers in Rwanda. Monorepo:
 
 ```
 loop/
@@ -11,8 +10,7 @@ loop/
 └── docs/     spec, diagrams, proposal
 ```
 
-The **API is the system of record** (PostgreSQL/PostGIS). The mobile app and admin
-are clients of it.
+The **API is the system of record** (PostgreSQL/PostGIS). The mobile app and admin are clients of it.
 
 ## Quick start (local development)
 
@@ -47,14 +45,11 @@ The seeded admin credentials come from `ADMIN_EMAIL` / `ADMIN_PASSWORD` in `api/
 
 ## Deployment
 
-Loop deploys to **Railway** as one project with three services (PostGIS DB, API, admin) plus external Firebase Storage/FCM and SendGrid. Full, reproducible steps — architecture, environment matrix, prerequisites, deploy commands, going-live, the mobile APK build, secrets handling, and a hosted-stack verification checklist — are
-in **[DEPLOYMENT.md](DEPLOYMENT.md)**.
+Loop deploys to **Railway** as one project with three services (PostGIS DB, API, admin) plus external Firebase Storage/FCM and SendGrid. Full, reproducible steps — architecture, environment matrix, prerequisites, deploy commands, going-live, the mobile APK build, secrets handling, and a hosted-stack verification checklist — are in **[DEPLOYMENT.md](DEPLOYMENT.md)**.
 
 ## Walkthrough video
 
-📹 **Walkthrough video:** _TODO — the recorded demo link will be added here_ (`https://…`).
-It walks through onboarding a driver, admin verification, posting a job, matching,
-messaging, and the metrics dashboard.
+📹 **Walkthrough video:** _TODO — the recorded demo link will be added here_ (`https://…`). It walks through onboarding a driver, admin verification, posting a job, matching, messaging, and the metrics dashboard.
 
 ## Status
 
