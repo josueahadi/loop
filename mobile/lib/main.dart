@@ -1,5 +1,3 @@
-import 'package:cargo_app/core/repositories/chat_repository.dart';
-import 'package:cargo_app/features/chat/chat_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'widgets/firebase_initializer.dart';
@@ -15,9 +13,7 @@ import 'screens/personal_data_screen.dart';
 import 'providers/auth_provider.dart';
 import 'providers/onboarding_provider.dart';
 import 'features/profile/providers/profile_provider.dart';
-import 'features/booking/providers/booking_provider.dart';
 import 'core/repositories/user_repository.dart';
-import 'core/repositories/booking_repository.dart';
 import 'package:cargo_app/constants.dart';
 
 void main() async {
@@ -38,34 +34,12 @@ class MyApp extends StatelessWidget {
           ProxyProvider0<UserRepository>(
             update: (_, __) => ApiUserRepository(),
           ),
-          ProxyProvider0<BookingRepository>(
-            update: (_, __) => FirebaseBookingRepository(),
-          ),
-          // Add ChatRepository provider
-          ProxyProvider0<ChatRepository>(
-            update: (_, __) => FirebaseChatRepository(),
-          ),
           ChangeNotifierProxyProvider<UserRepository, ProfileProvider>(
             create: (context) => ProfileProvider(
               Provider.of<UserRepository>(context, listen: false),
             ),
             update: (context, userRepo, previous) =>
                 previous ?? ProfileProvider(userRepo),
-          ),
-          ChangeNotifierProxyProvider<BookingRepository, BookingProvider>(
-            create: (context) => BookingProvider(
-              Provider.of<BookingRepository>(context, listen: false),
-            ),
-            update: (context, bookingRepo, previous) =>
-                previous ?? BookingProvider(bookingRepo),
-          ),
-          // ChatProvider depends on ChatRepository
-          ChangeNotifierProxyProvider<ChatRepository, ChatProvider>(
-            create: (context) => ChatProvider(
-              Provider.of<ChatRepository>(context, listen: false),
-            ),
-            update: (context, chatRepo, previous) =>
-                previous ?? ChatProvider(chatRepo),
           ),
         ],
         child: Consumer<AuthProvider>(

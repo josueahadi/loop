@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../core/models/booking_model.dart';
-import '../../../features/booking/providers/booking_provider.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../../core/enums/app_enums.dart';
+import '../../../core/models/proposal.dart';
+import '../../../core/navigation/open_in_maps.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../core/location/enable_location_prompt.dart';
 import '../../../core/location/location_service.dart';
@@ -10,6 +12,7 @@ import '../../../core/repositories/vehicle_repository.dart';
 import '../../../core/repositories/verification_repository.dart';
 import '../../../constants.dart';
 import '../../../screens/driver_profile_edit_screen.dart';
+import '../../chat/presentation/job_chat_screen.dart';
 import '../../proposals/presentation/driver_proposals_screen.dart';
 import '../../../screens/vehicle_details_screen.dart';
 import '../widgets/driver_verification_banner.dart';
@@ -18,7 +21,6 @@ import 'driver_location_screen.dart';
 import '../../../screens/settings_screen.dart';
 import '../../../screens/help_support_screen.dart';
 import '../../../features/profile/providers/profile_provider.dart';
-import '../../../screens/job_details_screen.dart';
 
 class DriverHome extends StatefulWidget {
   const DriverHome({super.key});
@@ -46,14 +48,7 @@ class _DriverHomeState extends State<DriverHome> {
 
   void _loadData() {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final bookingProvider = Provider.of<BookingProvider>(
-      context,
-      listen: false,
-    );
-
     if (authProvider.user != null) {
-      bookingProvider.loadDriverBookings(authProvider.user!.uid);
-      bookingProvider.loadAvailableBookings(authProvider.user!.uid);
       _loadProposalCount();
     }
   }
@@ -301,307 +296,337 @@ class _ProposalBadge extends StatelessWidget {
   }
 }
 
-class _DashboardTab extends StatelessWidget {
+// Driver dashboard — data from the proposals API (Postgres), no Firestore.
+// In the M4 model a driver doesn't browse a job board; owners send proposals.
+// So "available" = incoming proposals still 'sent'; "active" = 'accepted'.
+class _DashboardTab extends StatefulWidget {
   final Function(int) onNavigateToTab;
 
-  const _DashboardTab({required this.onNavigateToTab});
+  const _DashboardTab({super.key, required this.onNavigateToTab});
+
+  @override
+  State<_DashboardTab> createState() => _DashboardTabState();
+}
+
+class _DashboardTabState extends State<_DashboardTab> {
+  final _proposals = ProposalRepository();
+  late Future<List<Proposal>> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = _proposals.incoming();
+  }
+
+  Future<void> _refresh() async {
+    final next = _proposals.incoming();
+    setState(() => _future = next);
+    await next;
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Consumer2<AuthProvider, BookingProvider>(
-      builder: (context, authProvider, bookingProvider, child) {
-        final user = authProvider.user;
-        final myJobs = bookingProvider.myBookings;
-        final availableJobs = bookingProvider.availableBookings;
+    final user = context.watch<AuthProvider>().user;
 
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Welcome Section
-              AppCard(
-                color: kTintGreen,
-                padding: const EdgeInsets.all(18),
-                child: Row(
+    return RefreshIndicator(
+      onRefresh: _refresh,
+      child: FutureBuilder<List<Proposal>>(
+        future: _future,
+        builder: (context, snap) {
+          final all = snap.data ?? const <Proposal>[];
+          final incoming = all.where((p) => p.status == 'sent').toList();
+          final active = all.where((p) => p.status == 'accepted').toList();
+          final loading = snap.connectionState == ConnectionState.waiting;
+
+          return SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Welcome Section
+                AppCard(
+                  color: kTintGreen,
+                  padding: const EdgeInsets.all(18),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Welcome, ${user?.name ?? 'Driver'}!',
+                              style: const TextStyle(
+                                fontSize: 19,
+                                fontWeight: FontWeight.w800,
+                                color: textDark,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              user?.isAvailable == true
+                                  ? 'You are available for jobs'
+                                  : 'Go online to receive job requests',
+                              style: const TextStyle(
+                                fontSize: 13.5,
+                                color: kMutedText,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Pill(
+                        text: user?.isAvailable == true ? 'ONLINE' : 'OFFLINE',
+                        color: user?.isAvailable == true
+                            ? primaryGreen
+                            : Colors.orange,
+                        icon: Icons.circle,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: kGap),
+
+                // Onboarding nudge — add a vehicle + upload docs; hides once verified.
+                const DriverVerificationBanner(),
+
+                // Quick Stats
+                Row(
                   children: [
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Welcome, ${user?.name ?? 'Driver'}!',
-                            style: const TextStyle(
-                              fontSize: 19,
-                              fontWeight: FontWeight.w800,
-                              color: textDark,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            user?.isAvailable == true
-                                ? 'You are available for jobs'
-                                : 'Go online to receive job requests',
-                            style: const TextStyle(
-                              fontSize: 13.5,
-                              color: kMutedText,
-                            ),
-                          ),
-                        ],
+                      child: StatTile(
+                        label: 'Completed',
+                        value: '${user?.completedJobs ?? 0}',
+                        icon: Icons.work_outline,
+                        accent: textDark,
                       ),
                     ),
-                    Pill(
-                      text: user?.isAvailable == true ? 'ONLINE' : 'OFFLINE',
-                      color: user?.isAvailable == true
-                          ? primaryGreen
-                          : Colors.orange,
-                      icon: Icons.circle,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: StatTile(
+                        label: 'Rating',
+                        value: user?.rating?.toStringAsFixed(1) ?? '0.0',
+                        icon: Icons.star_outline,
+                        accent: Colors.orange,
+                      ),
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(height: kGap),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: StatTile(
+                        label: 'New Requests',
+                        value: '${incoming.length}',
+                        icon: Icons.assignment_outlined,
+                        accent: primaryGreen,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: StatTile(
+                        label: 'Active Jobs',
+                        value: '${active.length}',
+                        icon: Icons.local_shipping_outlined,
+                        accent: primaryGreen,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
 
-              // Onboarding nudge — guides new drivers to add a vehicle + upload
-              // documents; hides itself once verified. Matchability needs both.
-              const DriverVerificationBanner(),
-
-              // Quick Stats
-              Row(
-                children: [
-                  Expanded(
-                    child: StatTile(
-                      label: 'Total Jobs',
-                      value: '${user?.completedJobs ?? 0}',
-                      icon: Icons.work_outline,
-                      accent: textDark,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: StatTile(
-                      label: 'Rating',
-                      value: user?.rating?.toStringAsFixed(1) ?? '0.0',
-                      icon: Icons.star_outline,
-                      accent: Colors.orange,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: StatTile(
-                      label: 'Available Jobs',
-                      value: '${availableJobs.length}',
-                      icon: Icons.assignment_outlined,
-                      accent: primaryGreen,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: StatTile(
-                      label: 'Active Jobs',
-                      value:
-                          '${myJobs.where((j) => j.status == BookingStatus.accepted || j.status == BookingStatus.inProgress).length}',
-                      icon: Icons.local_shipping_outlined,
-                      accent: primaryGreen,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-
-              // Recent Available Jobs
-              if (user?.isAvailable == true) ...[
+                // Incoming requests
                 SectionHeader(
-                  title: 'Available Jobs',
+                  title: 'Job Requests',
                   action: TextButton(
-                    onPressed: () => onNavigateToTab(1),
+                    onPressed: () => widget.onNavigateToTab(1),
                     child: const Text('View All'),
                   ),
                 ),
-
-                if (bookingProvider.isLoading)
-                  const Center(child: CircularProgressIndicator())
-                else if (availableJobs.isEmpty)
+                if (loading)
+                  const Padding(
+                    padding: EdgeInsets.only(top: 24),
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                else if (incoming.isEmpty)
                   const EmptyBlock(
                     icon: Icons.work_off_outlined,
-                    title: 'No available jobs',
-                    subtitle: 'Check back later for new opportunities',
+                    title: 'No job requests',
+                    subtitle:
+                        'Owners will send you proposals when they match you',
                   )
                 else
-                  ...availableJobs
+                  ...incoming
                       .take(3)
-                      .map((job) => _AvailableJobCard(booking: job)),
-              ],
+                      .map(
+                        (p) => _ProposalCard(proposal: p, onChanged: _refresh),
+                      ),
 
-              // Recent My Jobs
-              const SizedBox(height: 24),
-              SectionHeader(
-                title: 'My Recent Jobs',
-                action: TextButton(
-                  onPressed: () => onNavigateToTab(2),
-                  child: const Text('View All'),
+                // Active jobs
+                const SizedBox(height: 24),
+                SectionHeader(
+                  title: 'My Active Jobs',
+                  action: TextButton(
+                    onPressed: () => widget.onNavigateToTab(2),
+                    child: const Text('View All'),
+                  ),
                 ),
-              ),
-
-              if (myJobs.isEmpty)
-                const EmptyBlock(
-                  icon: Icons.assignment_outlined,
-                  title: 'No jobs yet',
-                  subtitle: 'Accept available jobs to get started',
-                )
-              else
-                ...myJobs.take(3).map((job) => _MyJobCard(booking: job)),
-            ],
-          ),
-        );
-      },
+                if (active.isEmpty)
+                  const EmptyBlock(
+                    icon: Icons.assignment_outlined,
+                    title: 'No active jobs',
+                    subtitle: 'Accept a job request to get started',
+                  )
+                else
+                  ...active
+                      .take(3)
+                      .map(
+                        (p) => _ProposalCard(proposal: p, onChanged: _refresh),
+                      ),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 }
 
-class _AvailableJobsTab extends StatelessWidget {
+// Incoming job requests (proposals still 'sent') — accept / decline.
+class _AvailableJobsTab extends StatefulWidget {
   const _AvailableJobsTab();
 
   @override
+  State<_AvailableJobsTab> createState() => _AvailableJobsTabState();
+}
+
+class _AvailableJobsTabState extends State<_AvailableJobsTab> {
+  final _proposals = ProposalRepository();
+  late Future<List<Proposal>> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = _proposals.incoming();
+  }
+
+  Future<void> _refresh() async {
+    final next = _proposals.incoming();
+    setState(() => _future = next);
+    await next;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Consumer2<AuthProvider, BookingProvider>(
-      builder: (context, authProvider, bookingProvider, child) {
-        if (authProvider.user?.isAvailable == false) {
-          return const Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.toggle_off, size: 64, color: Colors.grey),
-                SizedBox(height: 16),
-                Text(
-                  'You are currently offline',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey,
-                  ),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  'Turn on availability to see job requests',
-                  style: TextStyle(color: Colors.grey),
-                ),
-              ],
-            ),
-          );
-        }
-
-        if (bookingProvider.isLoading) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        if (bookingProvider.availableBookings.isEmpty) {
-          return const Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.work_off, size: 64, color: Colors.grey),
-                SizedBox(height: 16),
-                Text(
-                  'No available jobs',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey,
-                  ),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  'Check back later for new opportunities',
-                  style: TextStyle(color: Colors.grey),
-                ),
-              ],
-            ),
-          );
-        }
-
-        return RefreshIndicator(
-          onRefresh: () async {
-            if (authProvider.user != null) {
-              await bookingProvider.loadAvailableBookings(
-                authProvider.user!.uid,
-              );
-            }
-          },
-          child: ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: bookingProvider.availableBookings.length,
-            itemBuilder: (context, index) {
-              final booking = bookingProvider.availableBookings[index];
-              return _AvailableJobCard(booking: booking);
-            },
-          ),
-        );
-      },
+    return _ProposalList(
+      future: _future,
+      filter: (p) => p.status == 'sent',
+      onRefresh: _refresh,
+      emptyTitle: 'No job requests',
+      emptySubtitle: 'Owners send you a proposal when they pick you for a job',
     );
   }
 }
 
-class _MyJobsTab extends StatelessWidget {
+// The driver's accepted jobs (proposals 'accepted').
+class _MyJobsTab extends StatefulWidget {
   const _MyJobsTab();
 
   @override
-  Widget build(BuildContext context) {
-    return Consumer<BookingProvider>(
-      builder: (context, bookingProvider, child) {
-        if (bookingProvider.isLoading) {
-          return const Center(child: CircularProgressIndicator());
-        }
+  State<_MyJobsTab> createState() => _MyJobsTabState();
+}
 
-        if (bookingProvider.myBookings.isEmpty) {
-          return const Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+class _MyJobsTabState extends State<_MyJobsTab> {
+  final _proposals = ProposalRepository();
+  late Future<List<Proposal>> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = _proposals.incoming();
+  }
+
+  Future<void> _refresh() async {
+    final next = _proposals.incoming();
+    setState(() => _future = next);
+    await next;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _ProposalList(
+      future: _future,
+      filter: (p) => p.status == 'accepted',
+      onRefresh: _refresh,
+      emptyTitle: 'No active jobs',
+      emptySubtitle: 'Accept a job request and it will appear here',
+    );
+  }
+}
+
+// Shared list view over the driver's proposals, filtered by status.
+class _ProposalList extends StatelessWidget {
+  final Future<List<Proposal>> future;
+  final bool Function(Proposal) filter;
+  final Future<void> Function() onRefresh;
+  final String emptyTitle;
+  final String emptySubtitle;
+
+  const _ProposalList({
+    required this.future,
+    required this.filter,
+    required this.onRefresh,
+    required this.emptyTitle,
+    required this.emptySubtitle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return RefreshIndicator(
+      onRefresh: onRefresh,
+      child: FutureBuilder<List<Proposal>>(
+        future: future,
+        builder: (context, snap) {
+          if (snap.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snap.hasError) {
+            return ListView(
               children: [
-                Icon(Icons.assignment_outlined, size: 64, color: Colors.grey),
-                SizedBox(height: 16),
-                Text(
-                  'No jobs yet',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey,
+                const SizedBox(height: 120),
+                Center(
+                  child: Text(
+                    snap.error.toString().replaceFirst('Exception: ', ''),
+                    style: const TextStyle(color: Colors.red),
                   ),
                 ),
-                SizedBox(height: 8),
-                Text(
-                  'Accept available jobs to get started',
-                  style: TextStyle(color: Colors.grey),
+              ],
+            );
+          }
+          final items = (snap.data ?? const <Proposal>[])
+              .where(filter)
+              .toList();
+          if (items.isEmpty) {
+            return ListView(
+              children: [
+                const SizedBox(height: 100),
+                EmptyBlock(
+                  icon: Icons.work_off_outlined,
+                  title: emptyTitle,
+                  subtitle: emptySubtitle,
                 ),
               ],
-            ),
-          );
-        }
-
-        return RefreshIndicator(
-          onRefresh: () async {
-            final authProvider = Provider.of<AuthProvider>(
-              context,
-              listen: false,
             );
-            if (authProvider.user != null) {
-              await bookingProvider.loadDriverBookings(authProvider.user!.uid);
-            }
-          },
-          child: ListView.builder(
+          }
+          return ListView.builder(
             padding: const EdgeInsets.all(16),
-            itemCount: bookingProvider.myBookings.length,
-            itemBuilder: (context, index) {
-              final booking = bookingProvider.myBookings[index];
-              return _MyJobCard(booking: booking);
-            },
-          ),
-        );
-      },
+            itemCount: items.length,
+            itemBuilder: (context, i) =>
+                _ProposalCard(proposal: items[i], onChanged: onRefresh),
+          );
+        },
+      ),
     );
   }
 }
@@ -918,17 +943,66 @@ class _ProfileTab extends StatelessWidget {
   }
 }
 
-class _AvailableJobCard extends StatelessWidget {
-  final BookingModel booking;
+// A driver's proposal card: shows the job, accept/decline while 'sent', and
+// once accepted reveals the owner contact + chat / call / directions actions.
+class _ProposalCard extends StatefulWidget {
+  final Proposal proposal;
+  final Future<void> Function() onChanged;
 
-  const _AvailableJobCard({required this.booking});
+  const _ProposalCard({required this.proposal, required this.onChanged});
+
+  @override
+  State<_ProposalCard> createState() => _ProposalCardState();
+}
+
+class _ProposalCardState extends State<_ProposalCard> {
+  final _repo = ProposalRepository();
+  bool _busy = false;
+
+  Future<void> _respond(String status) async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      await _repo.respond(widget.proposal.id, status);
+      await widget.onChanged();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceFirst('Exception: ', '')),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _call(String phone) =>
+      launchUrl(Uri(scheme: 'tel', path: phone));
+
+  Color _statusColor(String s) {
+    switch (s) {
+      case 'sent':
+        return Colors.orange;
+      case 'accepted':
+        return primaryGreen;
+      case 'declined':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final p = widget.proposal;
+    final job = p.job;
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -936,410 +1010,119 @@ class _AvailableJobCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    booking.cargoDescription,
+                    job?.cargoType ?? 'Job',
                     style: const TextStyle(
+                      fontWeight: FontWeight.bold,
                       fontSize: 16,
+                    ),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _statusColor(p.status).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    p.status,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: _statusColor(p.status),
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
-                if (booking.estimatedPrice != null)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.green.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      '${booking.estimatedPrice!.toStringAsFixed(0)} RWF',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Colors.green,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
               ],
             ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                const Icon(Icons.location_on, size: 16, color: Colors.grey),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: Text(
-                    'From: ${booking.pickupLocation}',
-                    style: const TextStyle(fontSize: 14),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                const Icon(Icons.flag, size: 16, color: Colors.grey),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: Text(
-                    'To: ${booking.dropoffLocation}',
-                    style: const TextStyle(fontSize: 14),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                const Icon(Icons.local_shipping, size: 16, color: Colors.grey),
-                const SizedBox(width: 4),
-                Text(
-                  booking.vehicleTypeDisplayName,
-                  style: const TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-                if (booking.weight != null) ...[
-                  const SizedBox(width: 16),
-                  const Icon(Icons.scale, size: 16, color: Colors.grey),
-                  const SizedBox(width: 4),
-                  Text(
-                    '${booking.weight}kg',
-                    style: const TextStyle(fontSize: 12, color: Colors.grey),
-                  ),
-                ],
-                const Spacer(),
-                Text(
-                  _getTimeAgo(booking.createdAt),
-                  style: const TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-              ],
-            ),
-            if (booking.specialInstructions?.isNotEmpty == true) ...[
+            if (job != null) ...[
               const SizedBox(height: 8),
               Text(
-                'Special instructions: ${booking.specialInstructions}',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey.shade600,
-                  fontStyle: FontStyle.italic,
-                ),
+                '${job.pickupLabel ?? 'Pickup'} → ${job.dropOffLabel ?? 'Drop-off'}',
+                style: const TextStyle(color: textGray, fontSize: 13.5),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '${job.reqVehicleType.label} · ${job.price} RWF',
+                style: const TextStyle(fontWeight: FontWeight.w600),
               ),
             ],
             const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => _declineJob(context, booking),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.red,
-                      side: const BorderSide(color: Colors.red),
+            if (p.status == 'sent')
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: _busy ? null : () => _respond('declined'),
+                      child: const Text('Decline'),
                     ),
-                    child: const Text('Decline'),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () => _acceptJob(context, booking),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primaryGreen,
+                        foregroundColor: Colors.white,
+                      ),
+                      onPressed: _busy ? null : () => _respond('accepted'),
+                      child: _busy
+                          ? const SizedBox(
+                              height: 18,
+                              width: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Text('Accept'),
+                    ),
+                  ),
+                ],
+              ),
+            // Contact + actions ONLY once accepted (contact is null otherwise).
+            if (p.isAccepted && p.contact != null && job != null) ...[
+              const Divider(height: 20),
+              Text(
+                'Cargo owner: ${p.contact!.name}',
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+              Text(p.contact!.phone, style: const TextStyle(color: textGray)),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: primaryGreen,
                       foregroundColor: Colors.white,
                     ),
-                    child: const Text('Accept'),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _acceptJob(BuildContext context, BookingModel booking) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Accept Job'),
-        content: const Text('Are you sure you want to accept this job?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(context);
-
-              final authProvider = Provider.of<AuthProvider>(
-                context,
-                listen: false,
-              );
-              final bookingProvider = Provider.of<BookingProvider>(
-                context,
-                listen: false,
-              );
-
-              if (authProvider.user != null) {
-                final success = await bookingProvider.acceptBooking(
-                  booking.id,
-                  authProvider.user!.uid,
-                );
-
-                if (success && context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Job accepted successfully!'),
-                      backgroundColor: primaryGreen,
-                    ),
-                  );
-                } else if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        bookingProvider.error ?? 'Failed to accept job',
-                      ),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              }
-            },
-            child: const Text('Accept'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _declineJob(BuildContext context, BookingModel booking) {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final bookingProvider = Provider.of<BookingProvider>(
-      context,
-      listen: false,
-    );
-
-    if (authProvider.user != null) {
-      bookingProvider.declineBooking(booking.id, authProvider.user!.uid);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Job declined'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-    }
-  }
-
-  String _getTimeAgo(DateTime dateTime) {
-    final now = DateTime.now();
-    final difference = now.difference(dateTime);
-
-    if (difference.inMinutes < 1) {
-      return 'Just now';
-    } else if (difference.inMinutes < 60) {
-      return '${difference.inMinutes}m ago';
-    } else if (difference.inHours < 24) {
-      return '${difference.inHours}h ago';
-    } else {
-      return '${difference.inDays}d ago';
-    }
-  }
-}
-
-class _MyJobCard extends StatelessWidget {
-  final BookingModel booking;
-
-  const _MyJobCard({required this.booking});
-
-  @override
-  Widget build(BuildContext context) {
-    Color statusColor;
-    IconData statusIcon;
-
-    switch (booking.status) {
-      case BookingStatus.pending:
-        statusColor = Colors.orange;
-        statusIcon = Icons.pending;
-        break;
-      case BookingStatus.accepted:
-        statusColor = primaryGreen;
-        statusIcon = Icons.check_circle;
-        break;
-      case BookingStatus.inProgress:
-        statusColor = Colors.purple;
-        statusIcon = Icons.local_shipping;
-        break;
-      case BookingStatus.completed:
-        statusColor = Colors.black;
-        statusIcon = Icons.check_circle_outline;
-        break;
-      case BookingStatus.declined:
-      case BookingStatus.cancelled:
-        statusColor = Colors.red;
-        statusIcon = Icons.cancel;
-        break;
-    }
-
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: InkWell(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => JobDetailsScreen(booking: booking),
-            ),
-          );
-        },
-        borderRadius: BorderRadius.circular(8),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      booking.cargoDescription,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            JobChatScreen(jobId: p.jobId, contact: p.contact!),
                       ),
                     ),
+                    icon: const Icon(Icons.chat, size: 18),
+                    label: const Text('Chat'),
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: statusColor.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(statusIcon, size: 12, color: statusColor),
-                        const SizedBox(width: 4),
-                        Text(
-                          booking.statusDisplayName,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: statusColor,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
+                  OutlinedButton.icon(
+                    onPressed: () => _call(p.contact!.phone),
+                    icon: const Icon(Icons.call, size: 18),
+                    label: const Text('Call'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: () => OpenInMaps.directions(context, job.pickup),
+                    icon: const Icon(Icons.navigation_outlined, size: 18),
+                    label: const Text('Pickup'),
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  const Icon(Icons.location_on, size: 16, color: Colors.grey),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: Text(
-                      'From: ${booking.pickupLocation}',
-                      style: const TextStyle(fontSize: 14),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Row(
-                children: [
-                  const Icon(Icons.flag, size: 16, color: Colors.grey),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: Text(
-                      'To: ${booking.dropoffLocation}',
-                      style: const TextStyle(fontSize: 14),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  const Icon(
-                    Icons.local_shipping,
-                    size: 16,
-                    color: Colors.grey,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    booking.vehicleTypeDisplayName,
-                    style: const TextStyle(fontSize: 12, color: Colors.grey),
-                  ),
-                  if (booking.weight != null) ...[
-                    const SizedBox(width: 16),
-                    const Icon(Icons.scale, size: 16, color: Colors.grey),
-                    const SizedBox(width: 4),
-                    Text(
-                      '${booking.weight}kg',
-                      style: const TextStyle(fontSize: 12, color: Colors.grey),
-                    ),
-                  ],
-                  const Spacer(),
-                  Text(
-                    '${booking.createdAt.day}/${booking.createdAt.month}/${booking.createdAt.year}',
-                    style: const TextStyle(fontSize: 12, color: Colors.grey),
-                  ),
-                ],
-              ),
-              if (booking.finalPrice != null) ...[
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    const Icon(Icons.money, size: 16, color: Colors.green),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Payment: ${booking.finalPrice!.toStringAsFixed(0)} RWF',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Colors.green,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-
-              // Show action indicator for accepted jobs
-              if (booking.status == BookingStatus.accepted) ...[
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: lightGreen,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: primaryGreen),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.chat, size: 16, color: primaryGreen),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Tap to chat with cargo owner or mark as completed',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: primaryGreen,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
             ],
-          ),
+          ],
         ),
       ),
     );

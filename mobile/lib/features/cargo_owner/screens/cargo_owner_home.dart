@@ -2,16 +2,13 @@ import 'package:cargo_app/constants.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/enums/app_enums.dart';
-import '../../../core/models/booking_model.dart';
 import '../../../core/models/job.dart';
 import '../../../core/models/user_model.dart';
 import '../../../core/repositories/job_repository.dart';
 import '../../jobs/presentation/owner_job_detail_screen.dart';
-import '../../../features/booking/providers/booking_provider.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../features/profile/providers/profile_provider.dart';
 import '../../../screens/create_job_screen.dart';
-import '../../../screens/job_details_screen.dart';
 import '../../../screens/cargo_owner_profile_edit_screen.dart';
 import '../../matching/presentation/nearby_drivers_map.dart';
 import '../../../core/theme/ui_kit.dart';
@@ -25,26 +22,8 @@ class CargoOwnerHome extends StatefulWidget {
 
 class _CargoOwnerHomeState extends State<CargoOwnerHome> {
   int _selectedIndex = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadBookings();
-    });
-  }
-
-  void _loadBookings() {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final bookingProvider = Provider.of<BookingProvider>(
-      context,
-      listen: false,
-    );
-
-    if (authProvider.user != null) {
-      bookingProvider.loadCargoOwnerBookings(authProvider.user!.uid);
-    }
-  }
+  // Bumped after posting a job so the job-list tabs remount and re-fetch.
+  int _reloadKey = 0;
 
   void _onItemTapped(int index) {
     setState(() {
@@ -52,12 +31,16 @@ class _CargoOwnerHomeState extends State<CargoOwnerHome> {
     });
   }
 
+  void _reloadJobs() {
+    setState(() => _reloadKey++);
+  }
+
   @override
   Widget build(BuildContext context) {
     final List<Widget> pages = [
-      const _DashboardTab(),
+      _DashboardTab(key: ValueKey('dashboard-$_reloadKey')),
       const NearbyDriversMap(),
-      const _MyJobsTab(),
+      _MyJobsTab(key: ValueKey('myjobs-$_reloadKey')),
       const _ProfileTab(),
     ];
 
@@ -122,7 +105,7 @@ class _CargoOwnerHomeState extends State<CargoOwnerHome> {
                   MaterialPageRoute(
                     builder: (context) => const CreateJobScreen(),
                   ),
-                ).then((_) => _loadBookings());
+                ).then((_) => _reloadJobs());
               },
               backgroundColor: appGreen,
               foregroundColor: Colors.white,
@@ -134,122 +117,164 @@ class _CargoOwnerHomeState extends State<CargoOwnerHome> {
   }
 }
 
-class _DashboardTab extends StatelessWidget {
-  const _DashboardTab();
+// Owner dashboard — all data from the jobs API (Postgres), no Firestore.
+class _DashboardTab extends StatefulWidget {
+  const _DashboardTab({super.key});
+
+  @override
+  State<_DashboardTab> createState() => _DashboardTabState();
+}
+
+class _DashboardTabState extends State<_DashboardTab> {
+  final _jobs = JobRepository();
+  late Future<List<Job>> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = _jobs.listOwn();
+  }
+
+  Future<void> _refresh() async {
+    final next = _jobs.listOwn();
+    setState(() => _future = next);
+    await next;
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Consumer2<AuthProvider, BookingProvider>(
-      builder: (context, authProvider, bookingProvider, child) {
-        final user = authProvider.user;
-        final recentBookings = bookingProvider.myBookings.take(3).toList();
+    final user = context.watch<AuthProvider>().user;
 
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Welcome Section
-              AppCard(
-                color: kTintGreen,
-                padding: const EdgeInsets.all(18),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+    return RefreshIndicator(
+      onRefresh: _refresh,
+      child: FutureBuilder<List<Job>>(
+        future: _future,
+        builder: (context, snap) {
+          final jobs = snap.data ?? const <Job>[];
+          final loading = snap.connectionState == ConnectionState.waiting;
+          bool isStatus(Job j, List<String> s) => s.contains(j.status);
+
+          return SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Welcome Section
+                AppCard(
+                  color: kTintGreen,
+                  padding: const EdgeInsets.all(18),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Welcome back, ${user?.name ?? 'User'}!',
+                        style: const TextStyle(
+                          fontSize: 19,
+                          fontWeight: FontWeight.w800,
+                          color: textDark,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      const Text(
+                        'Need cargo transported? Create a new job to get started.',
+                        style: TextStyle(fontSize: 13.5, color: kMutedText),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: kGap),
+
+                // Quick Stats
+                Row(
                   children: [
-                    Text(
-                      'Welcome back, ${user?.name ?? 'User'}!',
-                      style: const TextStyle(
-                        fontSize: 19,
-                        fontWeight: FontWeight.w800,
-                        color: textDark,
+                    Expanded(
+                      child: StatTile(
+                        label: 'Total Jobs',
+                        value: '${jobs.length}',
+                        icon: Icons.work_outline,
+                        accent: textDark,
                       ),
                     ),
-                    const SizedBox(height: 6),
-                    const Text(
-                      'Need cargo transported? Create a new job to get started.',
-                      style: TextStyle(fontSize: 13.5, color: kMutedText),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: StatTile(
+                        label: 'Completed',
+                        value:
+                            '${jobs.where((j) => isStatus(j, ['completed'])).length}',
+                        icon: Icons.check_circle_outline,
+                        accent: primaryGreen,
+                      ),
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(height: kGap),
-
-              // Quick Stats
-              Row(
-                children: [
-                  Expanded(
-                    child: StatTile(
-                      label: 'Total Jobs',
-                      value: '${bookingProvider.myBookings.length}',
-                      icon: Icons.work_outline,
-                      accent: textDark,
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: StatTile(
+                        label: 'Posted',
+                        value:
+                            '${jobs.where((j) => isStatus(j, ['posted'])).length}',
+                        icon: Icons.pending_outlined,
+                        accent: Colors.orange,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: StatTile(
-                      label: 'Completed',
-                      value:
-                          '${bookingProvider.myBookings.where((b) => b.status == BookingStatus.completed).length}',
-                      icon: Icons.check_circle_outline,
-                      accent: primaryGreen,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: StatTile(
+                        label: 'In Progress',
+                        value:
+                            '${jobs.where((j) => isStatus(j, ['matched', 'accepted', 'in_progress'])).length}',
+                        icon: Icons.local_shipping_outlined,
+                        accent: primaryGreen,
+                      ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: StatTile(
-                      label: 'Pending',
-                      value:
-                          '${bookingProvider.myBookings.where((b) => b.status == BookingStatus.pending).length}',
-                      icon: Icons.pending_outlined,
-                      accent: Colors.orange,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: StatTile(
-                      label: 'In Progress',
-                      value:
-                          '${bookingProvider.myBookings.where((b) => b.status == BookingStatus.accepted || b.status == BookingStatus.inProgress).length}',
-                      icon: Icons.local_shipping_outlined,
-                      accent: primaryGreen,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-
-              // Recent Jobs Section
-              SectionHeader(
-                title: 'Recent Jobs',
-                action: TextButton(
-                  onPressed: () {
-                    context
-                        .findAncestorStateOfType<_CargoOwnerHomeState>()
-                        ?._onItemTapped(2);
-                  },
-                  child: const Text('View All'),
+                  ],
                 ),
-              ),
+                const SizedBox(height: 24),
 
-              if (bookingProvider.isLoading)
-                const Center(child: CircularProgressIndicator())
-              else if (recentBookings.isEmpty)
-                const EmptyBlock(
-                  icon: Icons.work_off_outlined,
-                  title: 'No jobs yet',
-                  subtitle: 'Create your first job to get started',
-                )
-              else
-                ...recentBookings.map((booking) => _JobCard(booking: booking)),
-            ],
-          ),
-        );
-      },
+                // Recent Jobs Section
+                SectionHeader(
+                  title: 'Recent Jobs',
+                  action: TextButton(
+                    onPressed: () {
+                      context
+                          .findAncestorStateOfType<_CargoOwnerHomeState>()
+                          ?._onItemTapped(2);
+                    },
+                    child: const Text('View All'),
+                  ),
+                ),
+
+                if (loading)
+                  const Padding(
+                    padding: EdgeInsets.only(top: 24),
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                else if (snap.hasError)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(
+                      snap.error.toString().replaceFirst('Exception: ', ''),
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  )
+                else if (jobs.isEmpty)
+                  const EmptyBlock(
+                    icon: Icons.work_off_outlined,
+                    title: 'No jobs yet',
+                    subtitle: 'Create your first job to get started',
+                  )
+                else
+                  ...jobs
+                      .take(3)
+                      .map((j) => _OwnerJobCard(job: j, onChanged: _refresh)),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 }
@@ -257,7 +282,7 @@ class _DashboardTab extends StatelessWidget {
 // Owner's posted jobs, loaded from the jobs API (M3). The driver's booking view
 // stays on Firestore until the M4 transaction loop.
 class _MyJobsTab extends StatefulWidget {
-  const _MyJobsTab();
+  const _MyJobsTab({super.key});
 
   @override
   State<_MyJobsTab> createState() => _MyJobsTabState();
@@ -519,41 +544,41 @@ class _ProfileTab extends StatelessWidget {
   }
 }
 
-class _JobCard extends StatelessWidget {
-  final BookingModel booking;
+// Owner's job card — API Job model. Opens the API-backed OwnerJobDetailScreen.
+class _OwnerJobCard extends StatelessWidget {
+  final Job job;
+  final Future<void> Function() onChanged;
 
-  const _JobCard({required this.booking});
+  const _OwnerJobCard({required this.job, required this.onChanged});
+
+  Color get _statusColor {
+    switch (job.status) {
+      case 'posted':
+        return Colors.orange;
+      case 'matched':
+      case 'accepted':
+      case 'in_progress':
+        return primaryGreen;
+      case 'completed':
+        return Colors.black;
+      case 'cancelled':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    Color statusColor;
-    switch (booking.status) {
-      case BookingStatus.pending:
-        statusColor = Colors.orange;
-        break;
-      case BookingStatus.accepted:
-      case BookingStatus.inProgress:
-        statusColor = primaryGreen;
-        break;
-      case BookingStatus.completed:
-        statusColor = Colors.black;
-        break;
-      case BookingStatus.declined:
-      case BookingStatus.cancelled:
-        statusColor = Colors.red;
-        break;
-    }
-
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: InkWell(
-        onTap: () {
-          Navigator.push(
+        onTap: () async {
+          await Navigator.push(
             context,
-            MaterialPageRoute(
-              builder: (context) => JobDetailsScreen(booking: booking),
-            ),
+            MaterialPageRoute(builder: (_) => OwnerJobDetailScreen(job: job)),
           );
+          await onChanged();
         },
         borderRadius: BorderRadius.circular(8),
         child: Padding(
@@ -565,7 +590,7 @@ class _JobCard extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      booking.cargoDescription,
+                      job.cargoType,
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -578,14 +603,14 @@ class _JobCard extends StatelessWidget {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: statusColor.withValues(alpha: 0.1),
+                      color: _statusColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
-                      booking.statusDisplayName,
+                      job.status.replaceAll('_', ' '),
                       style: TextStyle(
                         fontSize: 12,
-                        color: statusColor,
+                        color: _statusColor,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -593,113 +618,61 @@ class _JobCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 8),
-              Row(
-                children: [
-                  const Icon(Icons.location_on, size: 16, color: Colors.grey),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: Text(
-                      booking.pickupLocation,
-                      style: const TextStyle(fontSize: 14),
-                    ),
-                  ),
-                ],
+              _LocationRow(
+                icon: Icons.my_location,
+                text: job.pickupLabel ?? 'Pickup pinned on map',
               ),
               const SizedBox(height: 4),
-              Row(
-                children: [
-                  const Icon(Icons.flag, size: 16, color: Colors.grey),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: Text(
-                      booking.dropoffLocation,
-                      style: const TextStyle(fontSize: 14),
-                    ),
-                  ),
-                ],
+              _LocationRow(
+                icon: Icons.flag_outlined,
+                text: job.dropOffLabel ?? 'Drop-off pinned on map',
               ),
               const SizedBox(height: 8),
               Row(
                 children: [
-                  Icon(Icons.local_shipping, size: 16, color: Colors.grey),
+                  const Icon(
+                    Icons.local_shipping,
+                    size: 16,
+                    color: Colors.grey,
+                  ),
                   const SizedBox(width: 4),
                   Text(
-                    booking.vehicleTypeDisplayName,
+                    '${job.reqVehicleType.label} · ${job.size.label}',
                     style: const TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                   const Spacer(),
                   Text(
-                    '${booking.createdAt.day}/${booking.createdAt.month}/${booking.createdAt.year}',
-                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    '${job.price} RWF',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: primaryGreen,
+                    ),
                   ),
                 ],
               ),
-
-              // Show special indicators for declined jobs
-              if (booking.status == BookingStatus.declined) ...[
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.orange.shade50,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.orange.shade200),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.info_outline,
-                        size: 16,
-                        color: Colors.orange.shade700,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Tap to reassign to another driver',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.orange.shade700,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-
-              // Show chat indicator for accepted jobs
-              if (booking.status == BookingStatus.accepted) ...[
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: lightGreen,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: primaryGreen),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.chat, size: 16, color: appGreen),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Tap to chat with driver',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: appGreen,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+class _LocationRow extends StatelessWidget {
+  final IconData icon;
+  final String text;
+
+  const _LocationRow({required this.icon, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: Colors.grey),
+        const SizedBox(width: 4),
+        Expanded(child: Text(text, style: const TextStyle(fontSize: 14))),
+      ],
     );
   }
 }

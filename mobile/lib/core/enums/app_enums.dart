@@ -1,10 +1,6 @@
-// Canonical client-side enums.
-//
-// M1 reconciles `UserRole` (now includes admin + API snake_case mapping) since the
-// auth path needs it. The booking-surface enums below (`BookingStatus`,
-// `VehicleType`, `VehicleCapacity`) are the legacy copies still consumed by the
-// not-yet-migrated booking/chat screens; they are reconciled to the canonical API
-// taxonomy in M2 (matching) and M3 (jobs).
+// Canonical client-side enums, mapped to the API's snake_case taxonomy. The app
+// is fully on the NestJS API (no Firestore) — `UserRole`, `JobSize`, and
+// `VehicleType` mirror the API enums via their `api` / `fromApi` helpers.
 
 enum UserRole { cargoOwner, driver, admin }
 
@@ -64,8 +60,7 @@ extension JobSizeX on JobSize {
   }
 }
 
-/// Canonical vehicle taxonomy — matches the API (M2). Single source of truth;
-/// the legacy duplicate in booking_model.dart has been removed.
+/// Canonical vehicle taxonomy — matches the API. Single source of truth.
 enum VehicleType { moto, pickup, van, smallTruck, largeTruck }
 
 extension VehicleTypeX on VehicleType {
