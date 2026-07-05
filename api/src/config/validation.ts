@@ -6,6 +6,8 @@ export const validationSchema = Joi.object({
     .default('development'),
   PORT: Joi.number().default(3000),
   APP_URL: Joi.string().uri().required(),
+  // Comma-separated CORS allow-list; empty allows all (dev only, never in prod).
+  CORS_ORIGINS: Joi.string().allow('').default(''),
   DATABASE_URL: Joi.string().required(),
 
   JWT_ACCESS_SECRET: Joi.string().min(16).required(),
@@ -26,6 +28,8 @@ export const validationSchema = Joi.object({
 
   STORAGE_DRIVER: Joi.string().valid('stub', 'firebase').default('stub'),
   FIREBASE_SERVICE_ACCOUNT_PATH: Joi.string().allow('').optional(),
+  // Inline service-account JSON (preferred on Railway — no file to mount).
+  FIREBASE_SERVICE_ACCOUNT_JSON: Joi.string().allow('').optional(),
   FIREBASE_STORAGE_BUCKET: Joi.string().allow('').optional(),
 
   NEARBY_RADIUS_KM: Joi.number().positive().default(10),

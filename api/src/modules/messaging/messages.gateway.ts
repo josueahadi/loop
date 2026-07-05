@@ -13,11 +13,22 @@ import { Server, Socket } from 'socket.io';
 import { MessagingAccessService } from './messaging-access.service';
 import { MessageResponseDto } from './dto/message-response.dto';
 
+// Socket.IO CORS mirrors the HTTP app: the same comma-separated CORS_ORIGINS
+// allow-list, no wildcard in production. Empty (dev) allows all. Read from the
+// environment because the @WebSocketGateway decorator is evaluated statically,
+// before Nest's ConfigService exists.
+const wsCorsOrigins = (process.env.CORS_ORIGINS ?? '')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
+
 // Live message delivery. The socket authenticates with the SAME JWT as REST
 // (handshake auth.token) via connection middleware — unauthenticated sockets are
 // REFUSED at the handshake, never connected. A client may only join a job room
 // after the same server-side participant check REST uses (no subscribe gap).
-@WebSocketGateway({ cors: { origin: '*' } })
+@WebSocketGateway({
+  cors: { origin: wsCorsOrigins.length > 0 ? wsCorsOrigins : true },
+})
 export class MessagesGateway implements OnGatewayInit {
   private readonly logger = new Logger('MessagesGateway');
   @WebSocketServer() server: Server;

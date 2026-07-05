@@ -2,6 +2,8 @@ export interface AppConfig {
   env: string;
   port: number;
   appUrl: string;
+  // Comma-separated CORS allow-list (admin origin, etc.). Empty = allow all (dev only).
+  corsOrigins: string;
   databaseUrl: string;
   jwt: {
     accessSecret: string;
@@ -24,7 +26,11 @@ export interface AppConfig {
   };
   storage: {
     driver: 'stub' | 'firebase';
+    // Either a path to the service-account JSON file, or the JSON inline
+    // (FIREBASE_SERVICE_ACCOUNT_JSON) — the latter is preferred on Railway where
+    // there is no file to mount. Inline takes precedence when both are set.
     serviceAccountPath: string;
+    serviceAccountJson: string;
     bucket: string;
   };
   matching: {
@@ -52,6 +58,7 @@ export default (): AppConfig => ({
   env: process.env.NODE_ENV ?? 'development',
   port: parseInt(process.env.PORT ?? '3000', 10),
   appUrl: process.env.APP_URL ?? 'http://localhost:3000',
+  corsOrigins: process.env.CORS_ORIGINS ?? '',
   databaseUrl: process.env.DATABASE_URL ?? '',
   jwt: {
     accessSecret: process.env.JWT_ACCESS_SECRET ?? '',
@@ -75,6 +82,7 @@ export default (): AppConfig => ({
   storage: {
     driver: (process.env.STORAGE_DRIVER as 'stub' | 'firebase') ?? 'stub',
     serviceAccountPath: process.env.FIREBASE_SERVICE_ACCOUNT_PATH ?? '',
+    serviceAccountJson: process.env.FIREBASE_SERVICE_ACCOUNT_JSON ?? '',
     bucket: process.env.FIREBASE_STORAGE_BUCKET ?? '',
   },
   matching: {
