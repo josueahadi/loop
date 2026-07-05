@@ -15,6 +15,7 @@
     "seed": "ts-node -r tsconfig-paths/register src/database/seeds/run-seed.ts",
     "migration:run:prod": "typeorm migration:run -d dist/database/data-source.js",
     "seed:prod": "node dist/database/seeds/run-seed.js",
+    "predeploy:prod": "npm run migration:run:prod && npm run seed:prod",
     "lint": "eslint \"src/**/*.ts\" --fix",
     "format": "prettier --write \"src/**/*.ts\"",
     "test": "jest"

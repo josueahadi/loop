@@ -52,7 +52,7 @@ The same code runs in both; behaviour differs **only by environment variables**.
 | Storage (`STORAGE_DRIVER`) | `stub` — fake references, no upload | `firebase` — private bucket + signed document URLs (M6) |
 | Push (`PUSH_DRIVER`) | `stub` — logged | `fcm` — real Firebase Cloud Messaging |
 | JWT secrets | dev throwaway values | **fresh** strong secrets (never the dev ones) |
-| Migrations | `npm run migration:run` (ts-node) | `migration:run:prod && seed:prod` as the pre-deploy command |
+| Migrations | `npm run migration:run` (ts-node) | `npm run predeploy:prod` as the pre-deploy command (migrate + seed) |
 | Admin API URL | `NEXT_PUBLIC_API_BASE_URL=http://localhost:3000` | build arg = api public HTTPS domain |
 | HTTPS/TLS | none (http) | automatic (`*.up.railway.app`) |
 
@@ -112,8 +112,8 @@ All steps are in the **one** Railway project. Do them in order.
 4. **Settings → Deploy → Healthcheck Path** = `/health` (the api returns `200 {status:'ok'}`).
 5. **Settings → Deploy → Serverless** → turn it **OFF** for `api` (the "App Sleeping" control) — **required** so the live demo has no cold-start; a sleeping api also drops the messaging WebSocket connections.
 6. Settings → **Networking** → **Generate Domain** to get `https://<api>.up.railway.app`. Put it in `APP_URL`.
-7. **Settings → Deploy → Pre-Deploy Command** = `npm run migration:run:prod && npm run seed:prod` — applies the compiled migrations (the first run creates the schema + the PostGIS extension), then seeds the admin account + pricing/size config. Both are idempotent: migrations skip already-applied ones and `seed:prod` upserts, so running this on **every** deploy is safe. Deploy.
-   - _Fallback:_ if you prefer, run `npm run seed:prod` manually once via the service shell (Railway → service → **Shell/Command**) instead.
+7. **Settings → Deploy → Pre-Deploy Command** = `npm run predeploy:prod` — a single script that runs migrations **then** the seed (`migration:run:prod && seed:prod`). Use the combined script, not the raw `A && B` in this field: Railway's pre-deploy does not reliably chain `&&`, so the seed half can silently skip. The first run creates the schema + the PostGIS extension, then seeds the admin + pricing/size config. Both are idempotent (migrations skip applied ones; the seed upserts), so it is safe on **every** deploy. Deploy.
+   - _Fallback:_ if the seed ever needs a manual run, open the service **Console** and run `npm run seed:prod` — it upserts the admin from the current env vars.
 
    > Migrations are **not** run on app boot — only as this pre-deploy command — so a DB hiccup can never crash-loop the server.
 
