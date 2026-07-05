@@ -5,6 +5,9 @@ export interface AppConfig {
   // Comma-separated CORS allow-list (admin origin, etc.). Empty = allow all (dev only).
   corsOrigins: string;
   databaseUrl: string;
+  // Require TLS on the DB connection. Default false: the Railway private PostGIS
+  // (and local compose) have no SSL. Set true only for an external managed DB.
+  dbSsl: boolean;
   jwt: {
     accessSecret: string;
     refreshSecret: string;
@@ -60,6 +63,7 @@ export default (): AppConfig => ({
   appUrl: process.env.APP_URL ?? 'http://localhost:3000',
   corsOrigins: process.env.CORS_ORIGINS ?? '',
   databaseUrl: process.env.DATABASE_URL ?? '',
+  dbSsl: process.env.DB_SSL === 'true',
   jwt: {
     accessSecret: process.env.JWT_ACCESS_SECRET ?? '',
     refreshSecret: process.env.JWT_REFRESH_SECRET ?? '',

@@ -9,6 +9,9 @@ export const validationSchema = Joi.object({
   // Comma-separated CORS allow-list; empty allows all (dev only, never in prod).
   CORS_ORIGINS: Joi.string().allow('').default(''),
   DATABASE_URL: Joi.string().required(),
+  // TLS on the DB connection. Leave false for the Railway private PostGIS / local
+  // compose (no SSL); true only for an external managed DB that requires it.
+  DB_SSL: Joi.boolean().default(false),
 
   JWT_ACCESS_SECRET: Joi.string().min(16).required(),
   JWT_REFRESH_SECRET: Joi.string().min(16).required(),

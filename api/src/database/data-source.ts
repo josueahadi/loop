@@ -9,6 +9,9 @@ export const dataSourceOptions: DataSourceOptions = {
   entities: [__dirname + '/../modules/**/entities/*.entity.{ts,js}'],
   migrations: [__dirname + '/migrations/*.{ts,js}'],
   synchronize: false,
+  // Mirror the app's DB_SSL flag so migrations/seeds connect the same way.
+  // Off by default (Railway private PostGIS / local compose have no SSL).
+  ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
   logging: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : false,
 };
 

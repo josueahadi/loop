@@ -38,6 +38,11 @@ import { VerificationModule } from './modules/verification/verification.module';
         url: config.get<string>('databaseUrl'),
         autoLoadEntities: true,
         synchronize: false,
+        // Off by default (Railway private PostGIS / local compose have no SSL);
+        // DB_SSL=true opts in for an external managed DB.
+        ssl: config.get<boolean>('dbSsl')
+          ? { rejectUnauthorized: false }
+          : false,
       }),
     }),
     HealthModule,
