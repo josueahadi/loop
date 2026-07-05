@@ -35,7 +35,10 @@ command or Railway action, and the environment it applies to. Section 8 is a
                       • OpenStreetMap      — Photon (search) + Nominatim (reverse geocode)
 ```
 
-- **db** — `postgis/postgis:17-3.5` (identical to `docker-compose.yml`). System of record.
+- **db** — `postgis/postgis:17-3.5` (identical to `docker-compose.yml`). System of
+  record. Because it's a **custom image**, Railway shows **no built-in DB UI** —
+  inspect it with **DBeaver/TablePlus** over the service's **TCP Proxy** (Settings →
+  Networking → public), connecting with **SSL disabled** (the image has no TLS).
 - **api** — built from `api/Dockerfile`; owns auth (JWT), matching, jobs, proposals,
   messaging (REST + WebSocket), ratings, admin. Binds `0.0.0.0:$PORT`.
 - **admin** — built from `admin/Dockerfile` (Next.js standalone); verification queue
@@ -52,14 +55,15 @@ The same code runs in both; behaviour differs **only by environment variables**.
 | ------------------ | ------------------------------------------- | ---------------------------------------------------------- |
 | Orchestration      | `docker-compose` (db) + `npm run start:dev` | 3 Railway services (db, api, admin)                        |
 | Database           | `postgis/postgis:17-3.5` on `localhost:5433`| `postgis/postgis:17-3.5` Railway service, private URL      |
-| `DATABASE_URL`     | `postgres://loop:loop@localhost:5433/loop`  | `${{Postgres.DATABASE_URL}}` (service reference)            |
+| `DATABASE_URL`     | `postgres://loop:loop@localhost:5433/loop`  | constructed from the `db` service vars (see §4.2)          |
+| `DB_SSL`           | `false` (compose has no SSL)                | `false` (Railway private PostGIS has no SSL)               |
 | API host/port      | `0.0.0.0:3000`                              | `0.0.0.0:$PORT` (Railway injects `PORT`)                   |
 | CORS               | `CORS_ORIGINS` empty → allow all            | `CORS_ORIGINS` = admin origin(s), **no wildcard**          |
 | Email (`MAIL_DRIVER`) | `stub` — links logged to console         | `sendgrid` — real send via verified sender                 |
 | Storage (`STORAGE_DRIVER`) | `stub` — fake references, no upload | `firebase` — private bucket + signed document URLs (M6)    |
 | Push (`PUSH_DRIVER`) | `stub` — logged                          | `fcm` — real Firebase Cloud Messaging                      |
 | JWT secrets        | dev throwaway values                        | **fresh** strong secrets (never the dev ones)              |
-| Migrations         | `npm run migration:run` (ts-node)           | `npm run migration:run:prod` as the pre-deploy command     |
+| Migrations         | `npm run migration:run` (ts-node)           | `migration:run:prod && seed:prod` as the pre-deploy command |
 | Admin API URL      | `NEXT_PUBLIC_API_BASE_URL=http://localhost:3000` | build arg = api public HTTPS domain                   |
 | HTTPS/TLS          | none (http)                                 | automatic (`*.up.railway.app`)                             |
 
@@ -78,7 +82,8 @@ in the code changes.
   **verified single sender** (or authenticated domain).
 - **Docker** locally (to reproduce the image builds in §Verify-locally / F).
 - **Flutter SDK** (to build the mobile APK, §6).
-- A DB GUI — **DBeaver** or **TablePlus** — to inspect the custom-image DB (§C note).
+- A DB GUI — **DBeaver** or **TablePlus** — to inspect the custom-image DB (the
+  postgis image has no built-in Railway UI; see §1 and §4.1).
 
 ---
 
@@ -90,62 +95,78 @@ All steps are in the **one** Railway project. Do them in order.
 1. Railway → **New Project** → **Empty Project**. Name it `loop`.
 
 ### 4.1 Add the PostGIS database service
-2. **New → Empty Service**, name it `db` (or `Postgres`). Set its source to the
+1. **New → Empty Service**, name it exactly **`db`** (this name is referenced by
+   the api's `DATABASE_URL` in §4.2 — keep it consistent). Set its source to the
    **Docker image** `postgis/postgis:17-3.5` (Settings → Source → Docker Image).
    *Why the custom image and not Railway's Postgres plugin: Loop needs the PostGIS
    extension, matching `docker-compose.yml` exactly.*
-3. Add its variables (Variables tab):
+2. Add its variables (Variables tab):
    - `POSTGRES_USER=loop`
    - `POSTGRES_PASSWORD=<strong-password>`
    - `POSTGRES_DB=loop`
-4. Add a **Volume** mounted at `/var/lib/postgresql/data` so data persists across
+3. Add a **Volume** mounted at `/var/lib/postgresql/data` so data persists across
    redeploys.
-5. Deploy. Railway composes an internal `DATABASE_URL` for this service (see §C for
-   how to inspect this DB — it has no built-in UI).
+4. Settings → turn **OFF App Sleeping / serverless** for `db` — the database must
+   stay warm (a sleeping DB stalls the first request and the live demo).
+5. Settings → **Networking** → enable the **TCP Proxy** (public) if you want to
+   inspect the DB externally with DBeaver/TablePlus (connect with **SSL disabled** —
+   the image has no TLS).
+6. Deploy. Unlike Railway's managed Postgres, this raw image does **not** auto-compose
+   a `DATABASE_URL` — the api constructs one from this service's vars (§4.2).
 
 ### 4.2 Deploy the API service
-6. **New → GitHub Repo** (or **Empty Service** + connect repo). Name it `api`.
-7. Settings → **Root Directory** = `api`, **Builder** = **Dockerfile**
+1. **New → GitHub Repo** (or **Empty Service** + connect repo). Name it `api`.
+2. Settings → **Root Directory** = `api`, **Builder** = **Dockerfile**
    (`api/Dockerfile`). Railway auto-detects the Dockerfile at that root.
-8. **Variables** — set every key from [`api/.env.production.example`](api/.env.production.example).
+3. **Variables** — set every key from [`api/.env.production.example`](api/.env.production.example).
    Notably:
-   - `DATABASE_URL` → reference the db service: `${{Postgres.DATABASE_URL}}`
-     (adjust the service name to match §4.1).
+   - `DATABASE_URL` → the postgis image has no auto-composed URL, so **construct it**
+     from the `db` service's variables:
+     ```
+     postgres://${{db.POSTGRES_USER}}:${{db.POSTGRES_PASSWORD}}@${{db.RAILWAY_PRIVATE_DOMAIN}}:5432/${{db.POSTGRES_DB}}?sslmode=disable
+     ```
+     The api reaches `db` over Railway's **private network** (port `5432`, no port
+     mapping), and the postgis image has **no TLS**, so `sslmode=disable` — traffic
+     never leaves the internal network. Keep `DB_SSL=false` (its code twin).
    - `PORT` → **leave unset**; Railway injects it.
    - `JWT_ACCESS_SECRET` / `JWT_REFRESH_SECRET` → **generate fresh** values, e.g.
      `openssl rand -base64 48` (two different values).
-   - `APP_URL` → the api's own public domain (set after step 10, or use the
-     generated domain).
-   - `CORS_ORIGINS` → set after the admin domain exists (step 12).
+   - `APP_URL` → the api's own public domain (set it once the domain is generated
+     below).
+   - `CORS_ORIGINS` → set once the admin domain exists (§4.3, last step).
    - Keep `MAIL_DRIVER=stub` / `STORAGE_DRIVER=stub` / `PUSH_DRIVER=stub` for the
      first deploy; flip to real in §5.
-9. Settings → **Healthcheck Path** = `/health` (the api returns `200 {status:'ok'}`).
-10. Settings → **Networking** → **Generate Domain** to get
-    `https://<api>.up.railway.app`. Put it in `APP_URL`.
-11. Settings → **Pre-Deploy Command** = `npm run migration:run:prod`
-    (runs the compiled migrations against `DATABASE_URL` before each release; the
-    first run creates the schema + the PostGIS extension). Deploy.
-    - **Seed once** (idempotent): after the first successful deploy, open the api
-      service shell (Railway → service → **Shell/Command**) and run
-      `npm run seed:prod`. This creates the admin account + pricing/size config.
-      Running it again is safe (it upserts).
+4. Settings → **Healthcheck Path** = `/health` (the api returns `200 {status:'ok'}`).
+5. Settings → turn **OFF App Sleeping / serverless** for `api` — **required** so
+   the live demo has no cold-start; a sleeping api also drops the messaging
+   WebSocket connections.
+6. Settings → **Networking** → **Generate Domain** to get
+   `https://<api>.up.railway.app`. Put it in `APP_URL`.
+7. Settings → **Pre-Deploy Command** =
+   `npm run migration:run:prod && npm run seed:prod`
+   — applies the compiled migrations (the first run creates the schema + the
+   PostGIS extension), then seeds the admin account + pricing/size config. Both are
+   idempotent: migrations skip already-applied ones and `seed:prod` upserts, so
+   running this on **every** deploy is safe. Deploy.
+   - *Fallback:* if you prefer, run `npm run seed:prod` manually once via the
+     service shell (Railway → service → **Shell/Command**) instead.
 
-    > Migrations are **not** run on app boot — only as this pre-deploy command — so
-    > a DB hiccup can never crash-loop the server.
+   > Migrations are **not** run on app boot — only as this pre-deploy command — so
+   > a DB hiccup can never crash-loop the server.
 
 ### 4.3 Deploy the admin service
-12. **New → GitHub Repo** (same repo). Name it `admin`. Settings → **Root
-    Directory** = `admin`, **Builder** = **Dockerfile** (`admin/Dockerfile`).
-13. Because `NEXT_PUBLIC_API_BASE_URL` is **inlined at build time**, set it so the
-    build picks it up:
-    - Add service **Variable** `NEXT_PUBLIC_API_BASE_URL=https://<api>.up.railway.app`
-      (Railway passes variables to the Docker build), **or**
-    - set the Docker **build arg** `NEXT_PUBLIC_API_BASE_URL` to the same value.
-14. **Generate Domain** for the admin → `https://<admin>.up.railway.app`.
-15. Go back to the **api** service and set
-    `CORS_ORIGINS=https://<admin>.up.railway.app` (comma-separate if there are
-    several origins). Redeploy the api so the new CORS list takes effect for both
-    the HTTP app and the Socket.IO gateway.
+1. **New → GitHub Repo** (same repo). Name it `admin`. Settings → **Root
+   Directory** = `admin`, **Builder** = **Dockerfile** (`admin/Dockerfile`).
+2. Because `NEXT_PUBLIC_API_BASE_URL` is **inlined at build time**, set it so the
+   build picks it up:
+   - Add service **Variable** `NEXT_PUBLIC_API_BASE_URL=https://<api>.up.railway.app`
+     (Railway passes variables to the Docker build), **or**
+   - set the Docker **build arg** `NEXT_PUBLIC_API_BASE_URL` to the same value.
+3. **Generate Domain** for the admin → `https://<admin>.up.railway.app`.
+4. Go back to the **api** service and set
+   `CORS_ORIGINS=https://<admin>.up.railway.app` (comma-separate if there are
+   several origins). Redeploy the api so the new CORS list takes effect for both
+   the HTTP app and the Socket.IO gateway.
 
 Railway serves every generated domain over **HTTPS automatically** — no cert setup.
 
@@ -161,9 +182,11 @@ vars** on the **api** service, then redeploy:
    or mail silently fails.
 2. **Firebase Storage** — `STORAGE_DRIVER=firebase`,
    `FIREBASE_SERVICE_ACCOUNT_JSON=<full service-account JSON, inline>`,
-   `FIREBASE_STORAGE_BUCKET=<your-bucket>`. This also **activates the M6 admin
-   document signed-URLs** (the admin can then view uploaded documents) and the
-   private-bucket uploads. Keep the bucket **private**.
+   `FIREBASE_STORAGE_BUCKET=<your-bucket>`. Paste the service-account JSON **exactly
+   as downloaded** — its `private_key` newlines are already `\n`-escaped inside the
+   JSON, and the app `JSON.parse`s the value as-is (no manual re-escaping). This also
+   **activates the M6 admin document signed-URLs** (the admin can then view uploaded
+   documents) and the private-bucket uploads. Keep the bucket **private**.
 3. **FCM** — `PUSH_DRIVER=fcm` (uses the same Firebase credentials above).
 
 Redeploy the api. Re-run the §8 checks that depend on these (document view, email).
