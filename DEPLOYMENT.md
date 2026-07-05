@@ -34,6 +34,15 @@ It is written to be **reproducible**: every step lists the tool, the exact comma
 - **admin** — built from `admin/Dockerfile` (Next.js standalone); verification queue + metrics dashboard; talks to `api` over HTTPS.
 - **Firebase / SendGrid / OSM** are external services the api calls out to.
 
+### Why these deployment choices
+
+- **One Railway project, three services** — the pilot deliverable is a single, reproducible environment. Co-locating db + api + admin keeps one dashboard, one set of secrets, and private-network DB access with no extra config. (Production alternatives are in [§10](#10-future--production-migration).)
+- **`postgis/postgis:17-3.5` (custom image), not Railway's Postgres plugin** — Loop's matching/pricing needs the **PostGIS** extension, and using the same image as `docker-compose.yml` means local and prod behave identically.
+- **Stubs first (`MAIL/STORAGE/PUSH=stub`), flip to real later** — the app deploys and the full auth/matching/jobs loop runs **without** Firebase or SendGrid credentials, so a broken third-party integration can't block the first deploy. Going live is then an env-only change ([§5](#5-going-live-flip-stubs--real)).
+- **Migrations as a pre-deploy command, never on app boot** — a DB hiccup during a release fails the migration step, not the running server, so the app can't crash-loop on startup. `synchronize` stays off; schema changes go only through migrations.
+- **Serverless / App Sleeping OFF** — a sleeping api cold-starts the first request and **drops the messaging WebSocket**; a sleeping db stalls every query. For a live demo, warm services matter more than idle savings.
+- **`DB_SSL` env-driven (off here)** — the pilot's private PostGIS has no TLS, but the flag lets a future managed DB (which requires TLS) be a config change, not a code change.
+
 ---
 
 ## 2. Environments (local dev vs production)
@@ -169,27 +178,29 @@ flutter build apk --release \
 
 ## 8. Verification in the target environment
 
-Run these against the **hosted** stack (replace `$API` and `$ADMIN` with the Railway domains). Fill in the "Result" column with what you actually observe.
+Run these against the **hosted** stack. Results below are from the live deployment on **2026-07-05**:
 
 ```bash
-API=https://<api>.up.railway.app
-ADMIN=https://<admin>.up.railway.app
+API=https://loop-api-prod.up.railway.app
+ADMIN=https://loop-admin-prod.up.railway.app
 ```
 
 | # | Check | Command / action | Expected | Result |
 | --- | --- | --- | --- | --- |
-| 1 | Health | `curl -s $API/health` | `{"status":"ok"}` (200) |  |
-| 2 | Docs load | open `$API/docs` | Swagger UI renders |  |
-| 3 | Register | `curl -s -XPOST $API/auth/register -H 'Content-Type: application/json' -d '{"name":"T","email":"t1@loop.rw","phone":"+250780000111","password":"testpass1","role":"cargo_owner"}'` | 201 + `accessToken` |  |
-| 4 | Login → `/me` | login, then `curl $API/me -H "Authorization: Bearer <token>"` | 200, `role: cargo_owner` |  |
-| 5 | Metrics guarded (unauth) | `curl -s -o /dev/null -w "%{http_code}" $API/admin/metrics` | `401` |  |
-| 6 | Metrics (admin) | login as seeded admin → `curl $API/admin/metrics -H "Authorization: Bearer <admin>"` | 200, all metric groups |  |
-| 7 | Geocode | `curl -s "$API/geocode/search?q=Kigali%20Convention%20Centre"` | resolves a Kigali result |  |
-| 8 | Post a job | `POST $API/jobs` (as owner, with pins) | 201, job created |  |
-| 9 | Proposal → accept | owner sends proposal, driver accepts | job → `matched`, contact appears on acceptance |  |
-| 10 | Message over socket | connect Socket.IO w/ JWT, send in the job room | message delivered to the other participant |  |
-| 11 | Admin verify + view doc | in `$ADMIN`, approve a pending verification and view the document | approve works; document opens (needs `STORAGE_DRIVER=firebase`) |  |
-| 12 | CORS enforced | request `$API` from a disallowed origin | blocked by CORS (allowed origin works) |  |
+| 1 | Health | `curl -s $API/health` | `{"status":"ok"}` (200) | ✅ `{"status":"ok"}` (200) |
+| 2 | Docs load | open `$API/docs` | Swagger UI renders | ✅ 200, Swagger renders |
+| 3 | Register | `curl -s -XPOST $API/auth/register … role: cargo_owner` | 201 + `accessToken` | ✅ 201, token returned |
+| 4 | Login → `/me` | login, then `curl $API/me -H "Authorization: Bearer <token>"` | 200, `role: cargo_owner` | ✅ 200, role correct |
+| 5 | Metrics guarded (unauth) | `curl -s -o /dev/null -w "%{http_code}" $API/admin/metrics` | `401` | ✅ 401 |
+| 6 | Metrics (admin) | login as seeded admin → `curl $API/admin/metrics -H "Authorization: Bearer <admin>"` | 200, all metric groups | ✅ 200, all groups (e.g. users_by_role `{admin:1, cargo_owner:1}`) |
+| 7 | Geocode (auth) | `curl -s "$API/geocode/search?q=Kigali%20Convention%20Centre" -H "Authorization: Bearer <token>"` | resolves a Kigali result | ✅ resolves "Kigali Convention Centre" (-1.9547, 30.0947) |
+| 8 | Post a job | `POST $API/jobs` (as owner, with pins) | 201, job created | ☐ pending manual (mobile owner flow) |
+| 9 | Proposal → accept | owner sends proposal, driver accepts | job → `matched`, contact appears on acceptance | ☐ pending manual |
+| 10 | Message over socket | connect Socket.IO w/ JWT, send in the job room | message delivered to the other participant | ☐ pending manual |
+| 11 | Admin verify + view doc | in `$ADMIN`, approve a pending verification and view the document | approve works; document opens (needs Firebase) | ☐ pending manual (document view needs `STORAGE_DRIVER=firebase`) |
+| 12 | CORS enforced | request `$API` from a disallowed origin | blocked; allowed origins work | ✅ admin + `localhost:3001` allowed; other origins blocked (no wildcard) |
+
+> Checks 1–7 and 12 were run against the hosted API and passed. Checks 8–11 are the interactive product loop — drive them from the admin web app and the mobile APK ([§6](#6-mobile-apk)). Note geocode (7) is **auth-gated**, so it needs a bearer token.
 
 > The mobile end-to-end (register → verify → go online → owner matches → propose → accept → chat → complete → rate) is the same flow, driven from the APK built in [§6](#6-mobile-apk).
 

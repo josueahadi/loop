@@ -16,14 +16,18 @@ The cargo-owner + driver mobile app for Loop. Talks to the NestJS API (`../api`)
 ```bash
 flutter pub get
 
-# Point at the API. Default base URL is http://localhost:3000.
-# iOS simulator / desktop:
+# Point at the API via --dart-define=API_BASE_URL (default: http://localhost:3000).
+
+# Local dev — iOS simulator / desktop:
 flutter run --dart-define=API_BASE_URL=http://localhost:3000
-# Android emulator (host loopback is 10.0.2.2):
+# Local dev — Android emulator (host loopback is 10.0.2.2):
 flutter run --dart-define=API_BASE_URL=http://10.0.2.2:3000
+
+# Against the DEPLOYED (production) API — no local backend needed:
+flutter run --dart-define=API_BASE_URL=https://loop-api-prod.up.railway.app
 ```
 
-Start the API + database first — see `../api/README.md`.
+For local dev, start the API + database first — see `../api/README.md`. To run against production, no local backend is needed — just point at the hosted URL above. The mobile app is not a browser, so CORS does not apply to it. Building the release APK against production is in [DEPLOYMENT.md §6](../DEPLOYMENT.md#6-mobile-apk).
 
 ## Structure (feature-first)
 

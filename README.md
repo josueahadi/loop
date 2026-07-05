@@ -39,7 +39,10 @@ cd ../mobile
 flutter pub get
 flutter run --dart-define=API_BASE_URL=http://localhost:3000
 #   Android emulator: use http://10.0.2.2:3000 instead of localhost
+#   Deployed API (no local backend): use https://loop-api-prod.up.railway.app
 ```
+
+To run the mobile app against the **deployed** backend, just point `API_BASE_URL` at the hosted API — see [`mobile/README.md`](mobile/README.md#run) and, for the release APK, [DEPLOYMENT.md §6](DEPLOYMENT.md#6-mobile-apk).
 
 The seeded admin credentials come from `ADMIN_EMAIL` / `ADMIN_PASSWORD` in `api/.env` (defaults: `admin@loop.rw` / `change-me-admin`). Backend details and the full endpoint list are in [`api/README.md`](api/README.md); the admin app is documented in [`admin/README.md`](admin/README.md).
 
