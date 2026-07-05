@@ -29,7 +29,7 @@ It is written to be **reproducible**: every step lists the tool, the exact comma
                       • OpenStreetMap      — Photon (search) + Nominatim (reverse geocode)
 ```
 
-- **db** — `postgis/postgis:17-3.5` (identical to `docker-compose.yml`). System of record. Because it's a **custom image**, Railway shows **no built-in DB UI** — inspect it with **DBeaver/TablePlus** over the service's **TCP Proxy** (Settings → Networking → public), connecting with **SSL disabled** (the image has no TLS).
+- **db** — `postgis/postgis:17-3.5` (identical to `docker-compose.yml`). System of record. Because it's a **custom image**, Railway shows **no built-in DB UI**; to browse the data you can _optionally_ enable a **TCP Proxy** and connect a GUI ([§4.1](#41-add-the-postgis-database-service)). The api always reaches it over the **private** network.
 - **api** — built from `api/Dockerfile`; owns auth (JWT), matching, jobs, proposals, messaging (REST + WebSocket), ratings, admin. Binds `0.0.0.0:$PORT`.
 - **admin** — built from `admin/Dockerfile` (Next.js standalone); verification queue + metrics dashboard; talks to `api` over HTTPS.
 - **Firebase / SendGrid / OSM** are external services the api calls out to.
@@ -68,7 +68,7 @@ Flipping `stub → sendgrid/firebase/fcm` is the whole "going live" step ([§5](
 - **SendGrid account** with an **API key** (restricted to _Mail Send_) and a **verified single sender** (or authenticated domain).
 - **Docker** locally (to reproduce the image builds before deploying).
 - **Flutter SDK** (to build the mobile APK, [§6](#6-mobile-apk)).
-- A DB GUI — **DBeaver** or **TablePlus** — to inspect the custom-image DB (the postgis image has no built-in Railway UI; see [§1](#1-architecture-overview) and [§4.1](#41-add-the-postgis-database-service)).
+- _(Optional)_ a DB GUI — **DBeaver** or **TablePlus** — only if you want to browse the DB from your laptop; not required to deploy (see [§4.1](#41-add-the-postgis-database-service)).
 
 ---
 
@@ -89,9 +89,10 @@ All steps are in the **one** Railway project. Do them in order.
    - `POSTGRES_DB=loop`
    - `PGDATA=/var/lib/postgresql/data/pgdata` — **required with a Railway volume.** The volume mount (`/var/lib/postgresql/data`) contains a `lost+found` directory, and `initdb` refuses a non-empty data dir (`directory … exists but is not empty` → crash loop). Pointing `PGDATA` at a **subdirectory** makes Postgres init into an empty folder beside `lost+found`. (`PGDATA` is only where files live on disk — it does **not** change the `DATABASE_URL`.)
 3. Add a **Volume** so data persists across redeploys. Volumes are **not** in the Settings tab — attach one from the canvas: **right-click the `db` service** (or press `⌘K` → "Volume") → **Attach Volume**, and set the **mount path** to `/var/lib/postgresql/data` (Postgres then stores data in the `pgdata` subdirectory per `PGDATA` above). Do this **before** the first real use — a volume attached after data is written may not migrate the existing ephemeral data.
-4. **Settings → Deploy → Serverless** → turn it **OFF** for `db` (this is the "App Sleeping" control). The database must stay warm — a sleeping DB stalls the first request and the live demo.
-5. Settings → **Networking** → enable the **TCP Proxy** (public) if you want to inspect the DB externally with DBeaver/TablePlus (connect with **SSL disabled** — the image has no TLS).
-6. Deploy. Unlike Railway's managed Postgres, this raw image does **not** auto-compose a `DATABASE_URL` — the api constructs one from this service's vars ([§4.2](#42-deploy-the-api-service)).
+4. **Settings → Deploy → Serverless** → turn it **OFF** for `db` (this is the "App Sleeping" control). The database must stay warm — a sleeping DB stalls the first request.
+5. Deploy. Unlike Railway's managed Postgres, this raw image does **not** auto-compose a `DATABASE_URL` — the api constructs one from this service's vars ([§4.2](#42-deploy-the-api-service)). The db is **unexposed** (private network only) by default — that is correct; the api reaches it privately.
+
+> **Optional — external DB inspection only.** To browse the data from your laptop (DBeaver/TablePlus), turn on **Settings → Networking → TCP Proxy**. This makes the DB a **public** endpoint (guarded only by the Postgres password — use a strong one), so connect with **SSL disabled** (the image has no TLS), and turn the proxy back **off** when done. Railway bills egress on proxy traffic. Not needed to deploy or to run the [§8](#8-verification-in-the-target-environment) verification.
 
 ### 4.2 Deploy the API service
 
