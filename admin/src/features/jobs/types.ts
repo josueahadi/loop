@@ -1,10 +1,5 @@
 export type AdminJobStatus =
-  | 'draft'
-  | 'posted'
-  | 'matched'
-  | 'in_progress'
-  | 'completed'
-  | 'cancelled';
+  'draft' | 'posted' | 'matched' | 'in_progress' | 'completed' | 'cancelled';
 
 export interface AdminJob {
   id: string;

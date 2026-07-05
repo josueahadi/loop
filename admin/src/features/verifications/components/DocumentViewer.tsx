@@ -39,8 +39,8 @@ export function DocumentViewer({ recordId }: { recordId: string }) {
   if (state.status === 'stub') {
     return (
       <p className="text-xs text-muted-foreground">
-        Document preview is unavailable in this environment (storage stub). Enable
-        Firebase storage to view uploaded files.
+        Document preview is unavailable in this environment (storage stub).
+        Enable Firebase storage to view uploaded files.
       </p>
     );
   }
