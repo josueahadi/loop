@@ -1,4 +1,3 @@
-import 'package:cargo_app/screens/driver_details.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../constants.dart';
@@ -33,27 +32,13 @@ class _SignupScreenState extends State<SignupScreen> {
     super.dispose();
   }
 
-  // In your existing SignupScreen, modify the _handleSignup method:
   Future<void> _handleSignup() async {
     if (!_formKey.currentState!.validate()) return;
 
-    if (_selectedRole == UserRole.driver) {
-      // Navigate to multi-step driver registration
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => DriverSignupScreen(
-            initialName: nameController.text.trim(),
-            initialEmail: emailController.text.trim(),
-            initialPhone: phoneController.text.trim(),
-            initialPassword: passwordController.text,
-          ),
-        ),
-      );
-      return;
-    }
-
-    // Existing cargo owner registration
+    // Both roles create the account the same way. Drivers complete verification
+    // (documents) and add a vehicle afterwards, from a guided prompt on their
+    // dashboard — those need file uploads and a vehicle-type dropdown, which the
+    // signup form can't do inline.
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final success = await authProvider.signUp(
       email: emailController.text.trim(),

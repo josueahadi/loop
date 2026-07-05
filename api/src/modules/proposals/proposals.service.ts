@@ -124,6 +124,17 @@ export class ProposalsService {
       throw new NotFoundException('Proposal not found');
     }
     if (proposal.status !== ProposalStatus.SENT) {
+      if (proposal.status === status) {
+        const coords = (await this.coordsFor([proposal.jobId])).get(proposal.jobId);
+        return this.toDto(proposal, {
+          job: proposal.job,
+          coords,
+          contact:
+            proposal.status === ProposalStatus.ACCEPTED
+              ? contactOf(proposal.job.owner)
+              : null,
+        });
+      }
       throw new ConflictException('Proposal has already been responded to');
     }
 
@@ -168,6 +179,9 @@ export class ProposalsService {
     });
     proposal.status = ProposalStatus.ACCEPTED;
     proposal.respondedAt = new Date();
+    proposal.job.status = JobStatus.MATCHED;
+    proposal.job.matchedAt = proposal.respondedAt;
+    proposal.job.acceptedAt = proposal.respondedAt;
     void this.push.sendToUser(proposal.job.ownerId, {
       title: 'Proposal accepted',
       body: 'A driver accepted — you can now chat and share contact.',

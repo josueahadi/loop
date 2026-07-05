@@ -20,9 +20,9 @@ export function ThemeToggle() {
       onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
     >
       {mounted && resolvedTheme === 'dark' ? (
-        <Sun className="size-4" />
+        <Sun data-icon="inline-start" />
       ) : (
-        <Moon className="size-4" />
+        <Moon data-icon="inline-start" />
       )}
     </Button>
   );

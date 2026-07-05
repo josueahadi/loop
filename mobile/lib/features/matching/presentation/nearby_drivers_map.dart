@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../../constants.dart';
@@ -8,6 +11,7 @@ import '../../../core/location/enable_location_prompt.dart';
 import '../../../core/location/location_service.dart';
 import '../../../core/models/job.dart';
 import '../../../core/models/nearby_driver.dart';
+import '../../../core/repositories/job_repository.dart';
 import '../../../core/repositories/matching_repository.dart';
 import '../../../core/repositories/proposal_repository.dart';
 
@@ -26,37 +30,70 @@ class NearbyDriversMap extends StatefulWidget {
 class _NearbyDriversMapState extends State<NearbyDriversMap> {
   final _matching = MatchingRepository();
   final _location = LocationService();
+  final _jobs = JobRepository();
   final _proposals = ProposalRepository();
   final _mapController = MapController();
 
   LatLng? _center;
   List<NearbyDriver> _drivers = [];
+  List<Job> _postedJobs = [];
   VehicleType? _filter;
+  Job? _selectedJob;
   bool _loading = true;
+  bool _jobsLoading = false;
   String? _error;
+  StreamSubscription<Position>? _selfTracking;
 
   @override
   void initState() {
     super.initState();
     // Pre-filter to the job's required vehicle type when proposing.
     _filter = widget.forJob?.reqVehicleType;
+    _selectedJob = widget.forJob;
     WidgetsBinding.instance.addPostFrameCallback((_) => _primeThenLoad());
+  }
+
+  @override
+  void dispose() {
+    _selfTracking?.cancel();
+    _mapController.dispose();
+    super.dispose();
+  }
+
+  // Follow the owner's own position live so their marker tracks them as they move.
+  // Only the owner's dot streams; driver dots refresh on demand (live driver
+  // tracking is deferred stretch work). Safe to call repeatedly.
+  Future<void> _startTrackingSelf() async {
+    if (_selfTracking != null) return;
+    try {
+      final stream = await _location.positionStream();
+      _selfTracking = stream.listen((pos) {
+        if (!mounted) return;
+        setState(() => _center = LatLng(pos.latitude, pos.longitude));
+      });
+    } catch (_) {
+      // Best-effort — the one-shot position already centred the map.
+    }
   }
 
   // Prime the location ask (design 04) before the OS prompt fires.
   Future<void> _primeThenLoad() async {
-    final proceed = await EnableLocationPrompt.show(
-      context,
-      message: 'See available drivers around you and set your pickup point.',
-    );
-    if (!proceed) {
-      if (mounted) {
-        setState(() {
-          _loading = false;
-          _error = 'Location off. Enable it to see nearby drivers.';
-        });
+    final hasPermission = await _location.hasLocationPermission();
+    if (!hasPermission) {
+      if (!mounted) return;
+      final proceed = await EnableLocationPrompt.show(
+        context,
+        message: 'See available drivers around you and set your pickup point.',
+      );
+      if (!proceed) {
+        if (mounted) {
+          setState(() {
+            _loading = false;
+            _error = 'Location off. Enable it to see nearby drivers.';
+          });
+        }
+        return;
       }
-      return;
     }
     await _load();
   }
@@ -67,6 +104,9 @@ class _NearbyDriversMapState extends State<NearbyDriversMap> {
       _error = null;
     });
     try {
+      if (widget.forJob == null) {
+        await _loadPostedJobs();
+      }
       final pos = await _location.getCurrentPosition();
       final center = LatLng(pos.latitude, pos.longitude);
       final drivers = await _matching.nearby(
@@ -81,6 +121,8 @@ class _NearbyDriversMapState extends State<NearbyDriversMap> {
         _loading = false;
       });
       _mapController.move(center, 14);
+      // Now that we have permission + a fix, follow the owner live.
+      _startTrackingSelf();
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -90,27 +132,63 @@ class _NearbyDriversMapState extends State<NearbyDriversMap> {
     }
   }
 
+  Future<void> _loadPostedJobs() async {
+    if (_jobsLoading) return;
+    _jobsLoading = true;
+    try {
+      final jobs = await _jobs.listOwn();
+      final posted = jobs.where((j) => j.status == 'posted').toList();
+      if (!mounted) return;
+      setState(() {
+        _postedJobs = posted;
+        if (_selectedJob == null ||
+            !posted.any((j) => j.id == _selectedJob!.id)) {
+          _selectedJob = posted.isEmpty ? null : posted.first;
+        }
+        if (_selectedJob != null) {
+          _filter = _selectedJob!.reqVehicleType;
+        }
+      });
+    } finally {
+      _jobsLoading = false;
+    }
+  }
+
   Future<void> _sendProposal(NearbyDriver d) async {
-    final job = widget.forJob!;
+    final job = _selectedJob;
+    if (job == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Create or select a posted job first.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
     try {
       await _proposals.send(jobId: job.id, driverId: d.id);
       if (!mounted) return;
       Navigator.pop(context); // close the driver sheet
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Proposal sent to ${d.name}'),
-        backgroundColor: primaryGreen,
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Proposal sent to ${d.name}'),
+          backgroundColor: primaryGreen,
+        ),
+      );
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(e.toString().replaceFirst('Exception: ', '')),
-          backgroundColor: Colors.red,
-        ));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceFirst('Exception: ', '')),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     }
   }
 
   void _showDriver(NearbyDriver d) {
+    final selectedJob = _selectedJob;
     showModalBottomSheet(
       context: context,
       builder: (_) => Padding(
@@ -119,37 +197,76 @@ class _NearbyDriversMapState extends State<NearbyDriversMap> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(d.name,
-                style:
-                    const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            Text(
+              d.name,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 6),
-            Row(children: [
-              const Icon(Icons.star, size: 18, color: Colors.orange),
-              const SizedBox(width: 4),
-              Text(d.ratingCount == 0
-                  ? 'No ratings yet'
-                  : '${d.averageRating.toStringAsFixed(1)} (${d.ratingCount})'),
-              const SizedBox(width: 16),
-              const Icon(Icons.near_me, size: 18, color: primaryGreen),
-              const SizedBox(width: 4),
-              Text(d.distanceLabel),
-            ]),
+            Row(
+              children: [
+                const Icon(Icons.star, size: 18, color: Colors.orange),
+                const SizedBox(width: 4),
+                Text(
+                  d.ratingCount == 0
+                      ? 'No ratings yet'
+                      : '${d.averageRating.toStringAsFixed(1)} (${d.ratingCount})',
+                ),
+                const SizedBox(width: 16),
+                const Icon(Icons.near_me, size: 18, color: primaryGreen),
+                const SizedBox(width: 4),
+                Text(d.distanceLabel),
+              ],
+            ),
             const SizedBox(height: 12),
             Text('Vehicles: ${d.vehicles.map((v) => v.type.label).join(', ')}'),
             const SizedBox(height: 20),
+            if (widget.forJob == null) ...[
+              if (_postedJobs.isEmpty)
+                const Text(
+                  'No open posted jobs. Post a job first, then send a proposal.',
+                  style: TextStyle(color: textGray),
+                )
+              else
+                DropdownButtonFormField<Job>(
+                  initialValue: selectedJob,
+                  decoration: const InputDecoration(labelText: 'Propose for'),
+                  items: _postedJobs
+                      .map(
+                        (j) => DropdownMenuItem<Job>(
+                          value: j,
+                          child: Text(
+                            '${j.cargoType} · ${j.reqVehicleType.label} · ${j.price} RWF',
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (job) {
+                    if (job == null) return;
+                    setState(() {
+                      _selectedJob = job;
+                      _filter = job.reqVehicleType;
+                    });
+                    Navigator.pop(context);
+                    _load();
+                  },
+                ),
+              const SizedBox(height: 12),
+            ],
             SizedBox(
               width: double.infinity,
-              child: widget.forJob == null
+              child: selectedJob == null
                   ? const OutlinedButton(
                       onPressed: null,
-                      child: Text('Post a job, then propose to a driver'),
+                      child: Text('Post a job first'),
                     )
                   : ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                          backgroundColor: primaryGreen,
-                          foregroundColor: Colors.white),
+                        backgroundColor: primaryGreen,
+                        foregroundColor: Colors.white,
+                      ),
                       onPressed: () => _sendProposal(d),
-                      child: Text('Send proposal · ${widget.forJob!.price} RWF'),
+                      child: Text('Send proposal · ${selectedJob.price} RWF'),
                     ),
             ),
           ],
@@ -179,7 +296,8 @@ class _NearbyDriversMapState extends State<NearbyDriversMap> {
                     FlutterMap(
                       mapController: _mapController,
                       options: MapOptions(
-                        initialCenter: _center ?? const LatLng(-1.9441, 30.0619),
+                        initialCenter:
+                            _center ?? const LatLng(-1.9441, 30.0619),
                         initialZoom: 13,
                       ),
                       children: [
@@ -189,9 +307,11 @@ class _NearbyDriversMapState extends State<NearbyDriversMap> {
                           userAgentPackageName: 'rw.loop.app',
                         ),
                         MarkerLayer(markers: _markers()),
-                        RichAttributionWidget(attributions: [
-                          TextSourceAttribution('OpenStreetMap contributors'),
-                        ]),
+                        RichAttributionWidget(
+                          attributions: [
+                            TextSourceAttribution('OpenStreetMap contributors'),
+                          ],
+                        ),
                       ],
                     ),
                     if (_loading)
@@ -213,23 +333,31 @@ class _NearbyDriversMapState extends State<NearbyDriversMap> {
   List<Marker> _markers() {
     final markers = <Marker>[];
     if (_center != null) {
-      markers.add(Marker(
-        point: _center!,
-        width: 40,
-        height: 40,
-        child: const Icon(Icons.my_location, color: Colors.blue, size: 32),
-      ));
+      markers.add(
+        Marker(
+          point: _center!,
+          width: 40,
+          height: 40,
+          child: const Icon(Icons.my_location, color: Colors.blue, size: 32),
+        ),
+      );
     }
     for (final d in _drivers) {
-      markers.add(Marker(
-        point: LatLng(d.lat, d.lng),
-        width: 44,
-        height: 44,
-        child: GestureDetector(
-          onTap: () => _showDriver(d),
-          child: const Icon(Icons.local_shipping, color: primaryGreen, size: 36),
+      markers.add(
+        Marker(
+          point: LatLng(d.lat, d.lng),
+          width: 44,
+          height: 44,
+          child: GestureDetector(
+            onTap: () => _showDriver(d),
+            child: const Icon(
+              Icons.local_shipping,
+              color: primaryGreen,
+              size: 36,
+            ),
+          ),
         ),
-      ));
+      );
     }
     return markers;
   }

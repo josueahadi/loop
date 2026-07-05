@@ -4,10 +4,17 @@ import '../../../core/models/booking_model.dart';
 import '../../../features/booking/providers/booking_provider.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../core/location/enable_location_prompt.dart';
+import '../../../core/location/location_service.dart';
+import '../../../core/repositories/proposal_repository.dart';
+import '../../../core/repositories/vehicle_repository.dart';
+import '../../../core/repositories/verification_repository.dart';
 import '../../../constants.dart';
 import '../../../screens/driver_profile_edit_screen.dart';
 import '../../proposals/presentation/driver_proposals_screen.dart';
 import '../../../screens/vehicle_details_screen.dart';
+import '../widgets/driver_verification_banner.dart';
+import '../../../core/theme/ui_kit.dart';
+import 'driver_location_screen.dart';
 import '../../../screens/settings_screen.dart';
 import '../../../screens/help_support_screen.dart';
 import '../../../features/profile/providers/profile_provider.dart';
@@ -22,6 +29,12 @@ class DriverHome extends StatefulWidget {
 
 class _DriverHomeState extends State<DriverHome> {
   int _selectedIndex = 0;
+  final _proposalRepository = ProposalRepository();
+  final _vehicleRepository = VehicleRepository();
+  final _verificationRepository = VerificationRepository();
+  int _pendingProposalCount = 0;
+
+  static const _requiredDocuments = {'licence', 'national_id', 'vehicle_reg'};
 
   @override
   void initState() {
@@ -33,11 +46,29 @@ class _DriverHomeState extends State<DriverHome> {
 
   void _loadData() {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final bookingProvider = Provider.of<BookingProvider>(context, listen: false);
+    final bookingProvider = Provider.of<BookingProvider>(
+      context,
+      listen: false,
+    );
 
     if (authProvider.user != null) {
       bookingProvider.loadDriverBookings(authProvider.user!.uid);
       bookingProvider.loadAvailableBookings(authProvider.user!.uid);
+      _loadProposalCount();
+    }
+  }
+
+  Future<void> _loadProposalCount() async {
+    try {
+      final proposals = await _proposalRepository.incoming();
+      if (!mounted) return;
+      setState(() {
+        _pendingProposalCount = proposals
+            .where((proposal) => proposal.status == 'sent')
+            .length;
+      });
+    } catch (_) {
+      // Keep the badge quiet if proposals cannot be fetched.
     }
   }
 
@@ -45,6 +76,42 @@ class _DriverHomeState extends State<DriverHome> {
     setState(() {
       _selectedIndex = index;
     });
+  }
+
+  Future<String?> _driverOnlineBlockReason() async {
+    final vehicles = await _vehicleRepository.list();
+    if (vehicles.isEmpty) {
+      return 'Add a vehicle before going online.';
+    }
+
+    final records = await _verificationRepository.listOwn();
+    final approved = records
+        .where((r) => r['status'] == 'approved')
+        .map((r) => r['documentType'] as String?)
+        .whereType<String>()
+        .where(_requiredDocuments.contains)
+        .toSet();
+    if (approved.length == _requiredDocuments.length) return null;
+
+    final hasRejected = records.any(
+      (r) =>
+          _requiredDocuments.contains(r['documentType']) &&
+          r['status'] == 'rejected',
+    );
+    if (hasRejected) {
+      return 'A document was rejected. Please re-upload it.';
+    }
+
+    final hasPending = records.any(
+      (r) =>
+          _requiredDocuments.contains(r['documentType']) &&
+          r['status'] == 'pending',
+    );
+    if (hasPending) {
+      return 'Your documents are still under review.';
+    }
+
+    return 'Upload all required documents before going online.';
   }
 
   @override
@@ -66,9 +133,18 @@ class _DriverHomeState extends State<DriverHome> {
               fontFamily: 'PaytoneOne',
             ),
             children: [
-              const TextSpan(text: 'L', style: TextStyle(color: Colors.black)),
-              TextSpan(text: 'oo', style: TextStyle(color: primaryGreen)),
-              const TextSpan(text: 'p', style: TextStyle(color: Colors.black)),
+              const TextSpan(
+                text: 'L',
+                style: TextStyle(color: Colors.black),
+              ),
+              TextSpan(
+                text: 'oo',
+                style: TextStyle(color: primaryGreen),
+              ),
+              const TextSpan(
+                text: 'p',
+                style: TextStyle(color: Colors.black),
+              ),
             ],
           ),
         ),
@@ -84,18 +160,51 @@ class _DriverHomeState extends State<DriverHome> {
                 onChanged: authProvider.isLoading
                     ? null
                     : (value) async {
-                        // Prime the location ask before going online.
+                        // Prime the location ask before going online, but only
+                        // if the OS permission has not already been granted.
                         if (value) {
-                          final proceed = await EnableLocationPrompt.show(
-                            context,
-                            message:
-                                'Share your location while online so cargo owners nearby can find you and send jobs.',
-                          );
-                          if (!proceed) return;
+                          try {
+                            final blockReason =
+                                await _driverOnlineBlockReason();
+                            if (blockReason != null) {
+                              if (!context.mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(blockReason),
+                                  backgroundColor: Colors.orange,
+                                ),
+                              );
+                              return;
+                            }
+                          } catch (e) {
+                            if (!context.mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  e.toString().replaceFirst('Exception: ', ''),
+                                ),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                            return;
+                          }
+
+                          final hasPermission = await LocationService()
+                              .hasLocationPermission();
+                          if (!hasPermission) {
+                            if (!context.mounted) return;
+                            final proceed = await EnableLocationPrompt.show(
+                              context,
+                              message:
+                                  'Share your location while online so cargo owners nearby can find you and send jobs.',
+                            );
+                            if (!proceed) return;
+                          }
                         }
                         if (!context.mounted) return;
-                        final ok =
-                            await authProvider.updateDriverAvailability(value);
+                        final ok = await authProvider.updateDriverAvailability(
+                          value,
+                        );
                         if (!ok && context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
@@ -108,20 +217,23 @@ class _DriverHomeState extends State<DriverHome> {
                           );
                         }
                       },
-                activeColor: Colors.white,
+                activeThumbColor: Colors.white,
                 activeTrackColor: primaryGreen,
               );
             },
           ),
           IconButton(
-            icon: const Icon(Icons.inbox),
+            icon: _ProposalBadge(count: _pendingProposalCount),
             tooltip: 'Proposals',
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => const DriverProposalsScreen(),
-              ),
-            ),
+            onPressed: () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const DriverProposalsScreen(),
+                ),
+              );
+              if (mounted) _loadProposalCount();
+            },
           ),
         ],
       ),
@@ -133,23 +245,58 @@ class _DriverHomeState extends State<DriverHome> {
             icon: Icon(Icons.dashboard),
             label: 'Dashboard',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.work),
-            label: 'Available',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.work), label: 'Available'),
           BottomNavigationBarItem(
             icon: Icon(Icons.assignment),
             label: 'My Jobs',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
         currentIndex: _selectedIndex,
         selectedItemColor: primaryGreen,
         onTap: _onItemTapped,
       ),
+    );
+  }
+}
+
+class _ProposalBadge extends StatelessWidget {
+  final int count;
+
+  const _ProposalBadge({required this.count});
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        const Icon(Icons.inbox),
+        if (count > 0)
+          Positioned(
+            right: -7,
+            top: -7,
+            child: Container(
+              constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+              padding: const EdgeInsets.symmetric(horizontal: 5),
+              decoration: BoxDecoration(
+                color: Colors.red,
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: Colors.white, width: 2),
+              ),
+              child: Center(
+                child: Text(
+                  count > 99 ? '99+' : '$count',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    height: 1,
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }
@@ -173,88 +320,70 @@ class _DashboardTab extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Welcome Section
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: lightGreen,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: primaryGreen, width: 2),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              AppCard(
+                color: kTintGreen,
+                padding: const EdgeInsets.all(18),
+                child: Row(
                   children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Welcome, ${user?.name ?? 'Driver'}!',
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: primaryGreen,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                user?.isAvailable == true
-                                    ? 'You are available for jobs'
-                                    : 'Set yourself as available to receive job requests',
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  color: primaryGreen,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: user?.isAvailable == true
-                                ? primaryGreen
-                                : Colors.orange,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            user?.isAvailable == true ? 'AVAILABLE' : 'OFFLINE',
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Welcome, ${user?.name ?? 'Driver'}!',
                             style: const TextStyle(
-                              fontSize: 12,
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
+                              fontSize: 19,
+                              fontWeight: FontWeight.w800,
+                              color: textDark,
                             ),
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 6),
+                          Text(
+                            user?.isAvailable == true
+                                ? 'You are available for jobs'
+                                : 'Go online to receive job requests',
+                            style: const TextStyle(
+                              fontSize: 13.5,
+                              color: kMutedText,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Pill(
+                      text: user?.isAvailable == true ? 'ONLINE' : 'OFFLINE',
+                      color: user?.isAvailable == true
+                          ? primaryGreen
+                          : Colors.orange,
+                      icon: Icons.circle,
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: kGap),
+
+              // Onboarding nudge — guides new drivers to add a vehicle + upload
+              // documents; hides itself once verified. Matchability needs both.
+              const DriverVerificationBanner(),
 
               // Quick Stats
               Row(
                 children: [
                   Expanded(
-                    child: _StatCard(
-                      title: 'Total Jobs',
+                    child: StatTile(
+                      label: 'Total Jobs',
                       value: '${user?.completedJobs ?? 0}',
-                      icon: Icons.work,
-                      color: Colors.black,
+                      icon: Icons.work_outline,
+                      accent: textDark,
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: _StatCard(
-                      title: 'Rating',
-                      value: '${user?.rating?.toStringAsFixed(1) ?? '0.0'}',
-                      icon: Icons.star,
-                      color: Colors.orange,
+                    child: StatTile(
+                      label: 'Rating',
+                      value: user?.rating?.toStringAsFixed(1) ?? '0.0',
+                      icon: Icons.star_outline,
+                      accent: Colors.orange,
                     ),
                   ),
                 ],
@@ -263,20 +392,21 @@ class _DashboardTab extends StatelessWidget {
               Row(
                 children: [
                   Expanded(
-                    child: _StatCard(
-                      title: 'Available Jobs',
+                    child: StatTile(
+                      label: 'Available Jobs',
                       value: '${availableJobs.length}',
-                      icon: Icons.assignment,
-                      color: primaryGreen,
+                      icon: Icons.assignment_outlined,
+                      accent: primaryGreen,
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: _StatCard(
-                      title: 'Active Jobs',
-                      value: '${myJobs.where((j) => j.status == BookingStatus.accepted || j.status == BookingStatus.inProgress).length}',
-                      icon: Icons.local_shipping,
-                      color: Colors.purple,
+                    child: StatTile(
+                      label: 'Active Jobs',
+                      value:
+                          '${myJobs.where((j) => j.status == BookingStatus.accepted || j.status == BookingStatus.inProgress).length}',
+                      icon: Icons.local_shipping_outlined,
+                      accent: primaryGreen,
                     ),
                   ),
                 ],
@@ -285,115 +415,43 @@ class _DashboardTab extends StatelessWidget {
 
               // Recent Available Jobs
               if (user?.isAvailable == true) ...[
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Available Jobs',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () => onNavigateToTab(1),
-                      child: const Text('View All'),
-                    ),
-                  ],
+                SectionHeader(
+                  title: 'Available Jobs',
+                  action: TextButton(
+                    onPressed: () => onNavigateToTab(1),
+                    child: const Text('View All'),
+                  ),
                 ),
-                const SizedBox(height: 12),
 
                 if (bookingProvider.isLoading)
                   const Center(child: CircularProgressIndicator())
                 else if (availableJobs.isEmpty)
-                  Container(
-                    padding: const EdgeInsets.all(32),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Center(
-                      child: Column(
-                        children: [
-                          Icon(
-                            Icons.work_off,
-                            size: 64,
-                            color: Colors.grey,
-                          ),
-                          SizedBox(height: 16),
-                          Text(
-                            'No available jobs',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.grey,
-                            ),
-                          ),
-                          SizedBox(height: 8),
-                          Text(
-                            'Check back later for new opportunities',
-                            style: TextStyle(color: Colors.grey),
-                          ),
-                        ],
-                      ),
-                    ),
+                  const EmptyBlock(
+                    icon: Icons.work_off_outlined,
+                    title: 'No available jobs',
+                    subtitle: 'Check back later for new opportunities',
                   )
                 else
-                  ...availableJobs.take(3).map((job) => _AvailableJobCard(booking: job)),
+                  ...availableJobs
+                      .take(3)
+                      .map((job) => _AvailableJobCard(booking: job)),
               ],
 
               // Recent My Jobs
               const SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'My Recent Jobs',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: () => onNavigateToTab(2),
-                    child: const Text('View All'),
-                  ),
-                ],
+              SectionHeader(
+                title: 'My Recent Jobs',
+                action: TextButton(
+                  onPressed: () => onNavigateToTab(2),
+                  child: const Text('View All'),
+                ),
               ),
-              const SizedBox(height: 12),
 
               if (myJobs.isEmpty)
-                Container(
-                  padding: const EdgeInsets.all(32),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Center(
-                    child: Column(
-                      children: [
-                        Icon(
-                          Icons.assignment_outlined,
-                          size: 64,
-                          color: Colors.grey,
-                        ),
-                        SizedBox(height: 16),
-                        Text(
-                          'No jobs yet',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey,
-                          ),
-                        ),
-                        SizedBox(height: 8),
-                        Text(
-                          'Accept available jobs to get started',
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                      ],
-                    ),
-                  ),
+                const EmptyBlock(
+                  icon: Icons.assignment_outlined,
+                  title: 'No jobs yet',
+                  subtitle: 'Accept available jobs to get started',
                 )
               else
                 ...myJobs.take(3).map((job) => _MyJobCard(booking: job)),
@@ -417,11 +475,7 @@ class _AvailableJobsTab extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  Icons.toggle_off,
-                  size: 64,
-                  color: Colors.grey,
-                ),
+                Icon(Icons.toggle_off, size: 64, color: Colors.grey),
                 SizedBox(height: 16),
                 Text(
                   'You are currently offline',
@@ -450,11 +504,7 @@ class _AvailableJobsTab extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  Icons.work_off,
-                  size: 64,
-                  color: Colors.grey,
-                ),
+                Icon(Icons.work_off, size: 64, color: Colors.grey),
                 SizedBox(height: 16),
                 Text(
                   'No available jobs',
@@ -477,7 +527,9 @@ class _AvailableJobsTab extends StatelessWidget {
         return RefreshIndicator(
           onRefresh: () async {
             if (authProvider.user != null) {
-              await bookingProvider.loadAvailableBookings(authProvider.user!.uid);
+              await bookingProvider.loadAvailableBookings(
+                authProvider.user!.uid,
+              );
             }
           },
           child: ListView.builder(
@@ -510,11 +562,7 @@ class _MyJobsTab extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  Icons.assignment_outlined,
-                  size: 64,
-                  color: Colors.grey,
-                ),
+                Icon(Icons.assignment_outlined, size: 64, color: Colors.grey),
                 SizedBox(height: 16),
                 Text(
                   'No jobs yet',
@@ -536,7 +584,10 @@ class _MyJobsTab extends StatelessWidget {
 
         return RefreshIndicator(
           onRefresh: () async {
-            final authProvider = Provider.of<AuthProvider>(context, listen: false);
+            final authProvider = Provider.of<AuthProvider>(
+              context,
+              listen: false,
+            );
             if (authProvider.user != null) {
               await bookingProvider.loadDriverBookings(authProvider.user!.uid);
             }
@@ -659,7 +710,7 @@ class _ProfileTab extends StatelessWidget {
                           child: Column(
                             children: [
                               Text(
-                                '${user?.rating?.toStringAsFixed(1) ?? '0.0'}',
+                                user?.rating?.toStringAsFixed(1) ?? '0.0',
                                 style: const TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
@@ -667,7 +718,10 @@ class _ProfileTab extends StatelessWidget {
                               ),
                               const Text(
                                 'Rating',
-                                style: TextStyle(fontSize: 12, color: Colors.grey),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                ),
                               ),
                             ],
                           ),
@@ -684,7 +738,10 @@ class _ProfileTab extends StatelessWidget {
                               ),
                               const Text(
                                 'Jobs Done',
-                                style: TextStyle(fontSize: 12, color: Colors.grey),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                ),
                               ),
                             ],
                           ),
@@ -736,15 +793,13 @@ class _ProfileTab extends StatelessWidget {
                   },
                 ),
                 _ProfileOption(
-                  icon: Icons.location_on,
-                  title: 'Address',
-                  subtitle: user.fullAddress.isNotEmpty
-                      ? user.fullAddress
-                      : 'Add your address',
+                  icon: Icons.map_outlined,
+                  title: 'My Location',
+                  subtitle: 'See where cargo owners find you',
                   onTap: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (context) => const DriverProfileEditScreen(),
+                        builder: (context) => const DriverLocationScreen(),
                       ),
                     );
                   },
@@ -812,6 +867,12 @@ class _ProfileTab extends StatelessWidget {
   }
 
   Future<void> _performLogout(BuildContext context) async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final profileProvider = Provider.of<ProfileProvider>(
+      context,
+      listen: false,
+    );
+
     // Show loading indicator
     showDialog(
       context: context,
@@ -831,17 +892,16 @@ class _ProfileTab extends StatelessWidget {
 
     try {
       // Perform logout
-      await Provider.of<AuthProvider>(context, listen: false).signOut();
+      await authProvider.signOut();
 
       // Clear profile data
-      Provider.of<ProfileProvider>(context, listen: false).logout();
+      profileProvider.logout();
 
       // Navigate to login screen and clear navigation stack
       if (context.mounted) {
-        Navigator.of(context).pushNamedAndRemoveUntil(
-          '/login',
-          (route) => false,
-        );
+        Navigator.of(
+          context,
+        ).pushNamedAndRemoveUntil('/login', (route) => false);
       }
     } catch (e) {
       // Hide loading dialog and show error
@@ -855,54 +915,6 @@ class _ProfileTab extends StatelessWidget {
         );
       }
     }
-  }
-}
-
-class _StatCard extends StatelessWidget {
-  final String title;
-  final String value;
-  final IconData icon;
-  final Color color;
-
-  const _StatCard({
-    required this.title,
-    required this.value,
-    required this.icon,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color, width: 0.8),
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: color, size: 32),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 12,
-              color: color,
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }
 
@@ -938,7 +950,7 @@ class _AvailableJobCard extends StatelessWidget {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.green.withOpacity(0.1),
+                      color: Colors.green.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
@@ -1061,8 +1073,14 @@ class _AvailableJobCard extends StatelessWidget {
             onPressed: () async {
               Navigator.pop(context);
 
-              final authProvider = Provider.of<AuthProvider>(context, listen: false);
-              final bookingProvider = Provider.of<BookingProvider>(context, listen: false);
+              final authProvider = Provider.of<AuthProvider>(
+                context,
+                listen: false,
+              );
+              final bookingProvider = Provider.of<BookingProvider>(
+                context,
+                listen: false,
+              );
 
               if (authProvider.user != null) {
                 final success = await bookingProvider.acceptBooking(
@@ -1080,7 +1098,9 @@ class _AvailableJobCard extends StatelessWidget {
                 } else if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text(bookingProvider.error ?? 'Failed to accept job'),
+                      content: Text(
+                        bookingProvider.error ?? 'Failed to accept job',
+                      ),
                       backgroundColor: Colors.red,
                     ),
                   );
@@ -1096,7 +1116,10 @@ class _AvailableJobCard extends StatelessWidget {
 
   void _declineJob(BuildContext context, BookingModel booking) {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final bookingProvider = Provider.of<BookingProvider>(context, listen: false);
+    final bookingProvider = Provider.of<BookingProvider>(
+      context,
+      listen: false,
+    );
 
     if (authProvider.user != null) {
       bookingProvider.declineBooking(booking.id, authProvider.user!.uid);
@@ -1193,7 +1216,7 @@ class _MyJobCard extends StatelessWidget {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: statusColor.withOpacity(0.1),
+                      color: statusColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(
@@ -1243,7 +1266,11 @@ class _MyJobCard extends StatelessWidget {
               const SizedBox(height: 8),
               Row(
                 children: [
-                  const Icon(Icons.local_shipping, size: 16, color: Colors.grey),
+                  const Icon(
+                    Icons.local_shipping,
+                    size: 16,
+                    color: Colors.grey,
+                  ),
                   const SizedBox(width: 4),
                   Text(
                     booking.vehicleTypeDisplayName,

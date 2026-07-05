@@ -6,6 +6,7 @@ import '../../../core/repositories/user_repository.dart';
 import '../core/enums/app_enums.dart';
 import '../features/booking/providers/booking_provider.dart';
 import 'package:cargo_app/constants.dart';
+import '../core/theme/ui_kit.dart';
 
 class DriverSelectionScreen extends StatefulWidget {
   final VehicleType vehicleType;
@@ -166,37 +167,35 @@ class _DriverSelectionScreenState extends State<DriverSelectionScreen> {
         ),
       )
           : _availableDrivers.isEmpty
-          ? const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.no_accounts, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
-            Text('No available drivers found', style: TextStyle(fontSize: 16)),
-            SizedBox(height: 8),
-            Text('Please try again later', style: TextStyle(color: Colors.grey)),
-          ],
-        ),
-      )
+          ? const EmptyBlock(
+              icon: Icons.no_accounts,
+              title: 'No available drivers found',
+              subtitle: 'No verified drivers are online nearby. Please try again later.',
+            )
           : Column(
         children: [
           Container(
             padding: const EdgeInsets.all(16),
+            margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
             decoration: BoxDecoration(
-              color: lightGreen,
-              borderRadius: BorderRadius.circular(12),
+              color: kTintGreen,
+              borderRadius: BorderRadius.circular(kRadius),
+              border: Border.all(color: kSubtleBorder),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
                   'Job Details',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
                 ),
-                const SizedBox(height: 8),
-                Text('Vehicle Type: ${widget.vehicleType.toString().split('.').last}'),
-                Text('From: ${widget.pickupLocation}'),
-                Text('To: ${widget.dropoffLocation}'),
+                const SizedBox(height: 10),
+                _JobDetailRow(
+                    icon: Icons.local_shipping_outlined,
+                    text: widget.vehicleType.label),
+                _JobDetailRow(
+                    icon: Icons.my_location, text: widget.pickupLocation),
+                _JobDetailRow(icon: Icons.flag_outlined, text: widget.dropoffLocation),
               ],
             ),
           ),
@@ -274,6 +273,32 @@ class _DriverSelectionScreenState extends State<DriverSelectionScreen> {
                   ),
                 );
               },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _JobDetailRow extends StatelessWidget {
+  final IconData icon;
+  final String text;
+
+  const _JobDetailRow({required this.icon, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: kMutedText),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(fontSize: 13.5, color: textDark),
             ),
           ),
         ],

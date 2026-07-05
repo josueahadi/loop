@@ -3,62 +3,75 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../core/models/user_model.dart';
 import '../core/repositories/user_repository.dart';
+import '../core/repositories/vehicle_repository.dart';
 import '../providers/auth_provider.dart';
 import '../mixins/image_picker_mixin.dart';
+import 'vehicle_details_screen.dart';
 
 class DriverProfileEditScreen extends StatefulWidget {
-  const DriverProfileEditScreen({super.key});
+  final bool scrollToDocuments;
+
+  const DriverProfileEditScreen({super.key, this.scrollToDocuments = false});
 
   @override
-  State<DriverProfileEditScreen> createState() => _DriverProfileEditScreenState();
+  State<DriverProfileEditScreen> createState() =>
+      _DriverProfileEditScreenState();
 }
 
-class _DriverProfileEditScreenState extends State<DriverProfileEditScreen> with ImagePickerMixin {
+class _DriverProfileEditScreenState extends State<DriverProfileEditScreen>
+    with ImagePickerMixin {
   final _formKey = GlobalKey<FormState>();
+  final _scrollController = ScrollController();
+  final _documentsKey = GlobalKey();
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
   final _driverLicenseNumberController = TextEditingController();
-  final _vehicleTypeController = TextEditingController();
-  final _vehicleCapacityController = TextEditingController();
-  
+
   // Address controllers
   final _streetController = TextEditingController();
   final _cityController = TextEditingController();
   final _stateController = TextEditingController();
   final _postalCodeController = TextEditingController();
   final _countryController = TextEditingController();
-  
+
   final UserRepository _userRepository = ApiUserRepository();
-  
+  final VehicleRepository _vehicleRepository = VehicleRepository();
+
   bool _isLoading = false;
+  int _vehicleCount = 0;
   UserModel? _user;
-  
+
   // Document files
   File? _profileImage;
   File? _driverLicenseFile;
   File? _nationalIdFile;
   File? _vehicleRegistrationFile;
   File? _vehicleImageFile;
-  
+
   // Document upload states
   bool _driverLicenseUploading = false;
   bool _nationalIdUploading = false;
   bool _vehicleRegistrationUploading = false;
-  bool _vehicleImageUploading = false;
+  final bool _vehicleImageUploading = false;
 
   @override
   void initState() {
     super.initState();
     _loadUserData();
+    _loadVehicleCount();
+    if (widget.scrollToDocuments) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scrollToDocuments();
+      });
+    }
   }
 
   @override
   void dispose() {
+    _scrollController.dispose();
     _nameController.dispose();
     _phoneController.dispose();
     _driverLicenseNumberController.dispose();
-    _vehicleTypeController.dispose();
-    _vehicleCapacityController.dispose();
     _streetController.dispose();
     _cityController.dispose();
     _stateController.dispose();
@@ -67,25 +80,35 @@ class _DriverProfileEditScreenState extends State<DriverProfileEditScreen> with 
     super.dispose();
   }
 
+  void _scrollToDocuments() {
+    final context = _documentsKey.currentContext;
+    if (context == null) return;
+    Scrollable.ensureVisible(
+      context,
+      duration: const Duration(milliseconds: 450),
+      curve: Curves.easeOutCubic,
+      alignment: 0.08,
+    );
+  }
+
   Future<void> _loadUserData() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final currentUser = authProvider.user;
-    
+
     if (currentUser != null) {
       try {
         // Fetch the latest user data from the database to ensure we have all fields
         final latestUser = await _userRepository.getUserById(currentUser.uid);
         final userToUse = latestUser ?? currentUser;
-        
+
         setState(() {
           _user = userToUse;
           _nameController.text = userToUse.name;
           _phoneController.text = userToUse.phoneNumber;
           // Handle migration: check both fields for license number
-          _driverLicenseNumberController.text = userToUse.driverLicenseNumber ?? userToUse.driverLicense ?? '';
-          _vehicleTypeController.text = userToUse.vehicleType ?? '';
-          _vehicleCapacityController.text = userToUse.vehicleCapacity ?? '';
-          
+          _driverLicenseNumberController.text =
+              userToUse.driverLicenseNumber ?? userToUse.driverLicense ?? '';
+
           // Load address fields
           _streetController.text = userToUse.street ?? '';
           _cityController.text = userToUse.city ?? '';
@@ -100,10 +123,11 @@ class _DriverProfileEditScreenState extends State<DriverProfileEditScreen> with 
           _nameController.text = currentUser.name;
           _phoneController.text = currentUser.phoneNumber;
           // Handle migration: check both fields for license number
-          _driverLicenseNumberController.text = currentUser.driverLicenseNumber ?? currentUser.driverLicense ?? '';
-          _vehicleTypeController.text = currentUser.vehicleType ?? '';
-          _vehicleCapacityController.text = currentUser.vehicleCapacity ?? '';
-          
+          _driverLicenseNumberController.text =
+              currentUser.driverLicenseNumber ??
+              currentUser.driverLicense ??
+              '';
+
           // Load address fields
           _streetController.text = currentUser.street ?? '';
           _cityController.text = currentUser.city ?? '';
@@ -115,9 +139,20 @@ class _DriverProfileEditScreenState extends State<DriverProfileEditScreen> with 
     }
   }
 
+  Future<void> _loadVehicleCount() async {
+    try {
+      final vehicles = await _vehicleRepository.list();
+      if (!mounted) return;
+      setState(() => _vehicleCount = vehicles.length);
+    } catch (_) {
+      // Vehicle setup is surfaced as a shortcut here; profile editing can still
+      // load even if the vehicle endpoint is temporarily unavailable.
+    }
+  }
+
   Future<void> _saveProfile() async {
     if (!_formKey.currentState!.validate()) return;
-    
+
     setState(() {
       _isLoading = true;
     });
@@ -125,7 +160,7 @@ class _DriverProfileEditScreenState extends State<DriverProfileEditScreen> with 
     try {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final currentUser = authProvider.user;
-      
+
       if (currentUser == null) {
         throw Exception('No user logged in');
       }
@@ -219,12 +254,12 @@ class _DriverProfileEditScreenState extends State<DriverProfileEditScreen> with 
             Row(
               children: [
                 Icon(
-                  selectedFile != null || currentUrl != null 
-                    ? Icons.check_circle 
-                    : Icons.upload_file,
-                  color: selectedFile != null || currentUrl != null 
-                    ? Colors.green 
-                    : Colors.grey,
+                  selectedFile != null || currentUrl != null
+                      ? Icons.check_circle
+                      : Icons.upload_file,
+                  color: selectedFile != null || currentUrl != null
+                      ? Colors.green
+                      : Colors.grey,
                 ),
                 const SizedBox(width: 8),
                 Expanded(
@@ -240,10 +275,7 @@ class _DriverProfileEditScreenState extends State<DriverProfileEditScreen> with 
                       ),
                       Text(
                         description,
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 12,
-                        ),
+                        style: TextStyle(color: Colors.grey[600], fontSize: 12),
                       ),
                     ],
                   ),
@@ -260,7 +292,11 @@ class _DriverProfileEditScreenState extends State<DriverProfileEditScreen> with 
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.file_present, color: Colors.green, size: 16),
+                    const Icon(
+                      Icons.file_present,
+                      color: Colors.green,
+                      size: 16,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -297,18 +333,18 @@ class _DriverProfileEditScreenState extends State<DriverProfileEditScreen> with 
               width: double.infinity,
               child: ElevatedButton.icon(
                 onPressed: isUploading ? null : onTap,
-                icon: isUploading 
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.upload, size: 18),
+                icon: isUploading
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.upload, size: 18),
                 label: Text(
-                  isUploading 
-                    ? 'Uploading...' 
-                    : selectedFile != null || currentUrl != null 
-                      ? 'Replace Document' 
+                  isUploading
+                      ? 'Uploading...'
+                      : selectedFile != null || currentUrl != null
+                      ? 'Replace Document'
                       : 'Upload Document',
                   style: const TextStyle(fontSize: 14),
                 ),
@@ -342,6 +378,7 @@ class _DriverProfileEditScreenState extends State<DriverProfileEditScreen> with 
         ],
       ),
       body: SingleChildScrollView(
+        controller: _scrollController,
         padding: const EdgeInsets.all(16),
         child: Form(
           key: _formKey,
@@ -379,50 +416,44 @@ class _DriverProfileEditScreenState extends State<DriverProfileEditScreen> with 
                                 ),
                               )
                             : _user?.profileImageUrl != null
-                                ? ClipOval(
-                                    child: Image.network(
-                                      _user!.profileImageUrl!,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (context, error, stackTrace) {
-                                        return const Icon(
-                                          Icons.person,
-                                          size: 60,
-                                          color: Colors.grey,
-                                        );
-                                      },
-                                    ),
-                                  )
-                                : const Icon(
-                                    Icons.person,
-                                    size: 60,
-                                    color: Colors.grey,
-                                  ),
+                            ? ClipOval(
+                                child: Image.network(
+                                  _user!.profileImageUrl!,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return const Icon(
+                                      Icons.person,
+                                      size: 60,
+                                      color: Colors.grey,
+                                    );
+                                  },
+                                ),
+                              )
+                            : const Icon(
+                                Icons.person,
+                                size: 60,
+                                color: Colors.grey,
+                              ),
                       ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       'Tap to change profile photo',
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 12,
-                      ),
+                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
                     ),
                   ],
                 ),
               ),
-              
+
               const SizedBox(height: 32),
-              
+
               // Basic Information
               const Text(
                 'Basic Information',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
-              
+
               TextFormField(
                 controller: _nameController,
                 decoration: const InputDecoration(
@@ -436,9 +467,9 @@ class _DriverProfileEditScreenState extends State<DriverProfileEditScreen> with 
                   return null;
                 },
               ),
-              
+
               const SizedBox(height: 16),
-              
+
               TextFormField(
                 controller: _phoneController,
                 decoration: const InputDecoration(
@@ -453,9 +484,9 @@ class _DriverProfileEditScreenState extends State<DriverProfileEditScreen> with 
                   return null;
                 },
               ),
-              
+
               const SizedBox(height: 16),
-              
+
               TextFormField(
                 controller: _driverLicenseNumberController,
                 decoration: const InputDecoration(
@@ -470,19 +501,16 @@ class _DriverProfileEditScreenState extends State<DriverProfileEditScreen> with 
                   return null;
                 },
               ),
-              
+
               const SizedBox(height: 32),
-              
+
               // Address Information
               const Text(
                 'Address Information',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
-              
+
               TextFormField(
                 controller: _streetController,
                 decoration: const InputDecoration(
@@ -491,9 +519,9 @@ class _DriverProfileEditScreenState extends State<DriverProfileEditScreen> with 
                   border: OutlineInputBorder(),
                 ),
               ),
-              
+
               const SizedBox(height: 16),
-              
+
               Row(
                 children: [
                   Expanded(
@@ -517,9 +545,9 @@ class _DriverProfileEditScreenState extends State<DriverProfileEditScreen> with 
                   ),
                 ],
               ),
-              
+
               const SizedBox(height: 16),
-              
+
               Row(
                 children: [
                   Expanded(
@@ -544,45 +572,87 @@ class _DriverProfileEditScreenState extends State<DriverProfileEditScreen> with 
                   ),
                 ],
               ),
-              
+
               const SizedBox(height: 32),
-              
-              // Vehicle Information
+
+              // Vehicle Setup
               const Text(
-                'Vehicle Information',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+                'Vehicle Setup',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
-              
-              TextFormField(
-                controller: _vehicleTypeController,
-                decoration: const InputDecoration(
-                  labelText: 'Vehicle Type',
-                  hintText: 'e.g., Pickup Truck, Mini Truck, Large Truck',
-                  border: OutlineInputBorder(),
+
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            _vehicleCount > 0
+                                ? Icons.check_circle
+                                : Icons.local_shipping_outlined,
+                            color: _vehicleCount > 0
+                                ? Colors.green
+                                : Colors.grey,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _vehicleCount > 0
+                                      ? '$_vehicleCount vehicle${_vehicleCount == 1 ? '' : 's'} added'
+                                      : 'No vehicles added yet',
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Vehicle type, capacity, and registration are managed in your vehicle setup.',
+                                  style: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton(
+                          onPressed: () async {
+                            await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const VehicleDetailsScreen(),
+                              ),
+                            );
+                            _loadVehicleCount();
+                          },
+                          child: const Text('Manage vehicles'),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              
-              const SizedBox(height: 16),
-              
-              TextFormField(
-                controller: _vehicleCapacityController,
-                decoration: const InputDecoration(
-                  labelText: 'Vehicle Capacity',
-                  hintText: 'e.g., 1 ton, 5 tons',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              
+
               const SizedBox(height: 32),
-              
+
               // Document Upload Section
-              const Text(
+              Text(
                 'Required Documents',
-                style: TextStyle(
+                key: _documentsKey,
+                style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
@@ -590,16 +660,14 @@ class _DriverProfileEditScreenState extends State<DriverProfileEditScreen> with 
               const SizedBox(height: 8),
               Text(
                 'Upload your verification documents to complete your driver profile',
-                style: TextStyle(
-                  color: Colors.grey[600],
-                  fontSize: 14,
-                ),
+                style: TextStyle(color: Colors.grey[600], fontSize: 14),
               ),
               const SizedBox(height: 16),
-              
+
               _buildDocumentUploadCard(
                 title: 'Driver\'s License',
-                description: 'Upload a clear photo of your valid driver\'s license',
+                description:
+                    'Upload a clear photo of your valid driver\'s license',
                 onTap: () {
                   showDocumentPickerDialog(
                     context,
@@ -615,7 +683,7 @@ class _DriverProfileEditScreenState extends State<DriverProfileEditScreen> with 
                 currentUrl: _user?.driverLicense,
                 selectedFile: _driverLicenseFile,
               ),
-              
+
               _buildDocumentUploadCard(
                 title: 'National ID',
                 description: 'Upload a clear photo of your national ID card',
@@ -634,7 +702,7 @@ class _DriverProfileEditScreenState extends State<DriverProfileEditScreen> with 
                 currentUrl: _user?.nationalId,
                 selectedFile: _nationalIdFile,
               ),
-              
+
               _buildDocumentUploadCard(
                 title: 'Vehicle Registration',
                 description: 'Upload your vehicle registration certificate',
@@ -653,7 +721,7 @@ class _DriverProfileEditScreenState extends State<DriverProfileEditScreen> with 
                 currentUrl: _user?.vehicleRegistration,
                 selectedFile: _vehicleRegistrationFile,
               ),
-              
+
               _buildDocumentUploadCard(
                 title: 'Vehicle Photo',
                 description: 'Upload a clear photo of your vehicle',
@@ -672,9 +740,9 @@ class _DriverProfileEditScreenState extends State<DriverProfileEditScreen> with 
                 currentUrl: _user?.vehicleImageUrl,
                 selectedFile: _vehicleImageFile,
               ),
-              
+
               const SizedBox(height: 32),
-              
+
               // Save Button
               SizedBox(
                 width: double.infinity,
@@ -689,11 +757,14 @@ class _DriverProfileEditScreenState extends State<DriverProfileEditScreen> with 
                       ? const CircularProgressIndicator(color: Colors.white)
                       : const Text(
                           'Save Profile',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                 ),
               ),
-              
+
               const SizedBox(height: 16),
             ],
           ),

@@ -46,7 +46,7 @@ export function DocumentViewer({ recordId }: { recordId: string }) {
   }
   if (state.status === 'error') {
     return (
-      <div className="space-y-2">
+      <div className="flex flex-col items-start gap-2">
         <p className="text-xs text-destructive">Could not load the document.</p>
         <Button variant="outline" size="sm" onClick={load}>
           Retry
@@ -57,7 +57,7 @@ export function DocumentViewer({ recordId }: { recordId: string }) {
 
   // ready — an image preview with a raw link fallback (PDFs open in a new tab).
   return (
-    <div className="space-y-2">
+    <div className="flex flex-col items-start gap-2">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={state.url}

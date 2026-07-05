@@ -1,3 +1,5 @@
+import 'package:dio/dio.dart';
+
 import '../api/api_client.dart';
 import '../models/proposal.dart';
 
@@ -8,10 +10,19 @@ class ProposalRepository {
   ProposalRepository({ApiClient? api}) : _api = api ?? ApiClient();
 
   // Owner → driver, at the job's posted price.
-  Future<Proposal> send({required String jobId, required String driverId}) async {
-    final res = await _api.dio
-        .post('/jobs/$jobId/proposals', data: {'driverId': driverId});
-    return Proposal.fromJson(res.data as Map<String, dynamic>);
+  Future<Proposal> send({
+    required String jobId,
+    required String driverId,
+  }) async {
+    try {
+      final res = await _api.dio.post(
+        '/jobs/$jobId/proposals',
+        data: {'driverId': driverId},
+      );
+      return Proposal.fromJson(res.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw Exception(_apiMessage(e));
+    }
   }
 
   // Owner: responses on their own job (driver contact appears once accepted).
@@ -32,8 +43,27 @@ class ProposalRepository {
 
   // Driver accepts or declines.
   Future<Proposal> respond(String proposalId, String status) async {
-    final res =
-        await _api.dio.patch('/proposals/$proposalId', data: {'status': status});
-    return Proposal.fromJson(res.data as Map<String, dynamic>);
+    try {
+      final res = await _api.dio.patch(
+        '/proposals/$proposalId',
+        data: {'status': status},
+      );
+      return Proposal.fromJson(res.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw Exception(_apiMessage(e));
+    }
+  }
+
+  String _apiMessage(DioException e) {
+    final data = e.response?.data;
+    if (data is Map<String, dynamic>) {
+      final message = data['message'];
+      if (message is String) return message;
+      if (message is List) return message.join(', ');
+    }
+    if (e.response?.statusCode == 409) {
+      return 'This proposal is no longer available. Refresh to see the latest status.';
+    }
+    return e.message ?? 'Request failed';
   }
 }

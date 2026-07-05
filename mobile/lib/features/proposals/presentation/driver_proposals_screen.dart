@@ -21,6 +21,7 @@ class DriverProposalsScreen extends StatefulWidget {
 class _DriverProposalsScreenState extends State<DriverProposalsScreen> {
   final _repo = ProposalRepository();
   final _rated = <String>{}; // jobIds the driver has rated this session
+  final _responding = <String>{};
   late Future<List<Proposal>> _future;
 
   @override
@@ -30,21 +31,28 @@ class _DriverProposalsScreenState extends State<DriverProposalsScreen> {
   }
 
   Future<void> _refresh() async {
-    setState(() => _future = _repo.incoming());
-    await _future;
+    final next = _repo.incoming();
+    setState(() => _future = next);
+    await next;
   }
 
   Future<void> _respond(Proposal p, String status) async {
+    if (_responding.contains(p.id)) return;
+    setState(() => _responding.add(p.id));
     try {
       await _repo.respond(p.id, status);
       await _refresh();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(e.toString().replaceFirst('Exception: ', '')),
-          backgroundColor: Colors.red,
-        ));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceFirst('Exception: ', '')),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
+    } finally {
+      if (mounted) setState(() => _responding.remove(p.id));
     }
   }
 
@@ -65,15 +73,17 @@ class _DriverProposalsScreenState extends State<DriverProposalsScreen> {
             }
             final items = snap.data ?? [];
             if (items.isEmpty) {
-              return ListView(children: const [
-                SizedBox(height: 120),
-                Center(child: Text('No proposals yet')),
-              ]);
+              return ListView(
+                children: const [
+                  SizedBox(height: 120),
+                  Center(child: Text('No proposals yet')),
+                ],
+              );
             }
             return ListView.separated(
               padding: const EdgeInsets.all(16),
               itemCount: items.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 10),
+              separatorBuilder: (context, index) => const SizedBox(height: 10),
               itemBuilder: (_, i) => _card(items[i]),
             );
           },
@@ -84,6 +94,7 @@ class _DriverProposalsScreenState extends State<DriverProposalsScreen> {
 
   Widget _card(Proposal p) {
     final job = p.job;
+    final responding = _responding.contains(p.id);
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(14),
@@ -93,41 +104,67 @@ class _DriverProposalsScreenState extends State<DriverProposalsScreen> {
             Row(
               children: [
                 Expanded(
-                  child: Text(job?.cargoType ?? 'Job',
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 16)),
+                  child: Text(
+                    job?.cargoType ?? 'Job',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
                 ),
                 _statusChip(p.status),
               ],
             ),
             const SizedBox(height: 6),
             if (job != null) ...[
-              Text('${job.pickupLabel ?? 'Pickup'} → ${job.dropOffLabel ?? 'Drop-off'}',
-                  style: const TextStyle(color: textGray)),
+              Text(
+                '${job.pickupLabel ?? 'Pickup'} → ${job.dropOffLabel ?? 'Drop-off'}',
+                style: const TextStyle(color: textGray),
+              ),
               const SizedBox(height: 4),
-              Text('${job.reqVehicleType.label} · ${job.price} RWF',
-                  style: const TextStyle(fontWeight: FontWeight.w600)),
+              Text(
+                '${job.reqVehicleType.label} · ${job.price} RWF',
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
             ],
             const SizedBox(height: 12),
             if (p.status == 'sent')
-              Row(children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => _respond(p, 'declined'),
-                    child: const Text('Decline'),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: responding
+                          ? null
+                          : () => _respond(p, 'declined'),
+                      child: responding
+                          ? const Text('Working...')
+                          : const Text('Decline'),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
                         backgroundColor: primaryGreen,
-                        foregroundColor: Colors.white),
-                    onPressed: () => _respond(p, 'accepted'),
-                    child: const Text('Accept'),
+                        foregroundColor: Colors.white,
+                      ),
+                      onPressed: responding
+                          ? null
+                          : () => _respond(p, 'accepted'),
+                      child: responding
+                          ? const SizedBox(
+                              height: 18,
+                              width: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Text('Accept'),
+                    ),
                   ),
-                ),
-              ]),
+                ],
+              ),
             // Contact + actions ONLY once accepted (contact is null otherwise).
             if (p.isAccepted && p.contact != null && job != null)
               _acceptedActions(p, job),
@@ -143,7 +180,10 @@ class _DriverProposalsScreenState extends State<DriverProposalsScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Divider(),
-        Text('Owner: ${c.name}', style: const TextStyle(fontWeight: FontWeight.w600)),
+        Text(
+          'Owner: ${c.name}',
+          style: const TextStyle(fontWeight: FontWeight.w600),
+        ),
         Text(c.phone, style: const TextStyle(color: textGray)),
         const SizedBox(height: 8),
         Wrap(
@@ -155,8 +195,11 @@ class _DriverProposalsScreenState extends State<DriverProposalsScreen> {
               label: const Text('Call'),
             ),
             OutlinedButton.icon(
-              onPressed: () => OpenInMaps.directions(context, job.pickup,
-                  label: job.pickupLabel ?? 'Pickup'),
+              onPressed: () => OpenInMaps.directions(
+                context,
+                job.pickup,
+                label: job.pickupLabel ?? 'Pickup',
+              ),
               icon: const Icon(Icons.directions, size: 18),
               label: const Text('Navigate'),
             ),
@@ -196,12 +239,12 @@ class _DriverProposalsScreenState extends State<DriverProposalsScreen> {
   }
 
   Widget _statusChip(String s) => Chip(
-        label: Text(s, style: const TextStyle(fontSize: 12)),
-        visualDensity: VisualDensity.compact,
-        backgroundColor: s == 'accepted'
-            ? lightGreen
-            : s == 'declined'
-                ? const Color(0xFFF1F1F1)
-                : searchBg,
-      );
+    label: Text(s, style: const TextStyle(fontSize: 12)),
+    visualDensity: VisualDensity.compact,
+    backgroundColor: s == 'accepted'
+        ? lightGreen
+        : s == 'declined'
+        ? const Color(0xFFF1F1F1)
+        : searchBg,
+  );
 }
