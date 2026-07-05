@@ -109,10 +109,10 @@ All steps are in the **one** Railway project. Do them in order.
    - `APP_URL` → the api's own public domain (set it once the domain is generated below).
    - `CORS_ORIGINS` → set once the admin domain exists ([§4.3](#43-deploy-the-admin-service), last step).
    - Keep `MAIL_DRIVER=stub` / `STORAGE_DRIVER=stub` / `PUSH_DRIVER=stub` for the first deploy; flip to real in [§5](#5-going-live-flip-stubs--real).
-4. Settings → **Healthcheck Path** = `/health` (the api returns `200 {status:'ok'}`).
+4. **Settings → Deploy → Healthcheck Path** = `/health` (the api returns `200 {status:'ok'}`).
 5. **Settings → Deploy → Serverless** → turn it **OFF** for `api` (the "App Sleeping" control) — **required** so the live demo has no cold-start; a sleeping api also drops the messaging WebSocket connections.
 6. Settings → **Networking** → **Generate Domain** to get `https://<api>.up.railway.app`. Put it in `APP_URL`.
-7. Settings → **Pre-Deploy Command** = `npm run migration:run:prod && npm run seed:prod` — applies the compiled migrations (the first run creates the schema + the PostGIS extension), then seeds the admin account + pricing/size config. Both are idempotent: migrations skip already-applied ones and `seed:prod` upserts, so running this on **every** deploy is safe. Deploy.
+7. **Settings → Deploy → Pre-Deploy Command** = `npm run migration:run:prod && npm run seed:prod` — applies the compiled migrations (the first run creates the schema + the PostGIS extension), then seeds the admin account + pricing/size config. Both are idempotent: migrations skip already-applied ones and `seed:prod` upserts, so running this on **every** deploy is safe. Deploy.
    - _Fallback:_ if you prefer, run `npm run seed:prod` manually once via the service shell (Railway → service → **Shell/Command**) instead.
 
    > Migrations are **not** run on app boot — only as this pre-deploy command — so a DB hiccup can never crash-loop the server.
