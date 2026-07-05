@@ -16,6 +16,9 @@ coverage/
 !*.example
 *-service-account*.json
 firebase-service-account*.json
+# Firebase Admin SDK service-account keys (any project) — real secrets.
+*-adminsdk-*.json
+*firebase-adminsdk*.json
 
 # ---- Flutter / Dart (mobile/) ----
 mobile/.dart_tool/
