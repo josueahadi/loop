@@ -178,7 +178,7 @@ export function AdminNav({ children }: { children: ReactNode }) {
               {PAGE_TITLES[pathname] ?? 'Dashboard'}
             </h1>
           </div>
-          <Badge variant="outline">MVP admin</Badge>
+          <Badge variant="outline">Admin</Badge>
           <ThemeToggle />
         </header>
         <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-8">

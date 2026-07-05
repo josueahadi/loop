@@ -62,3 +62,13 @@ All milestones **M1–M6** are built (milestone plan in `docs/BUILD_SPEC.md` §6
 - **M4 — Transaction loop:** proposals (accept/decline), in-app messaging (REST + WebSocket), `tel:` call button, FCM push (stub-safe).
 - **M5 — Trust:** two-way ratings + portable reputation.
 - **M6 — Admin:** Next.js verification queue + server-computed metrics dashboard + read-only drivers/users/jobs directory.
+
+## Roadmap (Future Works)
+
+Loop currently runs as a single **Railway** project (PostGIS DB + API + admin), chosen for pilot simplicity. The architecture is deliberately portable — Dockerised services, a standard `DATABASE_URL`, and an env-driven `DB_SSL` flag — so the planned production moves below are each a **configuration change, not a rewrite**:
+
+- **Database → managed Postgres + PostGIS (Supabase):** automated backups + point-in-time recovery and a management dashboard, versus the pilot's self-managed container.
+- **Admin → Vercel:** Next.js-native hosting with per-branch preview deployments.
+- **API → Fly.io (Johannesburg region):** lower latency to users in Rwanda than EU-region hosting.
+
+See **[DEPLOYMENT.md §10 (Future / production migration)](DEPLOYMENT.md#10-future--production-migration)** for the detail. Product/feature future work (payments, live driver tracking, an abstracted basemap, road routing) is separate — it's tracked in `docs/BUILD_SPEC.md` and the report's Future Work chapter.

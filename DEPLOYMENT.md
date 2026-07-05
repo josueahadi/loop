@@ -201,6 +201,25 @@ ADMIN=https://<admin>.up.railway.app
 - **Rollback:** Railway → service → **Deployments** → pick a previous successful deployment → **Redeploy**. Note: a rollback redeploys the old **code/image**, it does **not** revert the database. If a migration must be undone, run `npm run migration:revert` (dev) / the equivalent against prod deliberately — data migrations are not auto-reverted.
 - **DB safety:** the db service's volume persists across redeploys; deleting the service or its volume is the only way to lose data.
 
-```
+## 10. Future / production migration
 
-```
+The pilot runs entirely on **Railway** (§1) — one project, three services — chosen for speed and low operational surface while proving the product. That is the right choice for a pilot, **not** the right shape for a long-running product: Railway's Postgres here is a self-managed container (you own backups — see below), and co-locating everything trades tool-fit for convenience.
+
+The architecture was built to make the eventual move cheap. Every service is **Dockerised**, the API connects through a **standard `DATABASE_URL`**, and TLS is governed by the env-driven **`DB_SSL`** flag — so each step below is a **configuration change, not a rewrite**. Do them independently, one at a time.
+
+### Planned moves (priority order)
+
+1. **Database → Supabase (managed Postgres + PostGIS).** The most important move — the one piece that is hard to lose and hard to swap under load. Gains: automated backups + point-in-time recovery, an always-on managed instance, and the Supabase Studio dashboard.
+   - _What changes:_ create a Supabase project; enable PostGIS (`create extension postgis;`); point the API's `DATABASE_URL` at Supabase's connection string; **set `DB_SSL=true`** (Supabase requires TLS — the opposite of the `sslmode=disable` / `DB_SSL=false` used for the pilot's no-TLS image). Use the **direct** connection for migrations and the **pooled** connection for the app. Move data with `pg_dump` (Railway DB) → restore into Supabase.
+2. **Admin → Vercel.** Next.js-native hosting with per-branch preview deployments.
+   - _What changes:_ import the repo in Vercel with **root directory `admin`**; set `NEXT_PUBLIC_API_BASE_URL` (still inlined at build — a domain change means a rebuild); deploy; add the resulting Vercel domain to the API's `CORS_ORIGINS`; remove the admin service from Railway.
+3. **API → Fly.io (Johannesburg region).** Optional, for latency — `jnb` is far closer to Rwandan users than EU-region hosting, and Fly is Docker-native so `api/Dockerfile` deploys as-is.
+   - _What changes:_ deploy the same image to Fly in `jnb`; move env vars to Fly secrets; keep `DATABASE_URL` → Supabase and `DB_SSL=true`; update the mobile `API_BASE_URL` and admin `NEXT_PUBLIC_API_BASE_URL` to the new API domain (both need a rebuild).
+
+At the fully-managed end (only if the user base demands it), the ceiling is AWS (RDS/Aurora PostGIS + Fargate/App Runner, Cape Town region) or GCP (Cloud SQL + Cloud Run) — more capability, more ops and cost than a growing pilot needs. Don't reach for it early.
+
+### Backups (once there is real pilot data)
+
+The pilot DB is a self-managed container, so nothing backs it up automatically. You don't need scheduled infrastructure for a pilot — just run a single **`pg_dump`** at the end of the pilot (or each pilot day) to a file on your machine. That protects the one irreplaceable thing: the results data your report depends on. Once on Supabase (move 1), backups + PITR are handled for you.
+
+> **Scope note:** this section is _operational_ future work only. Product/feature future work — payments, live driver tracking (Stretch S2), the abstracted basemap (Stretch S1), address search at scale, road routing — is tracked in `docs/BUILD_SPEC.md` (Out-of-scope + Stretch) and the report's Future Work chapter.
