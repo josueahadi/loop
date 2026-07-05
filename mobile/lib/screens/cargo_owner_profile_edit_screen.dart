@@ -10,10 +10,13 @@ class CargoOwnerProfileEditScreen extends StatefulWidget {
   const CargoOwnerProfileEditScreen({super.key});
 
   @override
-  State<CargoOwnerProfileEditScreen> createState() => _CargoOwnerProfileEditScreenState();
+  State<CargoOwnerProfileEditScreen> createState() =>
+      _CargoOwnerProfileEditScreenState();
 }
 
-class _CargoOwnerProfileEditScreenState extends State<CargoOwnerProfileEditScreen> with ImagePickerMixin {
+class _CargoOwnerProfileEditScreenState
+    extends State<CargoOwnerProfileEditScreen>
+    with ImagePickerMixin {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
@@ -24,12 +27,12 @@ class _CargoOwnerProfileEditScreenState extends State<CargoOwnerProfileEditScree
   final _stateController = TextEditingController();
   final _postalCodeController = TextEditingController();
   final _countryController = TextEditingController();
-  
+
   final UserRepository _userRepository = ApiUserRepository();
-  
+
   bool _isLoading = false;
   UserModel? _user;
-  
+
   // Document files
   File? _profileImage;
 
@@ -54,13 +57,13 @@ class _CargoOwnerProfileEditScreenState extends State<CargoOwnerProfileEditScree
   Future<void> _loadUserData() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final currentUser = authProvider.user;
-    
+
     if (currentUser != null) {
       try {
         // Fetch the latest user data from the database to ensure we have all fields
         final latestUser = await _userRepository.getUserById(currentUser.uid);
         final userToUse = latestUser ?? currentUser;
-        
+
         setState(() {
           _user = userToUse;
           _nameController.text = userToUse.name;
@@ -93,7 +96,7 @@ class _CargoOwnerProfileEditScreenState extends State<CargoOwnerProfileEditScree
 
   Future<void> _saveProfile() async {
     if (!_formKey.currentState!.validate()) return;
-    
+
     setState(() {
       _isLoading = true;
     });
@@ -101,7 +104,7 @@ class _CargoOwnerProfileEditScreenState extends State<CargoOwnerProfileEditScree
     try {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final currentUser = authProvider.user;
-      
+
       if (currentUser == null) {
         throw Exception('No user logged in');
       }
@@ -123,7 +126,7 @@ class _CargoOwnerProfileEditScreenState extends State<CargoOwnerProfileEditScree
         state: _stateController.text.trim(),
         postalCode: _postalCodeController.text.trim(),
         country: _countryController.text.trim(),
-        
+
         updatedAt: DateTime.now(),
       );
 
@@ -213,50 +216,44 @@ class _CargoOwnerProfileEditScreenState extends State<CargoOwnerProfileEditScree
                                 ),
                               )
                             : _user?.profileImageUrl != null
-                                ? ClipOval(
-                                    child: Image.network(
-                                      _user!.profileImageUrl!,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (context, error, stackTrace) {
-                                        return const Icon(
-                                          Icons.person,
-                                          size: 60,
-                                          color: Colors.grey,
-                                        );
-                                      },
-                                    ),
-                                  )
-                                : const Icon(
-                                    Icons.person,
-                                    size: 60,
-                                    color: Colors.grey,
-                                  ),
+                            ? ClipOval(
+                                child: Image.network(
+                                  _user!.profileImageUrl!,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return const Icon(
+                                      Icons.person,
+                                      size: 60,
+                                      color: Colors.grey,
+                                    );
+                                  },
+                                ),
+                              )
+                            : const Icon(
+                                Icons.person,
+                                size: 60,
+                                color: Colors.grey,
+                              ),
                       ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       'Tap to change profile photo',
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 12,
-                      ),
+                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
                     ),
                   ],
                 ),
               ),
-              
+
               const SizedBox(height: 32),
-              
+
               // Basic Information
               const Text(
                 'Basic Information',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
-              
+
               TextFormField(
                 controller: _nameController,
                 decoration: const InputDecoration(
@@ -270,9 +267,9 @@ class _CargoOwnerProfileEditScreenState extends State<CargoOwnerProfileEditScree
                   return null;
                 },
               ),
-              
+
               const SizedBox(height: 16),
-              
+
               TextFormField(
                 controller: _phoneController,
                 decoration: const InputDecoration(
@@ -287,19 +284,16 @@ class _CargoOwnerProfileEditScreenState extends State<CargoOwnerProfileEditScree
                   return null;
                 },
               ),
-              
+
               const SizedBox(height: 32),
 
               // Address Information
               const Text(
                 'Address Information',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
-              
+
               TextFormField(
                 controller: _streetController,
                 decoration: const InputDecoration(
@@ -308,9 +302,9 @@ class _CargoOwnerProfileEditScreenState extends State<CargoOwnerProfileEditScree
                   border: OutlineInputBorder(),
                 ),
               ),
-              
+
               const SizedBox(height: 16),
-              
+
               Row(
                 children: [
                   Expanded(
@@ -334,9 +328,9 @@ class _CargoOwnerProfileEditScreenState extends State<CargoOwnerProfileEditScree
                   ),
                 ],
               ),
-              
+
               const SizedBox(height: 16),
-              
+
               Row(
                 children: [
                   Expanded(
@@ -361,7 +355,7 @@ class _CargoOwnerProfileEditScreenState extends State<CargoOwnerProfileEditScree
                   ),
                 ],
               ),
-              
+
               const SizedBox(height: 32),
 
               // Save Button
@@ -378,11 +372,14 @@ class _CargoOwnerProfileEditScreenState extends State<CargoOwnerProfileEditScree
                       ? const CircularProgressIndicator(color: Colors.white)
                       : const Text(
                           'Save Profile',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                 ),
               ),
-              
+
               const SizedBox(height: 16),
             ],
           ),

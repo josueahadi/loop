@@ -15,7 +15,9 @@ class LocationService {
   /// current position. Throws a readable message if unavailable/denied.
   Future<Position> getCurrentPosition() async {
     if (!await Geolocator.isLocationServiceEnabled()) {
-      throw Exception('Location services are disabled. Enable them to continue.');
+      throw Exception(
+        'Location services are disabled. Enable them to continue.',
+      );
     }
 
     var permission = await Geolocator.checkPermission();

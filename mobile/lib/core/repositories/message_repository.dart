@@ -16,8 +16,10 @@ class MessageRepository {
   }
 
   Future<ChatMessageApi> send(String jobId, String content) async {
-    final res =
-        await _api.dio.post('/jobs/$jobId/messages', data: {'content': content});
+    final res = await _api.dio.post(
+      '/jobs/$jobId/messages',
+      data: {'content': content},
+    );
     return ChatMessageApi.fromJson(res.data as Map<String, dynamic>);
   }
 }

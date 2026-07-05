@@ -12,44 +12,50 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
   final List<FAQItem> _faqs = [
     FAQItem(
       question: 'How do I get started as a driver?',
-      answer: 'To get started as a driver:\n1. Complete your profile with accurate information\n2. Upload required documents (license, ID, vehicle registration)\n3. Wait for verification (usually 24-48 hours)\n4. Set your status to "Available" to start receiving job requests',
+      answer:
+          'To get started as a driver:\n1. Complete your profile with accurate information\n2. Upload required documents (license, ID, vehicle registration)\n3. Wait for verification (usually 24-48 hours)\n4. Set your status to "Available" to start receiving job requests',
     ),
     FAQItem(
       question: 'What documents do I need to upload?',
-      answer: 'Required documents include:\n• Valid driver\'s license\n• National ID\n• Vehicle registration certificate\n• Vehicle insurance certificate\n• Clear photo of your vehicle\n\nAll documents must be current and clearly readable.',
+      answer:
+          'Required documents include:\n• Valid driver\'s license\n• National ID\n• Vehicle registration certificate\n• Vehicle insurance certificate\n• Clear photo of your vehicle\n\nAll documents must be current and clearly readable.',
     ),
     FAQItem(
       question: 'How do I receive job notifications?',
-      answer: 'Job notifications are sent when:\n• You are marked as "Available"\n• A cargo owner posts a job that matches your vehicle type\n• You are within the delivery area\n\nMake sure push notifications are enabled in Settings.',
+      answer:
+          'Job notifications are sent when:\n• You are marked as "Available"\n• A cargo owner posts a job that matches your vehicle type\n• You are within the delivery area\n\nMake sure push notifications are enabled in Settings.',
     ),
     FAQItem(
       question: 'How is payment handled?',
-      answer: 'Payment is negotiated directly between you and the cargo owner. Loop facilitates the connection but does not handle payments directly. Always agree on payment terms before starting a job.',
+      answer:
+          'Payment is negotiated directly between you and the cargo owner. Loop facilitates the connection but does not handle payments directly. Always agree on payment terms before starting a job.',
     ),
     FAQItem(
       question: 'What if I have an issue during delivery?',
-      answer: 'If you encounter issues:\n1. Contact the cargo owner through the in-app chat\n2. Document the issue with photos if necessary\n3. Contact Loop support if needed\n4. Complete the delivery report accurately',
+      answer:
+          'If you encounter issues:\n1. Contact the cargo owner through the in-app chat\n2. Document the issue with photos if necessary\n3. Contact Loop support if needed\n4. Complete the delivery report accurately',
     ),
     FAQItem(
       question: 'How do I update my vehicle information?',
-      answer: 'To update vehicle details:\n1. Go to Profile → Vehicle Details\n2. Update the required information\n3. Upload new documents if needed\n4. Save changes\n\nChanges may require re-verification.',
+      answer:
+          'To update vehicle details:\n1. Go to Profile → Vehicle Details\n2. Update the required information\n3. Upload new documents if needed\n4. Save changes\n\nChanges may require re-verification.',
     ),
     FAQItem(
       question: 'Can I cancel a job after accepting?',
-      answer: 'While possible, frequent cancellations affect your rating. Only cancel for valid reasons:\n• Vehicle breakdown\n• Emergency situations\n• Safety concerns\n\nAlways communicate with the cargo owner before canceling.',
+      answer:
+          'While possible, frequent cancellations affect your rating. Only cancel for valid reasons:\n• Vehicle breakdown\n• Emergency situations\n• Safety concerns\n\nAlways communicate with the cargo owner before canceling.',
     ),
     FAQItem(
       question: 'How do ratings work?',
-      answer: 'Both drivers and cargo owners rate each other after completing a job:\n• Ratings are from 1-5 stars\n• Your average rating affects job visibility\n• Maintain a high rating for better opportunities\n• Professional service leads to better ratings',
+      answer:
+          'Both drivers and cargo owners rate each other after completing a job:\n• Ratings are from 1-5 stars\n• Your average rating affects job visibility\n• Maintain a high rating for better opportunities\n• Professional service leads to better ratings',
     ),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Help & Support'),
-      ),
+      appBar: AppBar(title: const Text('Help & Support')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -58,13 +64,10 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
             // Quick Actions
             const Text(
               'Quick Actions',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
-            
+
             Row(
               children: [
                 Expanded(
@@ -90,9 +93,9 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
                 ),
               ],
             ),
-            
+
             const SizedBox(width: 16),
-            
+
             Row(
               children: [
                 Expanded(
@@ -102,7 +105,9 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
                     subtitle: 'Chat with support',
                     onTap: () {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Live Chat - Coming Soon!')),
+                        const SnackBar(
+                          content: Text('Live Chat - Coming Soon!'),
+                        ),
                       );
                     },
                   ),
@@ -120,36 +125,30 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
                 ),
               ],
             ),
-            
+
             const SizedBox(height: 32),
-            
+
             // FAQ Section
             const Text(
               'Frequently Asked Questions',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
-            
+
             ...List.generate(
               _faqs.length,
               (index) => _buildFAQTile(_faqs[index]),
             ),
-            
+
             const SizedBox(height: 32),
-            
+
             // Resources Section
             const Text(
               'Resources',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
-            
+
             _buildResourceTile(
               icon: Icons.book,
               title: 'Driver Guide',
@@ -160,42 +159,48 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
                 );
               },
             ),
-            
+
             _buildResourceTile(
               icon: Icons.security,
               title: 'Safety Guidelines',
               subtitle: 'Important safety tips and procedures',
               onTap: () {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Safety Guidelines - Coming Soon!')),
+                  const SnackBar(
+                    content: Text('Safety Guidelines - Coming Soon!'),
+                  ),
                 );
               },
             ),
-            
+
             _buildResourceTile(
               icon: Icons.policy,
               title: 'Terms & Conditions',
               subtitle: 'Read our terms of service',
               onTap: () {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Terms & Conditions - Coming Soon!')),
+                  const SnackBar(
+                    content: Text('Terms & Conditions - Coming Soon!'),
+                  ),
                 );
               },
             ),
-            
+
             _buildResourceTile(
               icon: Icons.privacy_tip,
               title: 'Privacy Policy',
               subtitle: 'How we protect your data',
               onTap: () {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Privacy Policy - Coming Soon!')),
+                  const SnackBar(
+                    content: Text('Privacy Policy - Coming Soon!'),
+                  ),
                 );
               },
             ),
-            
+
             const SizedBox(height: 32),
-            
+
             // Contact Information
             Card(
               child: Padding(
@@ -230,7 +235,7 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
                 ),
               ),
             ),
-            
+
             const SizedBox(height: 16),
           ],
         ),
@@ -265,10 +270,7 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
               const SizedBox(height: 4),
               Text(
                 subtitle,
-                style: TextStyle(
-                  color: Colors.grey[600],
-                  fontSize: 12,
-                ),
+                style: TextStyle(color: Colors.grey[600], fontSize: 12),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -284,19 +286,14 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
       child: ExpansionTile(
         title: Text(
           faq.question,
-          style: const TextStyle(
-            fontWeight: FontWeight.w500,
-          ),
+          style: const TextStyle(fontWeight: FontWeight.w500),
         ),
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
             child: Text(
               faq.answer,
-              style: TextStyle(
-                color: Colors.grey[700],
-                height: 1.4,
-              ),
+              style: TextStyle(color: Colors.grey[700], height: 1.4),
             ),
           ),
         ],
@@ -314,18 +311,10 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
         leading: Icon(icon, color: Theme.of(context).primaryColor),
-        title: Text(
-          title,
-          style: const TextStyle(
-            fontWeight: FontWeight.w500,
-          ),
-        ),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
         subtitle: Text(
           subtitle,
-          style: TextStyle(
-            color: Colors.grey[600],
-            fontSize: 12,
-          ),
+          style: TextStyle(color: Colors.grey[600], fontSize: 12),
         ),
         trailing: const Icon(Icons.arrow_forward_ios, size: 16),
         onTap: onTap,
@@ -388,7 +377,7 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
   void _showReportIssueDialog() {
     final TextEditingController issueController = TextEditingController();
     String selectedCategory = 'Technical Issue';
-    
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -408,19 +397,20 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
                       decoration: const InputDecoration(
                         border: OutlineInputBorder(),
                       ),
-                      items: [
-                        'Technical Issue',
-                        'App Bug',
-                        'Payment Issue',
-                        'Safety Concern',
-                        'User Behavior',
-                        'Other',
-                      ].map((String category) {
-                        return DropdownMenuItem<String>(
-                          value: category,
-                          child: Text(category),
-                        );
-                      }).toList(),
+                      items:
+                          [
+                            'Technical Issue',
+                            'App Bug',
+                            'Payment Issue',
+                            'Safety Concern',
+                            'User Behavior',
+                            'Other',
+                          ].map((String category) {
+                            return DropdownMenuItem<String>(
+                              value: category,
+                              child: Text(category),
+                            );
+                          }).toList(),
                       onChanged: (String? newValue) {
                         if (newValue != null) {
                           setState(() {
@@ -456,7 +446,9 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
                       Navigator.of(context).pop();
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text('Issue reported successfully! We\'ll get back to you soon.'),
+                          content: Text(
+                            'Issue reported successfully! We\'ll get back to you soon.',
+                          ),
                         ),
                       );
                     }

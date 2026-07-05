@@ -29,7 +29,11 @@ class EnableLocationPrompt {
                 color: lightGreen,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.location_on, size: 44, color: primaryGreen),
+              child: const Icon(
+                Icons.location_on,
+                size: 44,
+                color: primaryGreen,
+              ),
             ),
             const SizedBox(height: 24),
             const Text(
@@ -58,8 +62,10 @@ class EnableLocationPrompt {
             const SizedBox(height: 8),
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Skip for now',
-                  style: TextStyle(color: textGray)),
+              child: const Text(
+                'Skip for now',
+                style: TextStyle(color: textGray),
+              ),
             ),
           ],
         ),

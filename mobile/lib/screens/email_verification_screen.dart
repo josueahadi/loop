@@ -7,7 +7,8 @@ class EmailVerificationScreen extends StatefulWidget {
   const EmailVerificationScreen({super.key});
 
   @override
-  _EmailVerificationScreenState createState() => _EmailVerificationScreenState();
+  _EmailVerificationScreenState createState() =>
+      _EmailVerificationScreenState();
 }
 
 class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
@@ -27,9 +28,9 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
 
   Future<void> _resendVerification() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    
+
     final success = await authProvider.sendEmailVerification();
-    
+
     if (success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -42,9 +43,9 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
 
   Future<void> _checkVerification() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    
+
     await authProvider.checkEmailVerification();
-    
+
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -52,7 +53,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
           backgroundColor: Colors.green,
         ),
       );
-      
+
       // If verified, navigate to home
       Navigator.pushReplacementNamed(context, '/home');
     }
@@ -65,7 +66,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
       body: Consumer<AuthProvider>(
         builder: (context, authProvider, child) {
           final userEmail = authProvider.user?.email ?? 'your email';
-          
+
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 64),
             child: Column(
@@ -73,7 +74,11 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
               children: [
                 GestureDetector(
                   onTap: () => Navigator.pop(context),
-                  child: const Icon(Icons.arrow_back, size: 24, color: Colors.orange),
+                  child: const Icon(
+                    Icons.arrow_back,
+                    size: 24,
+                    color: Colors.orange,
+                  ),
                 ),
                 const SizedBox(height: 24),
                 const Text("Verify your email", style: titleStyle),
@@ -83,13 +88,15 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                   style: subtitleStyle,
                 ),
                 const SizedBox(height: 32),
-                
+
                 // Check verification button
                 SizedBox(
                   width: double.infinity,
                   height: 48,
                   child: ElevatedButton(
-                    onPressed: authProvider.isLoading ? null : _checkVerification,
+                    onPressed: authProvider.isLoading
+                        ? null
+                        : _checkVerification,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: primaryGreen,
                       shape: RoundedRectangleBorder(
@@ -101,15 +108,17 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                         : const Text("I'VE VERIFIED", style: buttonTextStyle),
                   ),
                 ),
-                
+
                 const SizedBox(height: 16),
-                
+
                 // Resend verification button
                 SizedBox(
                   width: double.infinity,
                   height: 48,
                   child: OutlinedButton(
-                    onPressed: authProvider.isLoading ? null : _resendVerification,
+                    onPressed: authProvider.isLoading
+                        ? null
+                        : _resendVerification,
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(color: primaryGreen),
                       shape: RoundedRectangleBorder(
@@ -126,19 +135,17 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                     ),
                   ),
                 ),
-                
+
                 const SizedBox(height: 24),
-                
+
                 // Skip for now option
                 Center(
                   child: TextButton(
-                    onPressed: () => Navigator.pushReplacementNamed(context, '/home'),
+                    onPressed: () =>
+                        Navigator.pushReplacementNamed(context, '/home'),
                     child: const Text(
                       "Skip for now",
-                      style: TextStyle(
-                        color: textGray,
-                        fontSize: 14,
-                      ),
+                      style: TextStyle(color: textGray, fontSize: 14),
                     ),
                   ),
                 ),

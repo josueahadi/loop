@@ -28,7 +28,10 @@ class OpenInMaps {
       return;
     }
     if (maps.length == 1) {
-      await maps.first.showDirections(destination: coords, destinationTitle: title);
+      await maps.first.showDirections(
+        destination: coords,
+        destinationTitle: title,
+      );
       return;
     }
     if (!context.mounted) return;
@@ -40,17 +43,24 @@ class OpenInMaps {
           children: [
             const Padding(
               padding: EdgeInsets.all(16),
-              child: Text('Open directions in',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
+              child: Text(
+                'Open directions in',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
             ),
-            ...maps.map((m) => ListTile(
-                  leading: const Icon(Icons.map_outlined),
-                  title: Text(m.mapName),
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    m.showDirections(destination: coords, destinationTitle: title);
-                  },
-                )),
+            ...maps.map(
+              (m) => ListTile(
+                leading: const Icon(Icons.map_outlined),
+                title: Text(m.mapName),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  m.showDirections(
+                    destination: coords,
+                    destinationTitle: title,
+                  );
+                },
+              ),
+            ),
           ],
         ),
       ),
@@ -65,9 +75,9 @@ class OpenInMaps {
     );
     if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No maps app available')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('No maps app available')));
       }
     }
   }

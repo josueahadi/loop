@@ -74,8 +74,11 @@ class _DriverLocationScreenState extends State<DriverLocationScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.location_off,
-                        size: 56, color: Colors.grey),
+                    const Icon(
+                      Icons.location_off,
+                      size: 56,
+                      color: Colors.grey,
+                    ),
                     const SizedBox(height: 12),
                     Text(_error!, textAlign: TextAlign.center),
                     const SizedBox(height: 16),
@@ -133,8 +136,11 @@ class _DriverLocationScreenState extends State<DriverLocationScreen> {
                     padding: const EdgeInsets.all(14),
                     child: Row(
                       children: [
-                        const Icon(Icons.info_outline,
-                            color: primaryGreen, size: 20),
+                        const Icon(
+                          Icons.info_outline,
+                          color: primaryGreen,
+                          size: 20,
+                        ),
                         const SizedBox(width: 10),
                         const Expanded(
                           child: Text(

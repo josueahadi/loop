@@ -6,9 +6,9 @@ class UserRatings {
   const UserRatings({required this.average, required this.count});
 
   factory UserRatings.fromJson(Map<String, dynamic> j) => UserRatings(
-        average: (j['average'] as num?)?.toDouble() ?? 0,
-        count: (j['count'] as num?)?.toInt() ?? 0,
-      );
+    average: (j['average'] as num?)?.toDouble() ?? 0,
+    count: (j['count'] as num?)?.toInt() ?? 0,
+  );
 }
 
 /// Two-way ratings against the API (M5).
@@ -19,10 +19,13 @@ class RatingRepository {
 
   // Rate the counterparty on a completed job. Throws on 403/409 (gated server-side).
   Future<void> rate(String jobId, int score, {String? comment}) async {
-    await _api.dio.post('/jobs/$jobId/ratings', data: {
-      'score': score,
-      if (comment != null && comment.isNotEmpty) 'comment': comment,
-    });
+    await _api.dio.post(
+      '/jobs/$jobId/ratings',
+      data: {
+        'score': score,
+        if (comment != null && comment.isNotEmpty) 'comment': comment,
+      },
+    );
   }
 
   Future<UserRatings> forUser(String userId) async {

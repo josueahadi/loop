@@ -75,7 +75,6 @@ class ChatProvider with ChangeNotifier {
 
       final messages = await _chatRepository.getMessagesForBooking(bookingId);
       _messages = messages;
-
     } catch (e) {
       _setError('Failed to load messages: $e');
     } finally {
@@ -110,7 +109,10 @@ class ChatProvider with ChangeNotifier {
   // Get unread message count
   Future<void> loadUnreadCount(String bookingId, String userId) async {
     try {
-      final count = await _chatRepository.getUnreadMessageCount(bookingId, userId);
+      final count = await _chatRepository.getUnreadMessageCount(
+        bookingId,
+        userId,
+      );
       _unreadCount = count;
       notifyListeners();
     } catch (e) {

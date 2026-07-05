@@ -58,9 +58,18 @@ class _SplashScreenState extends State<SplashScreen> {
                   letterSpacing: 0.5,
                 ),
                 children: [
-                  TextSpan(text: 'L', style: TextStyle(color: textDark)),
-                  TextSpan(text: 'oo', style: TextStyle(color: primaryGreen)),
-                  TextSpan(text: 'p', style: TextStyle(color: textDark)),
+                  TextSpan(
+                    text: 'L',
+                    style: TextStyle(color: textDark),
+                  ),
+                  TextSpan(
+                    text: 'oo',
+                    style: TextStyle(color: primaryGreen),
+                  ),
+                  TextSpan(
+                    text: 'p',
+                    style: TextStyle(color: textDark),
+                  ),
                 ],
               ),
             ),

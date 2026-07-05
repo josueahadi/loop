@@ -42,7 +42,10 @@ class _ChatScreenState extends State<ChatScreen> {
 
     if (authProvider.user != null) {
       chatProvider.loadMessages(widget.booking.id);
-      chatProvider.markMessagesAsRead(widget.booking.id, authProvider.user!.uid);
+      chatProvider.markMessagesAsRead(
+        widget.booking.id,
+        authProvider.user!.uid,
+      );
       _isInitialized = true;
     }
   }
@@ -79,7 +82,8 @@ class _ChatScreenState extends State<ChatScreen> {
     if (!_shouldScrollToBottom) return; // Only scroll when needed
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients && mounted) { // Check if widget is still mounted
+      if (_scrollController.hasClients && mounted) {
+        // Check if widget is still mounted
         _scrollController.animateTo(
           _scrollController.position.maxScrollExtent,
           duration: const Duration(milliseconds: 300),
@@ -92,7 +96,8 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope( // Add this to control back button behavior
+    return WillPopScope(
+      // Add this to control back button behavior
       onWillPop: () async {
         // Clean up any ongoing operations before popping
         final chatProvider = Provider.of<ChatProvider>(context, listen: false);
@@ -107,7 +112,10 @@ class _ChatScreenState extends State<ChatScreen> {
               Text(widget.otherUserName),
               Text(
                 widget.booking.cargoDescription,
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.normal),
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.normal,
+                ),
               ),
             ],
           ),
@@ -131,11 +139,7 @@ class _ChatScreenState extends State<ChatScreen> {
               color: _getStatusColor().withOpacity(0.1),
               child: Row(
                 children: [
-                  Icon(
-                    _getStatusIcon(),
-                    size: 16,
-                    color: _getStatusColor(),
-                  ),
+                  Icon(_getStatusIcon(), size: 16, color: _getStatusColor()),
                   const SizedBox(width: 8),
                   Text(
                     'Job Status: ${widget.booking.statusDisplayName}',
@@ -156,14 +160,13 @@ class _ChatScreenState extends State<ChatScreen> {
                   return StreamBuilder<List<ChatMessage>>(
                     stream: chatProvider.streamMessages(widget.booking.id),
                     builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting && !_isInitialized) {
+                      if (snapshot.connectionState == ConnectionState.waiting &&
+                          !_isInitialized) {
                         return const Center(child: CircularProgressIndicator());
                       }
 
                       if (snapshot.hasError) {
-                        return Center(
-                          child: Text('Error: ${snapshot.error}'),
-                        );
+                        return Center(child: Text('Error: ${snapshot.error}'));
                       }
 
                       final messages = snapshot.data ?? [];
@@ -214,7 +217,12 @@ class _ChatScreenState extends State<ChatScreen> {
                           final message = messages[index];
                           return _MessageBubble(
                             message: message,
-                            isMe: message.senderId == Provider.of<AuthProvider>(context, listen: false).user?.uid,
+                            isMe:
+                                message.senderId ==
+                                Provider.of<AuthProvider>(
+                                  context,
+                                  listen: false,
+                                ).user?.uid,
                           );
                         },
                       );
@@ -271,7 +279,9 @@ class _ChatScreenState extends State<ChatScreen> {
                             color: Colors.white,
                             size: 20,
                           ),
-                          onPressed: chatProvider.isLoading ? null : _sendMessage,
+                          onPressed: chatProvider.isLoading
+                              ? null
+                              : _sendMessage,
                         ),
                       );
                     },
@@ -328,10 +338,7 @@ class _ChatScreenState extends State<ChatScreen> {
           children: [
             const Text(
               'Job Details',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
             _DetailRow(
@@ -364,7 +371,8 @@ class _ChatScreenState extends State<ChatScreen> {
               _DetailRow(
                 icon: Icons.money,
                 label: 'Estimated Price',
-                value: '${widget.booking.estimatedPrice!.toStringAsFixed(0)} RWF',
+                value:
+                    '${widget.booking.estimatedPrice!.toStringAsFixed(0)} RWF',
               ),
             if (widget.booking.specialInstructions?.isNotEmpty == true)
               _DetailRow(
@@ -383,10 +391,7 @@ class _MessageBubble extends StatelessWidget {
   final ChatMessage message;
   final bool isMe;
 
-  const _MessageBubble({
-    required this.message,
-    required this.isMe,
-  });
+  const _MessageBubble({required this.message, required this.isMe});
 
   @override
   Widget build(BuildContext context) {
@@ -402,11 +407,7 @@ class _MessageBubble extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.info_outline,
-              size: 16,
-              color: Colors.grey.shade600,
-            ),
+            Icon(Icons.info_outline, size: 16, color: Colors.grey.shade600),
             const SizedBox(width: 8),
             Flexible(
               child: Text(
@@ -427,7 +428,9 @@ class _MessageBubble extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
-        mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment: isMe
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
         children: [
           if (!isMe) ...[
             CircleAvatar(

@@ -24,7 +24,7 @@ class _ForgetPasswordScreenState extends State<ForgetPasswordScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    
+
     final success = await authProvider.sendPasswordReset(
       emailController.text.trim(),
     );
@@ -43,7 +43,6 @@ class _ForgetPasswordScreenState extends State<ForgetPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       backgroundColor: const Color(0xF2F7FAFF),
       body: Consumer<AuthProvider>(
@@ -57,12 +56,19 @@ class _ForgetPasswordScreenState extends State<ForgetPasswordScreen> {
                 children: [
                   GestureDetector(
                     onTap: () => Navigator.pop(context),
-                    child: const Icon(Icons.arrow_back, size: 24, color: Colors.orange),
+                    child: const Icon(
+                      Icons.arrow_back,
+                      size: 24,
+                      color: Colors.orange,
+                    ),
                   ),
                   const SizedBox(height: 24),
                   const Text("Forget Password", style: titleStyle),
                   const SizedBox(height: 8),
-                  const Text("Enter your email to receive a password reset link", style: subtitleStyle),
+                  const Text(
+                    "Enter your email to receive a password reset link",
+                    style: subtitleStyle,
+                  ),
                   const SizedBox(height: 24),
                   TextFormField(
                     controller: emailController,
@@ -71,7 +77,9 @@ class _ForgetPasswordScreenState extends State<ForgetPasswordScreen> {
                       if (value == null || value.isEmpty) {
                         return 'Please enter your email';
                       }
-                      if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                      if (!RegExp(
+                        r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                      ).hasMatch(value)) {
                         return 'Please enter a valid email';
                       }
                       return null;
@@ -80,7 +88,10 @@ class _ForgetPasswordScreenState extends State<ForgetPasswordScreen> {
                       hintText: "Enter your email",
                       filled: true,
                       fillColor: inputBg,
-                      prefixIcon: const Icon(Icons.email_outlined, color: textGray),
+                      prefixIcon: const Icon(
+                        Icons.email_outlined,
+                        color: textGray,
+                      ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(borderRadius),
                         borderSide: const BorderSide(color: borderGray),
@@ -100,7 +111,9 @@ class _ForgetPasswordScreenState extends State<ForgetPasswordScreen> {
                     width: double.infinity,
                     height: 48,
                     child: ElevatedButton(
-                      onPressed: authProvider.isLoading ? null : _handlePasswordReset,
+                      onPressed: authProvider.isLoading
+                          ? null
+                          : _handlePasswordReset,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: primaryGreen,
                         shape: RoundedRectangleBorder(
@@ -109,7 +122,10 @@ class _ForgetPasswordScreenState extends State<ForgetPasswordScreen> {
                       ),
                       child: authProvider.isLoading
                           ? const CircularProgressIndicator(color: Colors.white)
-                          : const Text("SEND RESET LINK", style: buttonTextStyle),
+                          : const Text(
+                              "SEND RESET LINK",
+                              style: buttonTextStyle,
+                            ),
                     ),
                   ),
                 ],

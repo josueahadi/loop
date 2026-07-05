@@ -43,11 +43,16 @@ class _DriverSelectionScreenState extends State<DriverSelectionScreen> {
 
   Future<void> _loadAvailableDrivers() async {
     try {
-      final userRepository = Provider.of<UserRepository>(context, listen: false);
+      final userRepository = Provider.of<UserRepository>(
+        context,
+        listen: false,
+      );
       final drivers = await userRepository.getUsersByRole(UserRole.driver);
 
       final availableDrivers = drivers
-          .where((driver) => driver.isAvailable == true && driver.rating != null)
+          .where(
+            (driver) => driver.isAvailable == true && driver.rating != null,
+          )
           .toList();
 
       setState(() {
@@ -66,13 +71,19 @@ class _DriverSelectionScreenState extends State<DriverSelectionScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(widget.isReassignment ? 'Reassign to Driver' : 'Confirm Driver Selection'),
+        title: Text(
+          widget.isReassignment
+              ? 'Reassign to Driver'
+              : 'Confirm Driver Selection',
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Driver: ${driver.name}'),
-            Text('Rating: ${driver.rating?.toStringAsFixed(1) ?? 'No rating'} ⭐'),
+            Text(
+              'Rating: ${driver.rating?.toStringAsFixed(1) ?? 'No rating'} ⭐',
+            ),
             Text('Completed Jobs: ${driver.completedJobs ?? 0}'),
             const SizedBox(height: 16),
             const Text('Job Details:'),
@@ -100,7 +111,10 @@ class _DriverSelectionScreenState extends State<DriverSelectionScreen> {
 
   void _sendJobRequest(UserModel driver) async {
     if (widget.isReassignment && widget.bookingId != null) {
-      final bookingProvider = Provider.of<BookingProvider>(context, listen: false);
+      final bookingProvider = Provider.of<BookingProvider>(
+        context,
+        listen: false,
+      );
       final success = await bookingProvider.reassignBooking(widget.bookingId!);
 
       if (success && mounted) {
@@ -142,141 +156,163 @@ class _DriverSelectionScreenState extends State<DriverSelectionScreen> {
           ? const Center(child: CircularProgressIndicator())
           : _error != null
           ? Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, size: 64, color: Colors.red),
-            const SizedBox(height: 16),
-            Text(
-              _error!,
-              style: const TextStyle(fontSize: 16),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  _isLoading = true;
-                  _error = null;
-                });
-                _loadAvailableDrivers();
-              },
-              child: const Text('Retry'),
-            ),
-          ],
-        ),
-      )
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                  const SizedBox(height: 16),
+                  Text(
+                    _error!,
+                    style: const TextStyle(fontSize: 16),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        _isLoading = true;
+                        _error = null;
+                      });
+                      _loadAvailableDrivers();
+                    },
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
+            )
           : _availableDrivers.isEmpty
           ? const EmptyBlock(
               icon: Icons.no_accounts,
               title: 'No available drivers found',
-              subtitle: 'No verified drivers are online nearby. Please try again later.',
+              subtitle:
+                  'No verified drivers are online nearby. Please try again later.',
             )
           : Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-            decoration: BoxDecoration(
-              color: kTintGreen,
-              borderRadius: BorderRadius.circular(kRadius),
-              border: Border.all(color: kSubtleBorder),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Job Details',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                  decoration: BoxDecoration(
+                    color: kTintGreen,
+                    borderRadius: BorderRadius.circular(kRadius),
+                    border: Border.all(color: kSubtleBorder),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Job Details',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      _JobDetailRow(
+                        icon: Icons.local_shipping_outlined,
+                        text: widget.vehicleType.label,
+                      ),
+                      _JobDetailRow(
+                        icon: Icons.my_location,
+                        text: widget.pickupLocation,
+                      ),
+                      _JobDetailRow(
+                        icon: Icons.flag_outlined,
+                        text: widget.dropoffLocation,
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 10),
-                _JobDetailRow(
-                    icon: Icons.local_shipping_outlined,
-                    text: widget.vehicleType.label),
-                _JobDetailRow(
-                    icon: Icons.my_location, text: widget.pickupLocation),
-                _JobDetailRow(icon: Icons.flag_outlined, text: widget.dropoffLocation),
+                Expanded(
+                  child: ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: _availableDrivers.length,
+                    itemBuilder: (context, index) {
+                      final driver = _availableDrivers[index];
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        child: ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: primaryGreen,
+                            child: Text(
+                              driver.name.isNotEmpty
+                                  ? driver.name[0].toUpperCase()
+                                  : 'D',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          title: Text(
+                            driver.name,
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(
+                                    Icons.star,
+                                    size: 16,
+                                    color: Colors.orange,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    driver.rating?.toStringAsFixed(1) ??
+                                        'No rating',
+                                    style: const TextStyle(fontSize: 12),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  const Icon(
+                                    Icons.work,
+                                    size: 16,
+                                    color: Colors.grey,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '${driver.completedJobs ?? 0} jobs',
+                                    style: const TextStyle(fontSize: 12),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.green.shade100,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Text(
+                                  'Available',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: Colors.green,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          trailing: ElevatedButton(
+                            onPressed: () => _selectDriver(driver),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: primaryGreen,
+                              foregroundColor: Colors.white,
+                            ),
+                            child: const Text('Select'),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
               ],
             ),
-          ),
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: _availableDrivers.length,
-              itemBuilder: (context, index) {
-                final driver = _availableDrivers[index];
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: primaryGreen,
-                      child: Text(
-                        driver.name.isNotEmpty
-                            ? driver.name[0].toUpperCase()
-                            : 'D',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    title: Text(
-                      driver.name,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            const Icon(Icons.star, size: 16, color: Colors.orange),
-                            const SizedBox(width: 4),
-                            Text(
-                              driver.rating?.toStringAsFixed(1) ?? 'No rating',
-                              style: const TextStyle(fontSize: 12),
-                            ),
-                            const SizedBox(width: 16),
-                            const Icon(Icons.work, size: 16, color: Colors.grey),
-                            const SizedBox(width: 4),
-                            Text(
-                              '${driver.completedJobs ?? 0} jobs',
-                              style: const TextStyle(fontSize: 12),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.green.shade100,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Text(
-                            'Available',
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: Colors.green,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    trailing: ElevatedButton(
-                      onPressed: () => _selectDriver(driver),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: primaryGreen,
-                        foregroundColor: Colors.white,
-                      ),
-                      child: const Text('Select'),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

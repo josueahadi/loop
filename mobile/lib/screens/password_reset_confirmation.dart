@@ -15,7 +15,11 @@ class PasswordResetConfirmation extends StatelessWidget {
           children: [
             GestureDetector(
               onTap: () => Navigator.pop(context),
-              child: const Icon(Icons.arrow_back, size: 24, color: Colors.orange),
+              child: const Icon(
+                Icons.arrow_back,
+                size: 24,
+                color: Colors.orange,
+              ),
             ),
             const SizedBox(height: 60),
             const Text('Check your email', style: titleStyle),
@@ -30,7 +34,11 @@ class PasswordResetConfirmation extends StatelessWidget {
               height: 48,
               child: ElevatedButton(
                 onPressed: () {
-                  Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+                  Navigator.pushNamedAndRemoveUntil(
+                    context,
+                    '/login',
+                    (route) => false,
+                  );
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: primaryGreen,

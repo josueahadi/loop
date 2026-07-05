@@ -60,7 +60,9 @@ class FirebaseBookingRepository implements BookingRepository {
   }
 
   @override
-  Future<List<BookingModel>> getBookingsByCargoOwner(String cargoOwnerId) async {
+  Future<List<BookingModel>> getBookingsByCargoOwner(
+    String cargoOwnerId,
+  ) async {
     try {
       final query = await _firestore
           .collection(_collectionName)
@@ -90,7 +92,9 @@ class FirebaseBookingRepository implements BookingRepository {
   }
 
   @override
-  Future<List<BookingModel>> getPendingBookingsForDriver(String driverId) async {
+  Future<List<BookingModel>> getPendingBookingsForDriver(
+    String driverId,
+  ) async {
     try {
       // Get all pending bookings where the driver hasn't been assigned yet
       // or where this specific driver was selected but hasn't responded
@@ -107,15 +111,19 @@ class FirebaseBookingRepository implements BookingRepository {
   }
 
   @override
-  Stream<List<BookingModel>> getBookingsStreamByCargoOwner(String cargoOwnerId) {
+  Stream<List<BookingModel>> getBookingsStreamByCargoOwner(
+    String cargoOwnerId,
+  ) {
     return _firestore
         .collection(_collectionName)
         .where('cargoOwnerId', isEqualTo: cargoOwnerId)
         .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-        .map((doc) => BookingModel.fromFirestore(doc))
-        .toList());
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => BookingModel.fromFirestore(doc))
+              .toList(),
+        );
   }
 
   @override
@@ -125,21 +133,27 @@ class FirebaseBookingRepository implements BookingRepository {
         .where('driverId', isEqualTo: driverId)
         .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-        .map((doc) => BookingModel.fromFirestore(doc))
-        .toList());
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => BookingModel.fromFirestore(doc))
+              .toList(),
+        );
   }
 
   @override
-  Stream<List<BookingModel>> getPendingBookingsStreamForDriver(String driverId) {
+  Stream<List<BookingModel>> getPendingBookingsStreamForDriver(
+    String driverId,
+  ) {
     return _firestore
         .collection(_collectionName)
         .where('status', isEqualTo: 'pending')
         .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-        .map((doc) => BookingModel.fromFirestore(doc))
-        .toList());
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => BookingModel.fromFirestore(doc))
+              .toList(),
+        );
   }
 
   @override

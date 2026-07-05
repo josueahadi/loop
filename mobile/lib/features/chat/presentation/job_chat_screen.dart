@@ -72,10 +72,12 @@ class _JobChatScreenState extends State<JobChatScreen> {
       _scrollToEnd();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(e.toString().replaceFirst('Exception: ', '')),
-          backgroundColor: Colors.red,
-        ));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceFirst('Exception: ', '')),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     }
   }
@@ -131,12 +133,15 @@ class _JobChatScreenState extends State<JobChatScreen> {
                       final m = msgs[i];
                       final mine = m.senderId == _myId;
                       return Align(
-                        alignment:
-                            mine ? Alignment.centerRight : Alignment.centerLeft,
+                        alignment: mine
+                            ? Alignment.centerRight
+                            : Alignment.centerLeft,
                         child: Container(
                           margin: const EdgeInsets.symmetric(vertical: 4),
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 14, vertical: 10),
+                            horizontal: 14,
+                            vertical: 10,
+                          ),
                           constraints: const BoxConstraints(maxWidth: 280),
                           decoration: BoxDecoration(
                             color: mine ? primaryGreen : searchBg,
@@ -145,7 +150,8 @@ class _JobChatScreenState extends State<JobChatScreen> {
                           child: Text(
                             m.content,
                             style: TextStyle(
-                                color: mine ? Colors.white : textDark),
+                              color: mine ? Colors.white : textDark,
+                            ),
                           ),
                         ),
                       );

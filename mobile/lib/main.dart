@@ -50,14 +50,14 @@ class MyApp extends StatelessWidget {
               Provider.of<UserRepository>(context, listen: false),
             ),
             update: (context, userRepo, previous) =>
-            previous ?? ProfileProvider(userRepo),
+                previous ?? ProfileProvider(userRepo),
           ),
           ChangeNotifierProxyProvider<BookingRepository, BookingProvider>(
             create: (context) => BookingProvider(
               Provider.of<BookingRepository>(context, listen: false),
             ),
             update: (context, bookingRepo, previous) =>
-            previous ?? BookingProvider(bookingRepo),
+                previous ?? BookingProvider(bookingRepo),
           ),
           // ChatProvider depends on ChatRepository
           ChangeNotifierProxyProvider<ChatRepository, ChatProvider>(
@@ -65,7 +65,7 @@ class MyApp extends StatelessWidget {
               Provider.of<ChatRepository>(context, listen: false),
             ),
             update: (context, chatRepo, previous) =>
-            previous ?? ChatProvider(chatRepo),
+                previous ?? ChatProvider(chatRepo),
           ),
         ],
         child: Consumer<AuthProvider>(
@@ -91,9 +91,9 @@ class MyApp extends StatelessWidget {
                 '/signup': (context) => SignupScreen(),
                 '/forgot-password': (context) => const ForgetPasswordScreen(),
                 '/password-reset-confirmation': (context) =>
-                const PasswordResetConfirmation(),
+                    const PasswordResetConfirmation(),
                 '/email-verification': (context) =>
-                const EmailVerificationScreen(),
+                    const EmailVerificationScreen(),
                 '/home': (context) => const Home(),
                 '/personal-data': (context) => const PersonalDataScreen(),
               },

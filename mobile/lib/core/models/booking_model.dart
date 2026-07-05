@@ -9,7 +9,7 @@ enum BookingStatus {
   declined,
   inProgress,
   completed,
-  cancelled
+  cancelled,
 }
 
 class BookingModel {
@@ -60,13 +60,13 @@ class BookingModel {
       dropoffLocation: data['dropoffLocation'] ?? '',
       cargoDescription: data['cargoDescription'] ?? '',
       vehicleType: VehicleType.values.firstWhere(
-            (e) => e.name == data['vehicleType'] || e.api == data['vehicleType'],
+        (e) => e.name == data['vehicleType'] || e.api == data['vehicleType'],
         orElse: () => VehicleType.pickup,
       ),
       weight: data['weight']?.toDouble(),
       specialInstructions: data['specialInstructions'],
       status: BookingStatus.values.firstWhere(
-            (e) => e.toString().split('.').last == data['status'],
+        (e) => e.toString().split('.').last == data['status'],
         orElse: () => BookingStatus.pending,
       ),
       createdAt: (data['createdAt'] as Timestamp).toDate(),
@@ -95,7 +95,9 @@ class BookingModel {
       'status': status.toString().split('.').last,
       'createdAt': Timestamp.fromDate(createdAt),
       'acceptedAt': acceptedAt != null ? Timestamp.fromDate(acceptedAt!) : null,
-      'completedAt': completedAt != null ? Timestamp.fromDate(completedAt!) : null,
+      'completedAt': completedAt != null
+          ? Timestamp.fromDate(completedAt!)
+          : null,
       'estimatedPrice': estimatedPrice,
       'finalPrice': finalPrice,
       'notes': notes,
