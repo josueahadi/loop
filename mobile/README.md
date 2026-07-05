@@ -51,3 +51,16 @@ lib/
 > job detail, on the `estimated_price` + `price` model) are wired to the API (M1–M3).
 > Chat/messaging still uses Firestore and moves to the API (Postgres + a NestJS
 > WebSocket gateway) in M4.
+
+## Development
+
+Format, analyze, and test before committing:
+
+```bash
+dart format .        # format Dart code (the repo standard)
+flutter analyze      # static analysis / lints (build/ is excluded)
+flutter test         # run the unit + widget tests
+```
+
+`analysis_options.yaml` enables `flutter_lints` and excludes `build/` (vendored
+SDK sources produce unrelated warnings). Fix analyzer issues before pushing.

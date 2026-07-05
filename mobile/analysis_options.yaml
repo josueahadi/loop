@@ -9,6 +9,13 @@
 # packages, and plugins designed to encourage good coding practices.
 include: package:flutter_lints/flutter.yaml
 
+analyzer:
+  # Never analyze build output — the iOS build checks out vendored SDK sources
+  # (e.g. flutterfire examples) under build/ that produce thousands of unrelated
+  # warnings. build/ is gitignored; only our own code should be analyzed.
+  exclude:
+    - build/**
+
 linter:
   # The lint rules applied to this project can be customized in the
   # section below to disable rules from the `package:flutter_lints/flutter.yaml`
