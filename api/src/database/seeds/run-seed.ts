@@ -14,18 +14,31 @@ async function seed() {
   await ds.initialize();
 
   // ---- admin user ----
+  // Upsert: create the admin if missing, otherwise refresh password/name/phone
+  // from the current env vars. This keeps the seed idempotent AND self-healing —
+  // rotating ADMIN_PASSWORD and re-running the seed updates the login, rather than
+  // silently keeping a stale password. (No public admin signup exists.)
   const users = ds.getRepository(User);
   const adminEmail = (process.env.ADMIN_EMAIL ?? 'admin@loop.rw').toLowerCase();
+  const passwordHash = await argon2.hash(
+    process.env.ADMIN_PASSWORD ?? 'change-me-admin',
+  );
+  const adminName = process.env.ADMIN_NAME ?? 'Loop Admin';
+  const adminPhone = process.env.ADMIN_PHONE ?? '+250780000000';
   const existingAdmin = await users.findOne({ where: { email: adminEmail } });
-  if (!existingAdmin) {
-    const passwordHash = await argon2.hash(
-      process.env.ADMIN_PASSWORD ?? 'change-me-admin',
-    );
+  if (existingAdmin) {
+    existingAdmin.name = adminName;
+    existingAdmin.phone = adminPhone;
+    existingAdmin.passwordHash = passwordHash;
+    existingAdmin.role = UserRole.ADMIN;
+    await users.save(existingAdmin);
+    console.log(`Updated admin: ${adminEmail}`);
+  } else {
     await users.save(
       users.create({
-        name: process.env.ADMIN_NAME ?? 'Loop Admin',
+        name: adminName,
         email: adminEmail,
-        phone: process.env.ADMIN_PHONE ?? '+250780000000',
+        phone: adminPhone,
         passwordHash,
         role: UserRole.ADMIN,
         availabilityStatus: null,
@@ -34,8 +47,6 @@ async function seed() {
       }),
     );
     console.log(`Seeded admin: ${adminEmail}`);
-  } else {
-    console.log(`Admin already present: ${adminEmail}`);
   }
 
   // ---- pricing config (per vehicle type, RWF integers) ----
