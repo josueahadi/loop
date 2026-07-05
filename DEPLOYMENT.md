@@ -87,8 +87,8 @@ All steps are in the **one** Railway project. Do them in order.
    - `POSTGRES_USER=loop`
    - `POSTGRES_PASSWORD=<strong-password>`
    - `POSTGRES_DB=loop`
-3. Add a **Volume** mounted at `/var/lib/postgresql/data` so data persists across redeploys.
-4. Settings → turn **OFF App Sleeping / serverless** for `db` — the database must stay warm (a sleeping DB stalls the first request and the live demo).
+3. Add a **Volume** so data persists across redeploys. Volumes are **not** in the Settings tab — attach one from the canvas: **right-click the `db` service** (or press `⌘K` → "Volume") → **Attach Volume**, and set the **mount path** to `/var/lib/postgresql/data` (the Postgres data directory). Do this **before** the first real use — a volume attached after data is written may not migrate the existing ephemeral data.
+4. **Settings → Deploy → Serverless** → turn it **OFF** for `db` (this is the "App Sleeping" control). The database must stay warm — a sleeping DB stalls the first request and the live demo.
 5. Settings → **Networking** → enable the **TCP Proxy** (public) if you want to inspect the DB externally with DBeaver/TablePlus (connect with **SSL disabled** — the image has no TLS).
 6. Deploy. Unlike Railway's managed Postgres, this raw image does **not** auto-compose a `DATABASE_URL` — the api constructs one from this service's vars ([§4.2](#42-deploy-the-api-service)).
 
@@ -108,7 +108,7 @@ All steps are in the **one** Railway project. Do them in order.
    - `CORS_ORIGINS` → set once the admin domain exists ([§4.3](#43-deploy-the-admin-service), last step).
    - Keep `MAIL_DRIVER=stub` / `STORAGE_DRIVER=stub` / `PUSH_DRIVER=stub` for the first deploy; flip to real in [§5](#5-going-live-flip-stubs--real).
 4. Settings → **Healthcheck Path** = `/health` (the api returns `200 {status:'ok'}`).
-5. Settings → turn **OFF App Sleeping / serverless** for `api` — **required** so the live demo has no cold-start; a sleeping api also drops the messaging WebSocket connections.
+5. **Settings → Deploy → Serverless** → turn it **OFF** for `api` (the "App Sleeping" control) — **required** so the live demo has no cold-start; a sleeping api also drops the messaging WebSocket connections.
 6. Settings → **Networking** → **Generate Domain** to get `https://<api>.up.railway.app`. Put it in `APP_URL`.
 7. Settings → **Pre-Deploy Command** = `npm run migration:run:prod && npm run seed:prod` — applies the compiled migrations (the first run creates the schema + the PostGIS extension), then seeds the admin account + pricing/size config. Both are idempotent: migrations skip already-applied ones and `seed:prod` upserts, so running this on **every** deploy is safe. Deploy.
    - _Fallback:_ if you prefer, run `npm run seed:prod` manually once via the service shell (Railway → service → **Shell/Command**) instead.
