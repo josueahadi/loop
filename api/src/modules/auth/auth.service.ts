@@ -106,11 +106,25 @@ export class AuthService {
       user.id,
       ActionTokenType.PASSWORD_RESET,
     );
-    await this.mail.sendPasswordReset(
-      user.email,
-      user.name,
-      this.link('/reset-password', token),
+    await this.deliver(() =>
+      this.mail.sendPasswordReset(
+        user.email,
+        user.name,
+        this.link('/reset-password', token),
+      ),
     );
+  }
+
+  // Email delivery is best-effort: a mail failure (e.g. an unverified SendGrid
+  // sender) must NOT turn the request into a 500. For password reset that would
+  // also leak which emails exist (200 vs 500). The action token is already
+  // issued; the user can retry. Log and swallow.
+  private async deliver(send: () => Promise<void>): Promise<void> {
+    try {
+      await send();
+    } catch (err) {
+      this.logger.error('Email delivery failed (continuing)', err as Error);
+    }
   }
 
   async confirmPasswordReset(
@@ -134,10 +148,12 @@ export class AuthService {
       user.id,
       ActionTokenType.EMAIL_VERIFY,
     );
-    await this.mail.sendEmailVerification(
-      user.email,
-      user.name,
-      this.link('/verify-email', token),
+    await this.deliver(() =>
+      this.mail.sendEmailVerification(
+        user.email,
+        user.name,
+        this.link('/verify-email', token),
+      ),
     );
   }
 
