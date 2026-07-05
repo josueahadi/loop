@@ -9,15 +9,33 @@ export class InitialSchema1719700000000 implements MigrationInterface {
     await queryRunner.query(`CREATE EXTENSION IF NOT EXISTS postgis`);
 
     // ---- enum types ----
-    await queryRunner.query(`CREATE TYPE "user_role" AS ENUM ('cargo_owner','driver','admin')`);
-    await queryRunner.query(`CREATE TYPE "availability_status" AS ENUM ('online','offline')`);
-    await queryRunner.query(`CREATE TYPE "vehicle_type" AS ENUM ('moto','pickup','van','small_truck','large_truck')`);
-    await queryRunner.query(`CREATE TYPE "job_status" AS ENUM ('draft','posted','matched','in_progress','completed','cancelled')`);
-    await queryRunner.query(`CREATE TYPE "job_size" AS ENUM ('small','medium','large')`);
-    await queryRunner.query(`CREATE TYPE "proposal_status" AS ENUM ('sent','accepted','declined')`);
-    await queryRunner.query(`CREATE TYPE "document_type" AS ENUM ('licence','national_id','vehicle_reg')`);
-    await queryRunner.query(`CREATE TYPE "verification_status" AS ENUM ('pending','approved','rejected')`);
-    await queryRunner.query(`CREATE TYPE "action_token_type" AS ENUM ('password_reset','email_verify')`);
+    await queryRunner.query(
+      `CREATE TYPE "user_role" AS ENUM ('cargo_owner','driver','admin')`,
+    );
+    await queryRunner.query(
+      `CREATE TYPE "availability_status" AS ENUM ('online','offline')`,
+    );
+    await queryRunner.query(
+      `CREATE TYPE "vehicle_type" AS ENUM ('moto','pickup','van','small_truck','large_truck')`,
+    );
+    await queryRunner.query(
+      `CREATE TYPE "job_status" AS ENUM ('draft','posted','matched','in_progress','completed','cancelled')`,
+    );
+    await queryRunner.query(
+      `CREATE TYPE "job_size" AS ENUM ('small','medium','large')`,
+    );
+    await queryRunner.query(
+      `CREATE TYPE "proposal_status" AS ENUM ('sent','accepted','declined')`,
+    );
+    await queryRunner.query(
+      `CREATE TYPE "document_type" AS ENUM ('licence','national_id','vehicle_reg')`,
+    );
+    await queryRunner.query(
+      `CREATE TYPE "verification_status" AS ENUM ('pending','approved','rejected')`,
+    );
+    await queryRunner.query(
+      `CREATE TYPE "action_token_type" AS ENUM ('password_reset','email_verify')`,
+    );
 
     // ---- users ----
     await queryRunner.query(`
@@ -40,7 +58,9 @@ export class InitialSchema1719700000000 implements MigrationInterface {
         CONSTRAINT "uq_users_phone" UNIQUE ("phone")
       )
     `);
-    await queryRunner.query(`CREATE INDEX "idx_users_location" ON "users" USING GIST ("location")`);
+    await queryRunner.query(
+      `CREATE INDEX "idx_users_location" ON "users" USING GIST ("location")`,
+    );
 
     // ---- refresh_tokens ----
     await queryRunner.query(`
@@ -55,8 +75,12 @@ export class InitialSchema1719700000000 implements MigrationInterface {
         CONSTRAINT "fk_refresh_tokens_user" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE
       )
     `);
-    await queryRunner.query(`CREATE INDEX "idx_refresh_tokens_user" ON "refresh_tokens" ("user_id")`);
-    await queryRunner.query(`CREATE INDEX "idx_refresh_tokens_hash" ON "refresh_tokens" ("token_hash")`);
+    await queryRunner.query(
+      `CREATE INDEX "idx_refresh_tokens_user" ON "refresh_tokens" ("user_id")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_refresh_tokens_hash" ON "refresh_tokens" ("token_hash")`,
+    );
 
     // ---- action_tokens (reset / verify) ----
     await queryRunner.query(`
@@ -72,8 +96,12 @@ export class InitialSchema1719700000000 implements MigrationInterface {
         CONSTRAINT "fk_action_tokens_user" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE
       )
     `);
-    await queryRunner.query(`CREATE INDEX "idx_action_tokens_user" ON "action_tokens" ("user_id")`);
-    await queryRunner.query(`CREATE INDEX "idx_action_tokens_hash" ON "action_tokens" ("token_hash")`);
+    await queryRunner.query(
+      `CREATE INDEX "idx_action_tokens_user" ON "action_tokens" ("user_id")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_action_tokens_hash" ON "action_tokens" ("token_hash")`,
+    );
 
     // ---- vehicles ----
     await queryRunner.query(`
@@ -88,7 +116,9 @@ export class InitialSchema1719700000000 implements MigrationInterface {
         CONSTRAINT "fk_vehicles_driver" FOREIGN KEY ("driver_id") REFERENCES "users"("id") ON DELETE CASCADE
       )
     `);
-    await queryRunner.query(`CREATE INDEX "idx_vehicles_driver" ON "vehicles" ("driver_id")`);
+    await queryRunner.query(
+      `CREATE INDEX "idx_vehicles_driver" ON "vehicles" ("driver_id")`,
+    );
 
     // ---- jobs ----
     await queryRunner.query(`
@@ -117,8 +147,12 @@ export class InitialSchema1719700000000 implements MigrationInterface {
         CONSTRAINT "fk_jobs_owner" FOREIGN KEY ("owner_id") REFERENCES "users"("id") ON DELETE CASCADE
       )
     `);
-    await queryRunner.query(`CREATE INDEX "idx_jobs_owner" ON "jobs" ("owner_id")`);
-    await queryRunner.query(`CREATE INDEX "idx_jobs_status" ON "jobs" ("status")`);
+    await queryRunner.query(
+      `CREATE INDEX "idx_jobs_owner" ON "jobs" ("owner_id")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_jobs_status" ON "jobs" ("status")`,
+    );
 
     // ---- proposals ----
     await queryRunner.query(`
@@ -134,8 +168,12 @@ export class InitialSchema1719700000000 implements MigrationInterface {
         CONSTRAINT "fk_proposals_driver" FOREIGN KEY ("driver_id") REFERENCES "users"("id") ON DELETE CASCADE
       )
     `);
-    await queryRunner.query(`CREATE INDEX "idx_proposals_job" ON "proposals" ("job_id")`);
-    await queryRunner.query(`CREATE INDEX "idx_proposals_driver" ON "proposals" ("driver_id")`);
+    await queryRunner.query(
+      `CREATE INDEX "idx_proposals_job" ON "proposals" ("job_id")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_proposals_driver" ON "proposals" ("driver_id")`,
+    );
 
     // ---- messages ----
     await queryRunner.query(`
@@ -152,7 +190,9 @@ export class InitialSchema1719700000000 implements MigrationInterface {
         CONSTRAINT "fk_messages_receiver" FOREIGN KEY ("receiver_id") REFERENCES "users"("id") ON DELETE CASCADE
       )
     `);
-    await queryRunner.query(`CREATE INDEX "idx_messages_job" ON "messages" ("job_id")`);
+    await queryRunner.query(
+      `CREATE INDEX "idx_messages_job" ON "messages" ("job_id")`,
+    );
 
     // ---- ratings ----
     await queryRunner.query(`
@@ -172,8 +212,12 @@ export class InitialSchema1719700000000 implements MigrationInterface {
         CONSTRAINT "fk_ratings_to" FOREIGN KEY ("to_user_id") REFERENCES "users"("id") ON DELETE CASCADE
       )
     `);
-    await queryRunner.query(`CREATE INDEX "idx_ratings_job" ON "ratings" ("job_id")`);
-    await queryRunner.query(`CREATE INDEX "idx_ratings_to_user" ON "ratings" ("to_user_id")`);
+    await queryRunner.query(
+      `CREATE INDEX "idx_ratings_job" ON "ratings" ("job_id")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_ratings_to_user" ON "ratings" ("to_user_id")`,
+    );
 
     // ---- verification_records ----
     await queryRunner.query(`
@@ -191,8 +235,12 @@ export class InitialSchema1719700000000 implements MigrationInterface {
         CONSTRAINT "fk_verification_reviewer" FOREIGN KEY ("reviewed_by") REFERENCES "users"("id") ON DELETE SET NULL
       )
     `);
-    await queryRunner.query(`CREATE INDEX "idx_verification_driver" ON "verification_records" ("driver_id")`);
-    await queryRunner.query(`CREATE INDEX "idx_verification_status" ON "verification_records" ("status")`);
+    await queryRunner.query(
+      `CREATE INDEX "idx_verification_driver" ON "verification_records" ("driver_id")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "idx_verification_status" ON "verification_records" ("status")`,
+    );
 
     // ---- pricing_config ----
     await queryRunner.query(`

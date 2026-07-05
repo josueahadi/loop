@@ -30,9 +30,9 @@ class Vehicle {
   }
 
   Map<String, dynamic> toCreateJson() => {
-        'type': type.api,
-        if (capacityKg != null) 'capacityKg': capacityKg,
-        'regNo': regNo,
-        if (photoUrl != null) 'photoUrl': photoUrl,
-      };
+    'type': type.api,
+    if (capacityKg != null) 'capacityKg': capacityKg,
+    'regNo': regNo,
+    if (photoUrl != null) 'photoUrl': photoUrl,
+  };
 }

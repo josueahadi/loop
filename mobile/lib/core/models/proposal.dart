@@ -34,20 +34,22 @@ class ProposalJob {
     required this.status,
   });
 
-  static LatLng _ll(Map<String, dynamic>? m) =>
-      LatLng((m?['lat'] as num?)?.toDouble() ?? 0, (m?['lng'] as num?)?.toDouble() ?? 0);
+  static LatLng _ll(Map<String, dynamic>? m) => LatLng(
+    (m?['lat'] as num?)?.toDouble() ?? 0,
+    (m?['lng'] as num?)?.toDouble() ?? 0,
+  );
 
   factory ProposalJob.fromJson(Map<String, dynamic> j) => ProposalJob(
-        id: j['id'] as String,
-        cargoType: j['cargoType'] as String? ?? '',
-        pickupLabel: j['pickupLabel'] as String?,
-        dropOffLabel: j['dropOffLabel'] as String?,
-        pickup: _ll(j['pickup'] as Map<String, dynamic>?),
-        dropOff: _ll(j['dropOff'] as Map<String, dynamic>?),
-        price: (j['price'] as num?)?.toInt() ?? 0,
-        reqVehicleType: VehicleTypeX.fromApi(j['reqVehicleType'] as String?),
-        status: j['status'] as String? ?? '',
-      );
+    id: j['id'] as String,
+    cargoType: j['cargoType'] as String? ?? '',
+    pickupLabel: j['pickupLabel'] as String?,
+    dropOffLabel: j['dropOffLabel'] as String?,
+    pickup: _ll(j['pickup'] as Map<String, dynamic>?),
+    dropOff: _ll(j['dropOff'] as Map<String, dynamic>?),
+    price: (j['price'] as num?)?.toInt() ?? 0,
+    reqVehicleType: VehicleTypeX.fromApi(j['reqVehicleType'] as String?),
+    status: j['status'] as String? ?? '',
+  );
 }
 
 /// A proposal, matching the API. `contact` is present ONLY when accepted.
@@ -75,19 +77,19 @@ class Proposal {
   bool get isAccepted => status == 'accepted';
 
   factory Proposal.fromJson(Map<String, dynamic> j) => Proposal(
-        id: j['id'] as String,
-        jobId: j['jobId'] as String,
-        driverId: j['driverId'] as String,
-        status: j['status'] as String,
-        createdAt: DateTime.parse(j['createdAt'] as String),
-        respondedAt: j['respondedAt'] == null
-            ? null
-            : DateTime.parse(j['respondedAt'] as String),
-        job: j['job'] == null
-            ? null
-            : ProposalJob.fromJson(j['job'] as Map<String, dynamic>),
-        contact: j['contact'] == null
-            ? null
-            : ProposalContact.fromJson(j['contact'] as Map<String, dynamic>),
-      );
+    id: j['id'] as String,
+    jobId: j['jobId'] as String,
+    driverId: j['driverId'] as String,
+    status: j['status'] as String,
+    createdAt: DateTime.parse(j['createdAt'] as String),
+    respondedAt: j['respondedAt'] == null
+        ? null
+        : DateTime.parse(j['respondedAt'] as String),
+    job: j['job'] == null
+        ? null
+        : ProposalJob.fromJson(j['job'] as Map<String, dynamic>),
+    contact: j['contact'] == null
+        ? null
+        : ProposalContact.fromJson(j['contact'] as Map<String, dynamic>),
+  );
 }

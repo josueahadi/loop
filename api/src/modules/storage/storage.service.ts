@@ -23,19 +23,30 @@ export class StorageService implements OnModuleInit {
 
   onModuleInit() {
     if (this.driver !== 'firebase') {
-      this.logger.warn('STORAGE_DRIVER=stub — documents are not uploaded to Firebase');
+      this.logger.warn(
+        'STORAGE_DRIVER=stub — documents are not uploaded to Firebase',
+      );
       return;
     }
-    const path = this.config.get<string>('storage.serviceAccountPath') ?? '';
     const bucketName = this.config.get<string>('storage.bucket') ?? '';
     if (!admin.apps.length) {
-      const serviceAccount = JSON.parse(fs.readFileSync(path, 'utf8'));
       admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
+        credential: admin.credential.cert(this.loadServiceAccount()),
         storageBucket: bucketName,
       });
     }
     this.bucket = admin.storage().bucket();
+  }
+
+  // Service-account credentials come from inline JSON (FIREBASE_SERVICE_ACCOUNT_JSON,
+  // preferred on Railway — no file to mount) or a JSON file path. Inline wins.
+  private loadServiceAccount(): admin.ServiceAccount {
+    const inline = this.config.get<string>('storage.serviceAccountJson') ?? '';
+    if (inline.trim()) {
+      return JSON.parse(inline) as admin.ServiceAccount;
+    }
+    const path = this.config.get<string>('storage.serviceAccountPath') ?? '';
+    return JSON.parse(fs.readFileSync(path, 'utf8')) as admin.ServiceAccount;
   }
 
   async upload(

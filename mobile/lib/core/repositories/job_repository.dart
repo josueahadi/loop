@@ -24,20 +24,23 @@ class JobRepository {
     required int estimatedPrice,
     required int price,
   }) async {
-    final res = await _api.dio.post('/jobs', data: {
-      'pickup': {'lat': pickup.latitude, 'lng': pickup.longitude},
-      if (pickupLabel != null) 'pickupLabel': pickupLabel,
-      if (pickupNotes != null) 'pickupNotes': pickupNotes,
-      'dropOff': {'lat': dropOff.latitude, 'lng': dropOff.longitude},
-      if (dropOffLabel != null) 'dropOffLabel': dropOffLabel,
-      if (dropOffNotes != null) 'dropOffNotes': dropOffNotes,
-      'cargoType': cargoType,
-      'size': size.api,
-      if (weightKg != null) 'weightKg': weightKg,
-      'reqVehicleType': reqVehicleType.api,
-      'estimatedPrice': estimatedPrice,
-      'price': price,
-    });
+    final res = await _api.dio.post(
+      '/jobs',
+      data: {
+        'pickup': {'lat': pickup.latitude, 'lng': pickup.longitude},
+        if (pickupLabel != null) 'pickupLabel': pickupLabel,
+        if (pickupNotes != null) 'pickupNotes': pickupNotes,
+        'dropOff': {'lat': dropOff.latitude, 'lng': dropOff.longitude},
+        if (dropOffLabel != null) 'dropOffLabel': dropOffLabel,
+        if (dropOffNotes != null) 'dropOffNotes': dropOffNotes,
+        'cargoType': cargoType,
+        'size': size.api,
+        if (weightKg != null) 'weightKg': weightKg,
+        'reqVehicleType': reqVehicleType.api,
+        'estimatedPrice': estimatedPrice,
+        'price': price,
+      },
+    );
     return Job.fromJson(res.data as Map<String, dynamic>);
   }
 

@@ -12,9 +12,9 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final UserRepository _userRepository = ApiUserRepository();
-  
+
   bool _isLoading = false;
-  
+
   // Settings
   bool _isAvailable = false;
   bool _pushNotifications = true;
@@ -30,7 +30,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _loadUserData() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final currentUser = authProvider.user;
-    
+
     if (currentUser != null) {
       setState(() {
         _isAvailable = currentUser.isAvailable ?? false;
@@ -50,7 +50,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     try {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final currentUser = authProvider.user;
-      
+
       if (currentUser == null) {
         throw Exception('No user logged in');
       }
@@ -67,13 +67,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
         setState(() {
           _isAvailable = value;
         });
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              value 
-                ? 'You are now available for jobs'
-                : 'You are now unavailable for jobs',
+              value
+                  ? 'You are now available for jobs'
+                  : 'You are now unavailable for jobs',
             ),
             backgroundColor: value ? Colors.green : Colors.orange,
           ),
@@ -106,7 +106,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: SwitchListTile(
-        secondary: Icon(icon, color: enabled ? Theme.of(context).primaryColor : Colors.grey),
+        secondary: Icon(
+          icon,
+          color: enabled ? Theme.of(context).primaryColor : Colors.grey,
+        ),
         title: Text(
           title,
           style: TextStyle(
@@ -114,15 +117,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
             color: enabled ? Colors.black87 : Colors.grey,
           ),
         ),
-        subtitle: subtitle != null 
-          ? Text(
-              subtitle,
-              style: TextStyle(
-                color: enabled ? Colors.grey[600] : Colors.grey,
-                fontSize: 12,
-              ),
-            )
-          : null,
+        subtitle: subtitle != null
+            ? Text(
+                subtitle,
+                style: TextStyle(
+                  color: enabled ? Colors.grey[600] : Colors.grey,
+                  fontSize: 12,
+                ),
+              )
+            : null,
         value: value,
         onChanged: enabled ? onChanged : null,
       ),
@@ -148,15 +151,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
             color: textColor ?? Colors.black87,
           ),
         ),
-        subtitle: subtitle != null 
-          ? Text(
-              subtitle,
-              style: TextStyle(
-                color: Colors.grey[600],
-                fontSize: 12,
-              ),
-            )
-          : null,
+        subtitle: subtitle != null
+            ? Text(
+                subtitle,
+                style: TextStyle(color: Colors.grey[600], fontSize: 12),
+              )
+            : null,
         trailing: const Icon(Icons.arrow_forward_ios, size: 16),
         onTap: onTap,
       ),
@@ -166,9 +166,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Settings'),
-      ),
+      appBar: AppBar(title: const Text('Settings')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -177,52 +175,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
             // Driver Status Section
             const Text(
               'Driver Status',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
               'Control your availability to receive job requests',
-              style: TextStyle(
-                color: Colors.grey[600],
-                fontSize: 14,
-              ),
+              style: TextStyle(color: Colors.grey[600], fontSize: 14),
             ),
             const SizedBox(height: 16),
-            
+
             _buildSettingsTile(
               icon: _isAvailable ? Icons.work : Icons.work_off,
               title: 'Available for Jobs',
-              subtitle: _isAvailable 
-                ? 'You will receive job notifications'
-                : 'You won\'t receive job notifications',
+              subtitle: _isAvailable
+                  ? 'You will receive job notifications'
+                  : 'You won\'t receive job notifications',
               value: _isAvailable,
               onChanged: _updateAvailability,
               enabled: !_isLoading,
             ),
-            
+
             const SizedBox(height: 32),
-            
+
             // Notification Settings
             const Text(
               'Notifications',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
               'Manage how you receive notifications',
-              style: TextStyle(
-                color: Colors.grey[600],
-                fontSize: 14,
-              ),
+              style: TextStyle(color: Colors.grey[600], fontSize: 14),
             ),
             const SizedBox(height: 16),
-            
+
             _buildSettingsTile(
               icon: Icons.notifications,
               title: 'Push Notifications',
@@ -236,15 +222,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(
-                      value 
-                        ? 'Push notifications enabled'
-                        : 'Push notifications disabled',
+                      value
+                          ? 'Push notifications enabled'
+                          : 'Push notifications disabled',
                     ),
                   ),
                 );
               },
             ),
-            
+
             _buildSettingsTile(
               icon: Icons.email,
               title: 'Email Notifications',
@@ -257,15 +243,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(
-                      value 
-                        ? 'Email notifications enabled'
-                        : 'Email notifications disabled',
+                      value
+                          ? 'Email notifications enabled'
+                          : 'Email notifications disabled',
                     ),
                   ),
                 );
               },
             ),
-            
+
             _buildSettingsTile(
               icon: Icons.sms,
               title: 'SMS Notifications',
@@ -278,72 +264,72 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(
-                      value 
-                        ? 'SMS notifications enabled'
-                        : 'SMS notifications disabled',
+                      value
+                          ? 'SMS notifications enabled'
+                          : 'SMS notifications disabled',
                     ),
                   ),
                 );
               },
             ),
-            
+
             const SizedBox(height: 32),
-            
+
             // Account Settings
             const Text(
               'Account',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
-            
+
             _buildActionTile(
               icon: Icons.security,
               title: 'Privacy & Security',
               subtitle: 'Manage your account security settings',
               onTap: () {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Privacy & Security - Coming Soon!')),
+                  const SnackBar(
+                    content: Text('Privacy & Security - Coming Soon!'),
+                  ),
                 );
               },
             ),
-            
+
             _buildActionTile(
               icon: Icons.language,
               title: 'Language',
               subtitle: 'Change app language',
               onTap: () {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Language Settings - Coming Soon!')),
+                  const SnackBar(
+                    content: Text('Language Settings - Coming Soon!'),
+                  ),
                 );
               },
             ),
-            
+
             _buildActionTile(
               icon: Icons.dark_mode,
               title: 'Theme',
               subtitle: 'Light, Dark, or System',
               onTap: () {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Theme Settings - Coming Soon!')),
+                  const SnackBar(
+                    content: Text('Theme Settings - Coming Soon!'),
+                  ),
                 );
               },
             ),
-            
+
             const SizedBox(height: 32),
-            
+
             // App Settings
             const Text(
               'App',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
-            
+
             _buildActionTile(
               icon: Icons.info,
               title: 'About',
@@ -355,12 +341,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   applicationVersion: '1.0.0',
                   applicationIcon: const Icon(Icons.local_shipping, size: 48),
                   children: [
-                    const Text('Connecting cargo owners with reliable drivers across Rwanda.'),
+                    const Text(
+                      'Connecting cargo owners with reliable drivers across Rwanda.',
+                    ),
                   ],
                 );
               },
             ),
-            
+
             _buildActionTile(
               icon: Icons.feedback,
               title: 'Send Feedback',
@@ -371,7 +359,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 );
               },
             ),
-            
+
             _buildActionTile(
               icon: Icons.star_rate,
               title: 'Rate App',
@@ -382,9 +370,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 );
               },
             ),
-            
+
             const SizedBox(height: 32),
-            
+
             // Danger Zone
             const Text(
               'Account Management',
@@ -395,7 +383,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            
+
             _buildActionTile(
               icon: Icons.logout,
               title: 'Sign Out',
@@ -419,7 +407,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         TextButton(
                           onPressed: () async {
                             Navigator.of(context).pop();
-                            final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                            final authProvider = Provider.of<AuthProvider>(
+                              context,
+                              listen: false,
+                            );
                             await authProvider.signOut();
                             if (context.mounted) {
                               Navigator.of(context).pushNamedAndRemoveUntil(
@@ -428,7 +419,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               );
                             }
                           },
-                          child: const Text('Sign Out', style: TextStyle(color: Colors.red)),
+                          child: const Text(
+                            'Sign Out',
+                            style: TextStyle(color: Colors.red),
+                          ),
                         ),
                       ],
                     );
@@ -436,7 +430,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 );
               },
             ),
-            
+
             const SizedBox(height: 16),
           ],
         ),

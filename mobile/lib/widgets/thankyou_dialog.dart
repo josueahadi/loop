@@ -9,18 +9,27 @@ class ThankYouDialog extends StatelessWidget {
     return Dialog(
       child: Padding(
         padding: const EdgeInsets.all(20),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          const Icon(Icons.check_circle, color: Colors.green, size: 60),
-          const SizedBox(height: 10),
-          const Text("Thank you", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-          const Text("Thank you for your valuable feedback and tip."),
-          const SizedBox(height: 15),
-          ElevatedButton(
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => CargoOwnerHome())),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.check_circle, color: Colors.green, size: 60),
+            const SizedBox(height: 10),
+            const Text(
+              "Thank you",
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const Text("Thank you for your valuable feedback and tip."),
+            const SizedBox(height: 15),
+            ElevatedButton(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => CargoOwnerHome()),
+              ),
 
-            child: const Text("Back Home"),
-          )
-        ]),
+              child: const Text("Back Home"),
+            ),
+          ],
+        ),
       ),
     );
   }

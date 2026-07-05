@@ -80,7 +80,9 @@ class BookingProvider with ChangeNotifier {
     try {
       _setLoading(true);
       _setError(null);
-      _myBookings = await _bookingRepository.getBookingsByCargoOwner(cargoOwnerId);
+      _myBookings = await _bookingRepository.getBookingsByCargoOwner(
+        cargoOwnerId,
+      );
     } catch (e) {
       _setError('Failed to load bookings: $e');
     } finally {
@@ -106,7 +108,9 @@ class BookingProvider with ChangeNotifier {
     try {
       _setLoading(true);
       _setError(null);
-      _availableBookings = await _bookingRepository.getPendingBookingsForDriver(driverId);
+      _availableBookings = await _bookingRepository.getPendingBookingsForDriver(
+        driverId,
+      );
     } catch (e) {
       _setError('Failed to load available bookings: $e');
     } finally {
@@ -142,7 +146,11 @@ class BookingProvider with ChangeNotifier {
   }
 
   // Accept booking with chat
-  Future<bool> acceptBookingWithChat(String bookingId, String driverId, String driverName) async {
+  Future<bool> acceptBookingWithChat(
+    String bookingId,
+    String driverId,
+    String driverName,
+  ) async {
     try {
       _setLoading(true);
       _setError(null);
@@ -264,7 +272,9 @@ class BookingProvider with ChangeNotifier {
   // Get declined bookings
   Future<List<BookingModel>> getDeclinedBookings(String cargoOwnerId) async {
     try {
-      final bookings = await _bookingRepository.getBookingsByCargoOwner(cargoOwnerId);
+      final bookings = await _bookingRepository.getBookingsByCargoOwner(
+        cargoOwnerId,
+      );
       return bookings.where((b) => b.status == BookingStatus.declined).toList();
     } catch (e) {
       throw Exception('Failed to get declined bookings: $e');

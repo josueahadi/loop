@@ -86,6 +86,8 @@ export class UsersController {
       file.buffer,
       file.mimetype,
     );
-    return UserResponseDto.from(await this.users.setPhotoUrl(id, storageReference));
+    return UserResponseDto.from(
+      await this.users.setPhotoUrl(id, storageReference),
+    );
   }
 }

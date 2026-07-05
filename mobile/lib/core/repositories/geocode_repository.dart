@@ -17,23 +17,28 @@ class GeocodeRepository {
 
   Future<List<GeoResult>> search(String query, {int limit = 5}) async {
     if (query.trim().length < 2) return [];
-    final res = await _api.dio.get('/geocode/search', queryParameters: {
-      'q': query,
-      'limit': limit,
-    });
+    final res = await _api.dio.get(
+      '/geocode/search',
+      queryParameters: {'q': query, 'limit': limit},
+    );
     return (res.data as List)
-        .map((r) => GeoResult(
-              label: r['label'] as String,
-              point: LatLng((r['lat'] as num).toDouble(), (r['lng'] as num).toDouble()),
-            ))
+        .map(
+          (r) => GeoResult(
+            label: r['label'] as String,
+            point: LatLng(
+              (r['lat'] as num).toDouble(),
+              (r['lng'] as num).toDouble(),
+            ),
+          ),
+        )
         .toList();
   }
 
   Future<String?> reverse(LatLng point) async {
-    final res = await _api.dio.get('/geocode/reverse', queryParameters: {
-      'lat': point.latitude,
-      'lng': point.longitude,
-    });
+    final res = await _api.dio.get(
+      '/geocode/reverse',
+      queryParameters: {'lat': point.latitude, 'lng': point.longitude},
+    );
     return res.data['label'] as String?;
   }
 }

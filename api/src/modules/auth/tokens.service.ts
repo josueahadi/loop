@@ -37,10 +37,15 @@ export class TokensService {
   async issueRefreshToken(userId: string): Promise<string> {
     const raw = randomBytes(32).toString('hex');
     const expiresAt = new Date(
-      Date.now() + this.ttlMs(this.config.get<string>('jwt.refreshTtl') ?? '30d'),
+      Date.now() +
+        this.ttlMs(this.config.get<string>('jwt.refreshTtl') ?? '30d'),
     );
     await this.refreshTokens.save(
-      this.refreshTokens.create({ userId, tokenHash: this.hash(raw), expiresAt }),
+      this.refreshTokens.create({
+        userId,
+        tokenHash: this.hash(raw),
+        expiresAt,
+      }),
     );
     return raw;
   }

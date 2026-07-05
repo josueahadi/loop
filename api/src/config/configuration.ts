@@ -2,7 +2,12 @@ export interface AppConfig {
   env: string;
   port: number;
   appUrl: string;
+  // Comma-separated CORS allow-list (admin origin, etc.). Empty = allow all (dev only).
+  corsOrigins: string;
   databaseUrl: string;
+  // Require TLS on the DB connection. Default false: the Railway private PostGIS
+  // (and local compose) have no SSL. Set true only for an external managed DB.
+  dbSsl: boolean;
   jwt: {
     accessSecret: string;
     refreshSecret: string;
@@ -24,7 +29,11 @@ export interface AppConfig {
   };
   storage: {
     driver: 'stub' | 'firebase';
+    // Either a path to the service-account JSON file, or the JSON inline
+    // (FIREBASE_SERVICE_ACCOUNT_JSON) — the latter is preferred on Railway where
+    // there is no file to mount. Inline takes precedence when both are set.
     serviceAccountPath: string;
+    serviceAccountJson: string;
     bucket: string;
   };
   matching: {
@@ -52,13 +61,18 @@ export default (): AppConfig => ({
   env: process.env.NODE_ENV ?? 'development',
   port: parseInt(process.env.PORT ?? '3000', 10),
   appUrl: process.env.APP_URL ?? 'http://localhost:3000',
+  corsOrigins: process.env.CORS_ORIGINS ?? '',
   databaseUrl: process.env.DATABASE_URL ?? '',
+  dbSsl: process.env.DB_SSL === 'true',
   jwt: {
     accessSecret: process.env.JWT_ACCESS_SECRET ?? '',
     refreshSecret: process.env.JWT_REFRESH_SECRET ?? '',
     accessTtl: process.env.JWT_ACCESS_TTL ?? '15m',
     refreshTtl: process.env.JWT_REFRESH_TTL ?? '30d',
-    actionTokenTtlHours: parseInt(process.env.ACTION_TOKEN_TTL_HOURS ?? '24', 10),
+    actionTokenTtlHours: parseInt(
+      process.env.ACTION_TOKEN_TTL_HOURS ?? '24',
+      10,
+    ),
   },
   mail: {
     driver: (process.env.MAIL_DRIVER as 'stub' | 'sendgrid') ?? 'stub',
@@ -75,6 +89,7 @@ export default (): AppConfig => ({
   storage: {
     driver: (process.env.STORAGE_DRIVER as 'stub' | 'firebase') ?? 'stub',
     serviceAccountPath: process.env.FIREBASE_SERVICE_ACCOUNT_PATH ?? '',
+    serviceAccountJson: process.env.FIREBASE_SERVICE_ACCOUNT_JSON ?? '',
     bucket: process.env.FIREBASE_STORAGE_BUCKET ?? '',
   },
   matching: {

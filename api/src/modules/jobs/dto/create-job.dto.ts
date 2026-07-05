@@ -68,7 +68,9 @@ export class CreateJobDto {
   @IsEnum(VehicleType)
   reqVehicleType: VehicleType;
 
-  @ApiProperty({ description: 'Estimated cost (whole RWF) from /pricing/estimate' })
+  @ApiProperty({
+    description: 'Estimated cost (whole RWF) from /pricing/estimate',
+  })
   @IsInt()
   @Min(0)
   estimatedPrice: number;

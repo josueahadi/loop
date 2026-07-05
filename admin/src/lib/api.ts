@@ -15,8 +15,7 @@ import {
 // THE single API client for the admin app. Base URL comes from the environment
 // (never hard-coded). It attaches the access token on every request and, on a
 // 401, transparently refreshes once against the same NestJS API before retrying.
-const baseURL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:3000';
+const baseURL = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:3000';
 
 export const api = axios.create({ baseURL });
 
@@ -54,9 +53,11 @@ function redirectToLogin() {
 api.interceptors.response.use(
   (res) => res,
   async (error: AxiosError) => {
-    const original = error.config as (AxiosRequestConfig & {
-      _retried?: boolean;
-    }) | undefined;
+    const original = error.config as
+      | (AxiosRequestConfig & {
+          _retried?: boolean;
+        })
+      | undefined;
     const status = error.response?.status;
     const isRefreshCall = original?.url?.includes('/auth/refresh');
 

@@ -54,10 +54,9 @@ async function seed() {
     [VehicleType.LARGE_TRUCK]: { baseFare: 3000, ratePerKm: 2000 },
   };
   for (const [vehicleType, vals] of Object.entries(placeholderFares)) {
-    await pricing.upsert(
-      { vehicleType: vehicleType as VehicleType, ...vals },
-      ['vehicleType'],
-    );
+    await pricing.upsert({ vehicleType: vehicleType as VehicleType, ...vals }, [
+      'vehicleType',
+    ]);
   }
   console.log('Seeded pricing_config (PLACEHOLDER rates)');
 

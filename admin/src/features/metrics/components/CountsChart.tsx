@@ -1,12 +1,7 @@
 'use client';
 
 import { Bar, BarChart, CartesianGrid, Cell, XAxis, YAxis } from 'recharts';
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   ChartContainer,
   ChartTooltip,
@@ -47,7 +42,10 @@ export function CountsChart({
           <EmptyState message="No data yet." />
         ) : (
           <ChartContainer config={config} className="h-56 w-full">
-            <BarChart data={rows} margin={{ top: 8, right: 8, bottom: 0, left: -20 }}>
+            <BarChart
+              data={rows}
+              margin={{ top: 8, right: 8, bottom: 0, left: -20 }}
+            >
               <CartesianGrid vertical={false} strokeDasharray="3 3" />
               <XAxis
                 dataKey="name"

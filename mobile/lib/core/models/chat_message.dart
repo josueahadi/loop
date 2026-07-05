@@ -18,11 +18,11 @@ class ChatMessageApi {
   });
 
   factory ChatMessageApi.fromJson(Map<String, dynamic> j) => ChatMessageApi(
-        id: j['id'] as String,
-        jobId: j['jobId'] as String,
-        senderId: j['senderId'] as String,
-        receiverId: j['receiverId'] as String,
-        content: j['content'] as String,
-        sentAt: DateTime.parse(j['sentAt'] as String),
-      );
+    id: j['id'] as String,
+    jobId: j['jobId'] as String,
+    senderId: j['senderId'] as String,
+    receiverId: j['receiverId'] as String,
+    content: j['content'] as String,
+    sentAt: DateTime.parse(j['sentAt'] as String),
+  );
 }

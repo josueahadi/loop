@@ -42,7 +42,9 @@ export class EstimateDto {
 
   // Part of the load profile; does NOT affect the price (size_factor captures the
   // load effect). Accepted for the job record, ignored by the estimate formula.
-  @ApiPropertyOptional({ description: 'Cargo weight in kg (not a price input)' })
+  @ApiPropertyOptional({
+    description: 'Cargo weight in kg (not a price input)',
+  })
   @IsOptional()
   @IsNumber()
   @Min(0)

@@ -1,10 +1,14 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Post,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import {
-  MessageResponseDto,
-  SendMessageDto,
-} from './dto/message-response.dto';
+import { MessageResponseDto, SendMessageDto } from './dto/message-response.dto';
 import { MessagesService } from './messages.service';
 
 // Any signed-in user; the service enforces the participant gate (owner + accepted

@@ -13,8 +13,8 @@ class AuthService {
   final TokenStore _tokens;
 
   AuthService({ApiClient? api, TokenStore? tokens})
-      : _tokens = tokens ?? TokenStore(),
-        _api = api ?? ApiClient(tokenStore: tokens);
+    : _tokens = tokens ?? TokenStore(),
+      _api = api ?? ApiClient(tokenStore: tokens);
 
   Dio get _dio => _api.dio;
 
@@ -134,11 +134,14 @@ class AuthService {
     String? profileImageUrl,
   }) async {
     try {
-      final res = await _dio.patch('/me', data: {
-        if (name != null) 'name': name,
-        if (phoneNumber != null) 'phone': phoneNumber,
-        if (profileImageUrl != null) 'photoUrl': profileImageUrl,
-      });
+      final res = await _dio.patch(
+        '/me',
+        data: {
+          if (name != null) 'name': name,
+          if (phoneNumber != null) 'phone': phoneNumber,
+          if (profileImageUrl != null) 'photoUrl': profileImageUrl,
+        },
+      );
       return UserModel.fromJson(res.data as Map<String, dynamic>);
     } on DioException catch (e) {
       throw _mapError(e);
@@ -152,11 +155,14 @@ class AuthService {
     double? lng,
   }) async {
     try {
-      final res = await _dio.patch('/me/availability', data: {
-        'status': online ? 'online' : 'offline',
-        if (lat != null) 'lat': lat,
-        if (lng != null) 'lng': lng,
-      });
+      final res = await _dio.patch(
+        '/me/availability',
+        data: {
+          'status': online ? 'online' : 'offline',
+          if (lat != null) 'lat': lat,
+          if (lng != null) 'lng': lng,
+        },
+      );
       return UserModel.fromJson(res.data as Map<String, dynamic>);
     } on DioException catch (e) {
       throw _mapError(e);

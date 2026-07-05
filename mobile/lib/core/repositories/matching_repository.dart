@@ -14,12 +14,15 @@ class MatchingRepository {
     VehicleType? vehicleType,
     double? radiusKm,
   }) async {
-    final res = await _api.dio.get('/drivers/nearby', queryParameters: {
-      'lat': lat,
-      'lng': lng,
-      if (vehicleType != null) 'vehicle_type': vehicleType.api,
-      if (radiusKm != null) 'radius': radiusKm,
-    });
+    final res = await _api.dio.get(
+      '/drivers/nearby',
+      queryParameters: {
+        'lat': lat,
+        'lng': lng,
+        if (vehicleType != null) 'vehicle_type': vehicleType.api,
+        if (radiusKm != null) 'radius': radiusKm,
+      },
+    );
     return (res.data as List)
         .map((d) => NearbyDriver.fromJson(d as Map<String, dynamic>))
         .toList();

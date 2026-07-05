@@ -21,12 +21,15 @@ class VehicleRepository {
     double? capacityKg,
     String? photoUrl,
   }) async {
-    final res = await _api.dio.post('/vehicles', data: {
-      'type': type.api,
-      'regNo': regNo,
-      if (capacityKg != null) 'capacityKg': capacityKg,
-      if (photoUrl != null) 'photoUrl': photoUrl,
-    });
+    final res = await _api.dio.post(
+      '/vehicles',
+      data: {
+        'type': type.api,
+        'regNo': regNo,
+        if (capacityKg != null) 'capacityKg': capacityKg,
+        if (photoUrl != null) 'photoUrl': photoUrl,
+      },
+    );
     return Vehicle.fromJson(res.data as Map<String, dynamic>);
   }
 
@@ -37,12 +40,15 @@ class VehicleRepository {
     double? capacityKg,
     String? photoUrl,
   }) async {
-    final res = await _api.dio.patch('/vehicles/$id', data: {
-      if (type != null) 'type': type.api,
-      if (regNo != null) 'regNo': regNo,
-      if (capacityKg != null) 'capacityKg': capacityKg,
-      if (photoUrl != null) 'photoUrl': photoUrl,
-    });
+    final res = await _api.dio.patch(
+      '/vehicles/$id',
+      data: {
+        if (type != null) 'type': type.api,
+        if (regNo != null) 'regNo': regNo,
+        if (capacityKg != null) 'capacityKg': capacityKg,
+        if (photoUrl != null) 'photoUrl': photoUrl,
+      },
+    );
     return Vehicle.fromJson(res.data as Map<String, dynamic>);
   }
 

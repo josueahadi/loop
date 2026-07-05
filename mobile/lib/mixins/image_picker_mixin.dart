@@ -7,7 +7,10 @@ import 'package:permission_handler/permission_handler.dart';
 mixin ImagePickerMixin {
   final ImagePicker _picker = ImagePicker();
 
-  void showImagePickerDialog(BuildContext context, {Function(File)? onImageSelected}) {
+  void showImagePickerDialog(
+    BuildContext context, {
+    Function(File)? onImageSelected,
+  }) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -43,7 +46,11 @@ mixin ImagePickerMixin {
     );
   }
 
-  void showDocumentPickerDialog(BuildContext context, String documentType, {Function(File)? onDocumentSelected}) {
+  void showDocumentPickerDialog(
+    BuildContext context,
+    String documentType, {
+    Function(File)? onDocumentSelected,
+  }) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -54,21 +61,30 @@ mixin ImagePickerMixin {
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
-                pickImageFromCamera(context, onImageSelected: onDocumentSelected);
+                pickImageFromCamera(
+                  context,
+                  onImageSelected: onDocumentSelected,
+                );
               },
               child: const Text('Camera'),
             ),
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
-                pickImageFromGallery(context, onImageSelected: onDocumentSelected);
+                pickImageFromGallery(
+                  context,
+                  onImageSelected: onDocumentSelected,
+                );
               },
               child: const Text('Gallery'),
             ),
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
-                pickDocumentFromFiles(context, onDocumentSelected: onDocumentSelected);
+                pickDocumentFromFiles(
+                  context,
+                  onDocumentSelected: onDocumentSelected,
+                );
               },
               child: const Text('Files'),
             ),
@@ -84,14 +100,19 @@ mixin ImagePickerMixin {
     );
   }
 
-  Future<void> pickImageFromCamera(BuildContext context, {Function(File)? onImageSelected}) async {
+  Future<void> pickImageFromCamera(
+    BuildContext context, {
+    Function(File)? onImageSelected,
+  }) async {
     try {
       // Request camera permission
       final cameraPermission = await Permission.camera.request();
       if (cameraPermission.isDenied) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Camera permission is required to take photos')),
+            const SnackBar(
+              content: Text('Camera permission is required to take photos'),
+            ),
           );
         }
         return;
@@ -109,21 +130,26 @@ mixin ImagePickerMixin {
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error taking photo: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error taking photo: $e')));
       }
     }
   }
 
-  Future<void> pickImageFromGallery(BuildContext context, {Function(File)? onImageSelected}) async {
+  Future<void> pickImageFromGallery(
+    BuildContext context, {
+    Function(File)? onImageSelected,
+  }) async {
     try {
       // Request photo permission
       final photoPermission = await Permission.photos.request();
       if (photoPermission.isDenied) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Photo access permission is required')),
+            const SnackBar(
+              content: Text('Photo access permission is required'),
+            ),
           );
         }
         return;
@@ -141,14 +167,17 @@ mixin ImagePickerMixin {
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error selecting image: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error selecting image: $e')));
       }
     }
   }
 
-  Future<void> pickDocumentFromFiles(BuildContext context, {Function(File)? onDocumentSelected}) async {
+  Future<void> pickDocumentFromFiles(
+    BuildContext context, {
+    Function(File)? onDocumentSelected,
+  }) async {
     try {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
@@ -164,9 +193,9 @@ mixin ImagePickerMixin {
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error selecting document: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error selecting document: $e')));
       }
     }
   }

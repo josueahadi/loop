@@ -15,7 +15,7 @@ class SocketService {
   final _controller = StreamController<ChatMessageApi>.broadcast();
 
   SocketService({TokenStore? tokenStore})
-      : _tokens = tokenStore ?? TokenStore();
+    : _tokens = tokenStore ?? TokenStore();
 
   Stream<ChatMessageApi> get messages => _controller.stream;
   bool get isConnected => _socket?.connected ?? false;
@@ -34,7 +34,9 @@ class SocketService {
     );
     socket.on('message', (data) {
       if (data is Map) {
-        _controller.add(ChatMessageApi.fromJson(Map<String, dynamic>.from(data)));
+        _controller.add(
+          ChatMessageApi.fromJson(Map<String, dynamic>.from(data)),
+        );
       }
     });
     socket.connect();

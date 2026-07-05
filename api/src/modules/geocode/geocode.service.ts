@@ -1,4 +1,8 @@
-import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { GeocodeResultDto, ReverseResultDto } from './dto/geocode.dto';
 
@@ -28,7 +32,9 @@ export class GeocodeService {
       return await res.json();
     } catch (err) {
       this.logger.error(`Geocode provider call failed: ${url}`, err as Error);
-      throw new ServiceUnavailableException('Geocoding is temporarily unavailable');
+      throw new ServiceUnavailableException(
+        'Geocoding is temporarily unavailable',
+      );
     }
   }
 
@@ -76,7 +82,9 @@ export class GeocodeService {
       p.suburb ??
       p.city;
     const label = [primary, p.suburb ?? p.district, p.city, p.state]
-      .filter((x: unknown, i: number, arr: unknown[]) => x && arr.indexOf(x) === i)
+      .filter(
+        (x: unknown, i: number, arr: unknown[]) => x && arr.indexOf(x) === i,
+      )
       .join(', ');
     if (!label) return null;
     return { label, lat: Number(coords[1]), lng: Number(coords[0]) };

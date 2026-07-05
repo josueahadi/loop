@@ -27,7 +27,9 @@ export class VehiclesController {
   constructor(private readonly vehicles: VehiclesService) {}
 
   @Get()
-  async list(@CurrentUser('id') driverId: string): Promise<VehicleResponseDto[]> {
+  async list(
+    @CurrentUser('id') driverId: string,
+  ): Promise<VehicleResponseDto[]> {
     const vehicles = await this.vehicles.listForDriver(driverId);
     return vehicles.map(VehicleResponseDto.from);
   }
@@ -46,7 +48,9 @@ export class VehiclesController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateVehicleDto,
   ): Promise<VehicleResponseDto> {
-    return VehicleResponseDto.from(await this.vehicles.update(driverId, id, dto));
+    return VehicleResponseDto.from(
+      await this.vehicles.update(driverId, id, dto),
+    );
   }
 
   @Delete(':id')

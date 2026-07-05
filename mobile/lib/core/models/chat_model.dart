@@ -1,11 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-enum MessageType {
-  text,
-  image,
-  location,
-  system
-}
+enum MessageType { text, image, location, system }
 
 class ChatMessage {
   final String id;
@@ -38,7 +33,7 @@ class ChatMessage {
       senderName: data['senderName'] ?? '',
       content: data['content'] ?? '',
       type: MessageType.values.firstWhere(
-            (e) => e.toString().split('.').last == data['type'],
+        (e) => e.toString().split('.').last == data['type'],
         orElse: () => MessageType.text,
       ),
       timestamp: (data['timestamp'] as Timestamp).toDate(),

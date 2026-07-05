@@ -45,8 +45,9 @@ class _OwnerJobDetailScreenState extends State<OwnerJobDetailScreen> {
   Future<void> _loadAccepted() async {
     if (!_assignedStatuses.contains(_job.status)) return;
     try {
-      final accepted =
-          (await _proposals.forJob(_job.id)).where((p) => p.isAccepted).toList();
+      final accepted = (await _proposals.forJob(
+        _job.id,
+      )).where((p) => p.isAccepted).toList();
       if (mounted) {
         setState(() => _accepted = accepted.isNotEmpty ? accepted.first : null);
       }
@@ -88,10 +89,12 @@ class _OwnerJobDetailScreenState extends State<OwnerJobDetailScreen> {
       await _loadAccepted();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(e.toString().replaceFirst('Exception: ', '')),
-          backgroundColor: Colors.red,
-        ));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceFirst('Exception: ', '')),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -117,11 +120,13 @@ class _OwnerJobDetailScreenState extends State<OwnerJobDetailScreen> {
         content: const Text('This removes it from matching.'),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Keep')),
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Keep'),
+          ),
           TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Cancel job')),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Cancel job'),
+          ),
         ],
       ),
     );
@@ -133,10 +138,12 @@ class _OwnerJobDetailScreenState extends State<OwnerJobDetailScreen> {
       setState(() => _job = updated);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(e.toString().replaceFirst('Exception: ', '')),
-          backgroundColor: Colors.red,
-        ));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceFirst('Exception: ', '')),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -181,8 +188,10 @@ class _OwnerJobDetailScreenState extends State<OwnerJobDetailScreen> {
                 _row('Estimated cost', '~${j.estimatedPrice} RWF'),
                 _row('Posted price', '${j.price} RWF', emphasize: true),
                 const Divider(height: 28),
-                const Text('Timeline',
-                    style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text(
+                  'Timeline',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 8),
                 ..._timeline(j),
                 const SizedBox(height: 24),
@@ -192,8 +201,9 @@ class _OwnerJobDetailScreenState extends State<OwnerJobDetailScreen> {
                     width: double.infinity,
                     child: ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
-                          backgroundColor: primaryGreen,
-                          foregroundColor: Colors.white),
+                        backgroundColor: primaryGreen,
+                        foregroundColor: Colors.white,
+                      ),
                       onPressed: _findDrivers,
                       icon: const Icon(Icons.search),
                       label: const Text('Find drivers & send proposal'),
@@ -213,12 +223,14 @@ class _OwnerJobDetailScreenState extends State<OwnerJobDetailScreen> {
                     child: OutlinedButton(
                       onPressed: _busy ? null : _cancel,
                       style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.red),
+                        foregroundColor: Colors.red,
+                      ),
                       child: _busy
                           ? const SizedBox(
                               height: 18,
                               width: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2))
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
                           : const Text('Cancel job'),
                     ),
                   ),
@@ -242,23 +254,30 @@ class _OwnerJobDetailScreenState extends State<OwnerJobDetailScreen> {
           urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
           userAgentPackageName: 'rw.loop.app',
         ),
-        PolylineLayer(polylines: [
-          Polyline(
+        PolylineLayer(
+          polylines: [
+            Polyline(
               points: [j.pickup, j.dropOff],
               strokeWidth: 3,
-              color: primaryGreen),
-        ]),
-        MarkerLayer(markers: [
-          Marker(
+              color: primaryGreen,
+            ),
+          ],
+        ),
+        MarkerLayer(
+          markers: [
+            Marker(
               point: j.pickup,
-              child: const Icon(Icons.trip_origin, color: primaryGreen)),
-          Marker(
+              child: const Icon(Icons.trip_origin, color: primaryGreen),
+            ),
+            Marker(
               point: j.dropOff,
-              child: const Icon(Icons.place, color: Colors.red, size: 32)),
-        ]),
-        RichAttributionWidget(attributions: [
-          TextSourceAttribution('OpenStreetMap contributors'),
-        ]),
+              child: const Icon(Icons.place, color: Colors.red, size: 32),
+            ),
+          ],
+        ),
+        RichAttributionWidget(
+          attributions: [TextSourceAttribution('OpenStreetMap contributors')],
+        ),
       ],
     );
   }
@@ -273,14 +292,21 @@ class _OwnerJobDetailScreenState extends State<OwnerJobDetailScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title,
-                  style: const TextStyle(
-                      color: textGray, fontSize: 12, fontWeight: FontWeight.w600)),
+              Text(
+                title,
+                style: const TextStyle(
+                  color: textGray,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
               const SizedBox(height: 2),
               Text(label),
               if (note != null && note.isNotEmpty)
-                Text('Note: $note',
-                    style: const TextStyle(color: textGray, fontSize: 12)),
+                Text(
+                  'Note: $note',
+                  style: const TextStyle(color: textGray, fontSize: 12),
+                ),
             ],
           ),
         ),
@@ -296,17 +322,20 @@ class _OwnerJobDetailScreenState extends State<OwnerJobDetailScreen> {
   // Owner controls to move the job forward and, once completed, rate the driver.
   List<Widget> _lifecycleControls(Job j) {
     Widget btn(String text, VoidCallback? onTap) => SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            style: ElevatedButton.styleFrom(
-                backgroundColor: primaryGreen, foregroundColor: Colors.white),
-            onPressed: _busy ? null : onTap,
-            child: Text(text),
-          ),
-        );
+      width: double.infinity,
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: primaryGreen,
+          foregroundColor: Colors.white,
+        ),
+        onPressed: _busy ? null : onTap,
+        child: Text(text),
+      ),
+    );
     if (j.status == 'matched') {
-      return [btn('Driver started — mark in progress',
-          () => _advance('in_progress'))];
+      return [
+        btn('Driver started — mark in progress', () => _advance('in_progress')),
+      ];
     }
     if (j.status == 'in_progress') {
       return [btn('Delivered — mark completed', () => _advance('completed'))];
@@ -334,8 +363,10 @@ class _OwnerJobDetailScreenState extends State<OwnerJobDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Assigned driver',
-              style: TextStyle(fontWeight: FontWeight.bold)),
+          const Text(
+            'Assigned driver',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 4),
           Text(c.name),
           Text(c.phone, style: const TextStyle(color: textGray)),
@@ -350,7 +381,9 @@ class _OwnerJobDetailScreenState extends State<OwnerJobDetailScreen> {
               ),
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryGreen, foregroundColor: Colors.white),
+                  backgroundColor: primaryGreen,
+                  foregroundColor: Colors.white,
+                ),
                 onPressed: () => Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -368,29 +401,31 @@ class _OwnerJobDetailScreenState extends State<OwnerJobDetailScreen> {
   }
 
   Widget _statusChip(String status) => Chip(
-        label: Text(status.replaceAll('_', ' ').toUpperCase()),
-        backgroundColor: lightGreen,
-      );
+    label: Text(status.replaceAll('_', ' ').toUpperCase()),
+    backgroundColor: lightGreen,
+  );
 
   Widget _row(String label, String value, {bool emphasize = false}) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(
-                width: 130,
-                child: Text(label,
-                    style: const TextStyle(color: textGray))),
-            Expanded(
-              child: Text(value,
-                  style: TextStyle(
-                      fontWeight:
-                          emphasize ? FontWeight.bold : FontWeight.normal,
-                      color: emphasize ? primaryGreen : null)),
-            ),
-          ],
+    padding: const EdgeInsets.symmetric(vertical: 4),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 130,
+          child: Text(label, style: const TextStyle(color: textGray)),
         ),
-      );
+        Expanded(
+          child: Text(
+            value,
+            style: TextStyle(
+              fontWeight: emphasize ? FontWeight.bold : FontWeight.normal,
+              color: emphasize ? primaryGreen : null,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
 
   List<Widget> _timeline(Job j) {
     final steps = <MapEntry<String, DateTime?>>[
@@ -408,15 +443,19 @@ class _OwnerJobDetailScreenState extends State<OwnerJobDetailScreen> {
         padding: const EdgeInsets.symmetric(vertical: 3),
         child: Row(
           children: [
-            Icon(done ? Icons.check_circle : Icons.radio_button_unchecked,
-                size: 18, color: done ? primaryGreen : Colors.grey),
+            Icon(
+              done ? Icons.check_circle : Icons.radio_button_unchecked,
+              size: 18,
+              color: done ? primaryGreen : Colors.grey,
+            ),
             const SizedBox(width: 10),
-            Text(e.key,
-                style: TextStyle(color: done ? null : Colors.grey)),
+            Text(e.key, style: TextStyle(color: done ? null : Colors.grey)),
             const Spacer(),
             if (done)
-              Text(_fmt(e.value!),
-                  style: const TextStyle(color: textGray, fontSize: 12)),
+              Text(
+                _fmt(e.value!),
+                style: const TextStyle(color: textGray, fontSize: 12),
+              ),
           ],
         ),
       );

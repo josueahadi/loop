@@ -43,8 +43,11 @@ class _RatingScreenState extends State<RatingScreen> {
   Future<void> _submit() async {
     setState(() => _submitting = true);
     try {
-      await _repo.rate(widget.jobId, _score.round(),
-          comment: _comment.text.trim());
+      await _repo.rate(
+        widget.jobId,
+        _score.round(),
+        comment: _comment.text.trim(),
+      );
       if (!mounted) return;
       Navigator.pop(context, true);
     } catch (e) {
@@ -52,10 +55,14 @@ class _RatingScreenState extends State<RatingScreen> {
       if (mounted) {
         // Already rated (409) is a terminal, expected outcome — treat as done.
         final alreadyRated = msg.toLowerCase().contains('already rated');
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(alreadyRated ? 'You have already rated this job' : msg),
-          backgroundColor: alreadyRated ? primaryGreen : Colors.red,
-        ));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              alreadyRated ? 'You have already rated this job' : msg,
+            ),
+            backgroundColor: alreadyRated ? primaryGreen : Colors.red,
+          ),
+        );
         if (alreadyRated) Navigator.pop(context, true);
       }
     } finally {
@@ -88,11 +95,14 @@ class _RatingScreenState extends State<RatingScreen> {
             ),
             const SizedBox(height: 12),
             Center(
-              child: Text(label,
-                  style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: primaryGreen)),
+              child: Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: primaryGreen,
+                ),
+              ),
             ),
             const SizedBox(height: 4),
             Center(
@@ -115,14 +125,19 @@ class _RatingScreenState extends State<RatingScreen> {
               height: 50,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryGreen, foregroundColor: Colors.white),
+                  backgroundColor: primaryGreen,
+                  foregroundColor: Colors.white,
+                ),
                 onPressed: _submitting ? null : _submit,
                 child: _submitting
                     ? const SizedBox(
                         height: 22,
                         width: 22,
                         child: CircularProgressIndicator(
-                            color: Colors.white, strokeWidth: 2))
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
                     : const Text('Submit'),
               ),
             ),

@@ -51,7 +51,9 @@ export class PricingService {
       where: { size: params.size },
     });
     if (!sizeRow) {
-      throw new BadRequestException(`No size multiplier for size ${params.size}`);
+      throw new BadRequestException(
+        `No size multiplier for size ${params.size}`,
+      );
     }
     const sizeFactor = Number(sizeRow.multiplier);
     const raw =

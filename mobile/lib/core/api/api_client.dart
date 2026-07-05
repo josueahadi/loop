@@ -10,16 +10,17 @@ class ApiClient {
   final TokenStore _tokens;
 
   ApiClient({TokenStore? tokenStore, Dio? dioOverride})
-      : _tokens = tokenStore ?? TokenStore(),
-        dio = dioOverride ??
-            Dio(
-              BaseOptions(
-                baseUrl: AppConfig.apiBaseUrl,
-                connectTimeout: const Duration(seconds: 15),
-                receiveTimeout: const Duration(seconds: 20),
-                contentType: 'application/json',
-              ),
-            ) {
+    : _tokens = tokenStore ?? TokenStore(),
+      dio =
+          dioOverride ??
+          Dio(
+            BaseOptions(
+              baseUrl: AppConfig.apiBaseUrl,
+              connectTimeout: const Duration(seconds: 15),
+              receiveTimeout: const Duration(seconds: 20),
+              contentType: 'application/json',
+            ),
+          ) {
     dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
@@ -35,8 +36,9 @@ class ApiClient {
           final response = error.response;
           final isAuthError = response?.statusCode == 401;
           final alreadyRetried = error.requestOptions.extra['retried'] == true;
-          final isRefreshCall =
-              error.requestOptions.path.contains('/auth/refresh');
+          final isRefreshCall = error.requestOptions.path.contains(
+            '/auth/refresh',
+          );
 
           if (isAuthError && !alreadyRetried && !isRefreshCall) {
             final refreshed = await _tryRefresh();

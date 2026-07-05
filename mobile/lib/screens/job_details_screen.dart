@@ -13,10 +13,7 @@ import 'package:cargo_app/constants.dart';
 class JobDetailsScreen extends StatefulWidget {
   final BookingModel booking;
 
-  const JobDetailsScreen({
-    super.key,
-    required this.booking,
-  });
+  const JobDetailsScreen({super.key, required this.booking});
 
   @override
   State<JobDetailsScreen> createState() => _JobDetailsScreenState();
@@ -36,8 +33,13 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
     if (widget.booking.driverId != null) {
       setState(() => _isLoading = true);
       try {
-        final userRepository = Provider.of<UserRepository>(context, listen: false);
-        final driver = await userRepository.getUserById(widget.booking.driverId!);
+        final userRepository = Provider.of<UserRepository>(
+          context,
+          listen: false,
+        );
+        final driver = await userRepository.getUserById(
+          widget.booking.driverId!,
+        );
         setState(() => _assignedDriver = driver);
       } catch (e) {
         if (mounted) {
@@ -65,193 +67,205 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
         actions: [
           if (widget.booking.status == BookingStatus.accepted &&
               widget.booking.driverId != null)
-            IconButton(
-              icon: const Icon(Icons.chat),
-              onPressed: _openChat,
-            ),
+            IconButton(icon: const Icon(Icons.chat), onPressed: _openChat),
         ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Status Banner
-            _StatusBanner(booking: widget.booking),
-            const SizedBox(height: 24),
-
-            // Job Information
-            _SectionCard(
-              title: 'Job Information',
+              padding: const EdgeInsets.all(16),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _InfoRow(
-                    icon: Icons.inventory,
-                    label: 'Cargo Description',
-                    value: widget.booking.cargoDescription,
-                  ),
-                  _InfoRow(
-                    icon: Icons.location_on,
-                    label: 'Pickup Location',
-                    value: widget.booking.pickupLocation,
-                  ),
-                  _InfoRow(
-                    icon: Icons.flag,
-                    label: 'Dropoff Location',
-                    value: widget.booking.dropoffLocation,
-                  ),
-                  _InfoRow(
-                    icon: Icons.local_shipping,
-                    label: 'Vehicle Type',
-                    value: widget.booking.vehicleTypeDisplayName,
-                  ),
-                  if (widget.booking.weight != null)
-                    _InfoRow(
-                      icon: Icons.scale,
-                      label: 'Weight',
-                      value: '${widget.booking.weight}kg',
-                    ),
-                  if (widget.booking.estimatedPrice != null)
-                    _InfoRow(
-                      icon: Icons.money,
-                      label: 'Estimated Price',
-                      value: '${widget.booking.estimatedPrice!.toStringAsFixed(0)} RWF',
-                    ),
-                  if (widget.booking.specialInstructions?.isNotEmpty == true)
-                    _InfoRow(
-                      icon: Icons.note,
-                      label: 'Special Instructions',
-                      value: widget.booking.specialInstructions!,
-                    ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
+                  // Status Banner
+                  _StatusBanner(booking: widget.booking),
+                  const SizedBox(height: 24),
 
-            // Driver Information (if assigned)
-            if (_assignedDriver != null) ...[
-              _SectionCard(
-                title: 'Assigned Driver',
-                child: Column(
-                  children: [
-                    Row(
+                  // Job Information
+                  _SectionCard(
+                    title: 'Job Information',
+                    child: Column(
                       children: [
-                        CircleAvatar(
-                          radius: 25,
-                          backgroundColor: primaryGreen,
-                          child: Text(
-                            _assignedDriver!.name.isNotEmpty
-                                ? _assignedDriver!.name[0].toUpperCase()
-                                : 'D',
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
+                        _InfoRow(
+                          icon: Icons.inventory,
+                          label: 'Cargo Description',
+                          value: widget.booking.cargoDescription,
                         ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                        _InfoRow(
+                          icon: Icons.location_on,
+                          label: 'Pickup Location',
+                          value: widget.booking.pickupLocation,
+                        ),
+                        _InfoRow(
+                          icon: Icons.flag,
+                          label: 'Dropoff Location',
+                          value: widget.booking.dropoffLocation,
+                        ),
+                        _InfoRow(
+                          icon: Icons.local_shipping,
+                          label: 'Vehicle Type',
+                          value: widget.booking.vehicleTypeDisplayName,
+                        ),
+                        if (widget.booking.weight != null)
+                          _InfoRow(
+                            icon: Icons.scale,
+                            label: 'Weight',
+                            value: '${widget.booking.weight}kg',
+                          ),
+                        if (widget.booking.estimatedPrice != null)
+                          _InfoRow(
+                            icon: Icons.money,
+                            label: 'Estimated Price',
+                            value:
+                                '${widget.booking.estimatedPrice!.toStringAsFixed(0)} RWF',
+                          ),
+                        if (widget.booking.specialInstructions?.isNotEmpty ==
+                            true)
+                          _InfoRow(
+                            icon: Icons.note,
+                            label: 'Special Instructions',
+                            value: widget.booking.specialInstructions!,
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Driver Information (if assigned)
+                  if (_assignedDriver != null) ...[
+                    _SectionCard(
+                      title: 'Assigned Driver',
+                      child: Column(
+                        children: [
+                          Row(
                             children: [
-                              Text(
-                                _assignedDriver!.name,
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
+                              CircleAvatar(
+                                radius: 25,
+                                backgroundColor: primaryGreen,
+                                child: Text(
+                                  _assignedDriver!.name.isNotEmpty
+                                      ? _assignedDriver!.name[0].toUpperCase()
+                                      : 'D',
+                                  style: const TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
                                 ),
                               ),
-                              const SizedBox(height: 4),
-                              Row(
-                                children: [
-                                  const Icon(Icons.star, size: 16, color: Colors.orange),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    '${_assignedDriver!.rating?.toStringAsFixed(1) ?? 'No rating'}',
-                                    style: const TextStyle(fontSize: 14),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  const Icon(Icons.work, size: 16, color: Colors.grey),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    '${_assignedDriver!.completedJobs ?? 0} jobs',
-                                    style: const TextStyle(fontSize: 14),
-                                  ),
-                                ],
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      _assignedDriver!.name,
+                                      style: const TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.star,
+                                          size: 16,
+                                          color: Colors.orange,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          '${_assignedDriver!.rating?.toStringAsFixed(1) ?? 'No rating'}',
+                                          style: const TextStyle(fontSize: 14),
+                                        ),
+                                        const SizedBox(width: 16),
+                                        const Icon(
+                                          Icons.work,
+                                          size: 16,
+                                          color: Colors.grey,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          '${_assignedDriver!.completedJobs ?? 0} jobs',
+                                          style: const TextStyle(fontSize: 14),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
                               ),
                             ],
                           ),
+                          if (widget.booking.status ==
+                              BookingStatus.accepted) ...[
+                            const SizedBox(height: 16),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                onPressed: _openChat,
+                                icon: const Icon(Icons.chat),
+                                label: const Text('Open Chat'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: primaryGreen,
+                                  foregroundColor: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+
+                  // Timeline
+                  _SectionCard(
+                    title: 'Timeline',
+                    child: Column(
+                      children: [
+                        _TimelineItem(
+                          icon: Icons.add_circle,
+                          title: 'Job Created',
+                          subtitle: _formatDateTime(widget.booking.createdAt),
+                          isCompleted: true,
                         ),
+                        if (widget.booking.acceptedAt != null)
+                          _TimelineItem(
+                            icon: Icons.check_circle,
+                            title: 'Job Accepted',
+                            subtitle: _formatDateTime(
+                              widget.booking.acceptedAt!,
+                            ),
+                            isCompleted: true,
+                          ),
+                        if (widget.booking.status == BookingStatus.declined)
+                          _TimelineItem(
+                            icon: Icons.cancel,
+                            title: 'Job Declined',
+                            subtitle: 'Driver declined this job',
+                            isCompleted: true,
+                            isError: true,
+                          ),
+                        if (widget.booking.completedAt != null)
+                          _TimelineItem(
+                            icon: Icons.check_circle_outline,
+                            title: 'Job Completed',
+                            subtitle: _formatDateTime(
+                              widget.booking.completedAt!,
+                            ),
+                            isCompleted: true,
+                          ),
                       ],
                     ),
-                    if (widget.booking.status == BookingStatus.accepted) ...[
-                      const SizedBox(height: 16),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: _openChat,
-                          icon: const Icon(Icons.chat),
-                          label: const Text('Open Chat'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: primaryGreen,
-                            foregroundColor: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-            ],
-
-            // Timeline
-            _SectionCard(
-              title: 'Timeline',
-              child: Column(
-                children: [
-                  _TimelineItem(
-                    icon: Icons.add_circle,
-                    title: 'Job Created',
-                    subtitle: _formatDateTime(widget.booking.createdAt),
-                    isCompleted: true,
                   ),
-                  if (widget.booking.acceptedAt != null)
-                    _TimelineItem(
-                      icon: Icons.check_circle,
-                      title: 'Job Accepted',
-                      subtitle: _formatDateTime(widget.booking.acceptedAt!),
-                      isCompleted: true,
-                    ),
-                  if (widget.booking.status == BookingStatus.declined)
-                    _TimelineItem(
-                      icon: Icons.cancel,
-                      title: 'Job Declined',
-                      subtitle: 'Driver declined this job',
-                      isCompleted: true,
-                      isError: true,
-                    ),
-                  if (widget.booking.completedAt != null)
-                    _TimelineItem(
-                      icon: Icons.check_circle_outline,
-                      title: 'Job Completed',
-                      subtitle: _formatDateTime(widget.booking.completedAt!),
-                      isCompleted: true,
-                    ),
+                  const SizedBox(height: 24),
+
+                  // Action Buttons
+                  if (isCargoOwner) ..._buildCargoOwnerActions(),
+                  if (!isCargoOwner) ..._buildDriverActions(),
                 ],
               ),
             ),
-            const SizedBox(height: 24),
-
-            // Action Buttons
-            if (isCargoOwner) ..._buildCargoOwnerActions(),
-            if (!isCargoOwner) ..._buildDriverActions(),
-          ],
-        ),
-      ),
     );
   }
 
@@ -423,10 +437,8 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => ChatScreen(
-          booking: widget.booking,
-          otherUserName: otherUserName,
-        ),
+        builder: (context) =>
+            ChatScreen(booking: widget.booking, otherUserName: otherUserName),
       ),
     );
   }
@@ -479,7 +491,10 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
     );
 
     if (confirmed == true) {
-      final bookingProvider = Provider.of<BookingProvider>(context, listen: false);
+      final bookingProvider = Provider.of<BookingProvider>(
+        context,
+        listen: false,
+      );
       final success = await bookingProvider.cancelBooking(widget.booking.id);
 
       if (success && mounted) {
@@ -515,7 +530,10 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
     );
 
     if (confirmed == true) {
-      final bookingProvider = Provider.of<BookingProvider>(context, listen: false);
+      final bookingProvider = Provider.of<BookingProvider>(
+        context,
+        listen: false,
+      );
       final success = await bookingProvider.completeBooking(widget.booking.id);
 
       if (success && mounted) {
@@ -624,10 +642,7 @@ class _SectionCard extends StatelessWidget {
   final String title;
   final Widget child;
 
-  const _SectionCard({
-    required this.title,
-    required this.child,
-  });
+  const _SectionCard({required this.title, required this.child});
 
   @override
   Widget build(BuildContext context) {
@@ -639,10 +654,7 @@ class _SectionCard extends StatelessWidget {
           children: [
             Text(
               title,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
             child,
@@ -719,7 +731,9 @@ class _TimelineItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = isError ? Colors.red : (isCompleted ? Colors.green : Colors.grey);
+    final color = isError
+        ? Colors.red
+        : (isCompleted ? Colors.green : Colors.grey);
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -742,10 +756,7 @@ class _TimelineItem extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   subtitle,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey.shade600,
-                  ),
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                 ),
               ],
             ),

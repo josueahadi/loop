@@ -9,7 +9,7 @@ class TokenStore {
   final FlutterSecureStorage _storage;
 
   TokenStore([FlutterSecureStorage? storage])
-      : _storage = storage ?? const FlutterSecureStorage();
+    : _storage = storage ?? const FlutterSecureStorage();
 
   Future<void> save({
     required String accessToken,

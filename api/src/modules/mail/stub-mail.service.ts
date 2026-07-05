@@ -7,11 +7,19 @@ import { MailService } from './mail.service';
 export class StubMailService implements MailService {
   private readonly logger = new Logger('MailStub');
 
-  async sendPasswordReset(to: string, name: string, link: string): Promise<void> {
+  async sendPasswordReset(
+    to: string,
+    name: string,
+    link: string,
+  ): Promise<void> {
     this.logger.log(`[password-reset] to=${to} (${name})\n  ${link}`);
   }
 
-  async sendEmailVerification(to: string, name: string, link: string): Promise<void> {
+  async sendEmailVerification(
+    to: string,
+    name: string,
+    link: string,
+  ): Promise<void> {
     this.logger.log(`[email-verify] to=${to} (${name})\n  ${link}`);
   }
 }

@@ -35,14 +35,20 @@ export class PushService implements OnModuleInit {
     }
     try {
       if (!admin.apps.length) {
-        const path = this.config.get<string>('storage.serviceAccountPath') ?? '';
+        const path =
+          this.config.get<string>('storage.serviceAccountPath') ?? '';
         admin.initializeApp({
-          credential: admin.credential.cert(JSON.parse(fs.readFileSync(path, 'utf8'))),
+          credential: admin.credential.cert(
+            JSON.parse(fs.readFileSync(path, 'utf8')),
+          ),
         });
       }
       this.ready = true;
     } catch (err) {
-      this.logger.error('FCM init failed — pushes will be skipped', err as Error);
+      this.logger.error(
+        'FCM init failed — pushes will be skipped',
+        err as Error,
+      );
     }
   }
 
@@ -50,7 +56,9 @@ export class PushService implements OnModuleInit {
   async sendToUser(userId: string, msg: PushMessage): Promise<void> {
     try {
       if (this.driver !== 'fcm') {
-        this.logger.log(`[stub push] to=${userId} "${msg.title}" — ${msg.body}`);
+        this.logger.log(
+          `[stub push] to=${userId} "${msg.title}" — ${msg.body}`,
+        );
         return;
       }
       if (!this.ready) return;

@@ -47,9 +47,11 @@ class FirebaseChatRepository implements ChatRepository {
         .where('bookingId', isEqualTo: bookingId)
         .orderBy('timestamp', descending: false)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-        .map((doc) => ChatMessage.fromFirestore(doc))
-        .toList());
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => ChatMessage.fromFirestore(doc))
+              .toList(),
+        );
   }
 
   @override

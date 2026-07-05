@@ -5,11 +5,15 @@ dist/
 npm-debug.log*
 coverage/
 .eslintcache
+*.tsbuildinfo
 
 # ---- Env / secrets ----
 .env
 .env.*
+# Keep template files tracked (.env.example, .env.production.example, …) — they
+# hold ONLY placeholder values, never real secrets.
 !.env.example
+!*.example
 *-service-account*.json
 firebase-service-account*.json
 
@@ -26,7 +30,8 @@ mobile/.pub/
 .vscode/
 
 # ---- Not committing these yet (per maintainer) ----
-/docs
+/docs/*
+!/docs/BUILD_SPEC.md
 /CLAUDE.md
 
 # ---- OS ----

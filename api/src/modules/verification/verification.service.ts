@@ -7,10 +7,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { extname } from 'path';
 import { Repository } from 'typeorm';
-import {
-  DocumentType,
-  VerificationStatus,
-} from '../../common/enums';
+import { DocumentType, VerificationStatus } from '../../common/enums';
 import { StorageService } from '../storage/storage.service';
 import { VerificationRecord } from './entities/verification-record.entity';
 
@@ -32,7 +29,9 @@ export class VerificationService {
   ): Promise<VerificationRecord> {
     if (!file) throw new BadRequestException('A document file is required');
     if (!ALLOWED_MIME.includes(file.mimetype)) {
-      throw new BadRequestException('Only JPEG, PNG or PDF documents are allowed');
+      throw new BadRequestException(
+        'Only JPEG, PNG or PDF documents are allowed',
+      );
     }
     const objectPath = `verification/${driverId}/${documentType}-${Date.now()}${extname(
       file.originalname,

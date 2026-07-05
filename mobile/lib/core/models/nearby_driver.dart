@@ -37,6 +37,7 @@ class NearbyDriver {
     );
   }
 
-  String get distanceLabel =>
-      distanceM < 1000 ? '$distanceM m' : '${(distanceM / 1000).toStringAsFixed(1)} km';
+  String get distanceLabel => distanceM < 1000
+      ? '$distanceM m'
+      : '${(distanceM / 1000).toStringAsFixed(1)} km';
 }

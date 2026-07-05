@@ -22,13 +22,16 @@ class PricingRepository {
     required JobSize size,
     double? weightKg,
   }) async {
-    final res = await _api.dio.post('/pricing/estimate', data: {
-      'pickup': {'lat': pickup.latitude, 'lng': pickup.longitude},
-      'drop_off': {'lat': dropOff.latitude, 'lng': dropOff.longitude},
-      'vehicle_type': vehicleType.api,
-      'size': size.api,
-      if (weightKg != null) 'weight_kg': weightKg,
-    });
+    final res = await _api.dio.post(
+      '/pricing/estimate',
+      data: {
+        'pickup': {'lat': pickup.latitude, 'lng': pickup.longitude},
+        'drop_off': {'lat': dropOff.latitude, 'lng': dropOff.longitude},
+        'vehicle_type': vehicleType.api,
+        'size': size.api,
+        if (weightKg != null) 'weight_kg': weightKg,
+      },
+    );
     return PriceEstimate(
       estimatedPrice: (res.data['estimated_price'] as num).toInt(),
       distanceKm: (res.data['distance_km'] as num).toDouble(),

@@ -10,6 +10,7 @@ import { RolesGuard } from './common/guards/roles.guard';
 import { AdminModule } from './modules/admin/admin.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { GeocodeModule } from './modules/geocode/geocode.module';
+import { HealthModule } from './modules/health/health.module';
 import { JobsModule } from './modules/jobs/jobs.module';
 import { MailModule } from './modules/mail/mail.module';
 import { MatchingModule } from './modules/matching/matching.module';
@@ -37,8 +38,14 @@ import { VerificationModule } from './modules/verification/verification.module';
         url: config.get<string>('databaseUrl'),
         autoLoadEntities: true,
         synchronize: false,
+        // Off by default (Railway private PostGIS / local compose have no SSL);
+        // DB_SSL=true opts in for an external managed DB.
+        ssl: config.get<boolean>('dbSsl')
+          ? { rejectUnauthorized: false }
+          : false,
       }),
     }),
+    HealthModule,
     MailModule,
     StorageModule,
     PushModule,

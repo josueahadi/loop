@@ -17,8 +17,15 @@ abstract class UserRepository {
   Future<List<UserModel>> getUsersByRole(UserRole role);
   Stream<UserModel?> userStream(String uid);
   Future<String> uploadProfileImage(String uid, File imageFile);
-  Future<String> uploadDocument(String uid, File documentFile, String documentType);
-  Future<void> updateUserWithDocuments(String uid, Map<String, String> documentUrls);
+  Future<String> uploadDocument(
+    String uid,
+    File documentFile,
+    String documentType,
+  );
+  Future<void> updateUserWithDocuments(
+    String uid,
+    Map<String, String> documentUrls,
+  );
 }
 
 class _NotYetAvailable implements Exception {
@@ -63,16 +70,21 @@ class ApiUserRepository implements UserRepository {
   }
 
   @override
-  Future<String> uploadDocument(String uid, File documentFile, String documentType) {
+  Future<String> uploadDocument(
+    String uid,
+    File documentFile,
+    String documentType,
+  ) {
     // Driver verification documents now go through VerificationRepository
     // (POST /verification), not the user record.
-    throw _NotYetAvailable(
-      'Use the verification screen to upload documents',
-    );
+    throw _NotYetAvailable('Use the verification screen to upload documents');
   }
 
   @override
-  Future<void> updateUserWithDocuments(String uid, Map<String, String> documentUrls) {
+  Future<void> updateUserWithDocuments(
+    String uid,
+    Map<String, String> documentUrls,
+  ) {
     throw _NotYetAvailable('Document fields moved to verification records');
   }
 }

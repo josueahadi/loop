@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:cargo_app/widgets/stats_card.dart';
 
 void main() {
-  testWidgets('StatsCard displays label and value', (WidgetTester tester) async {
+  testWidgets('StatsCard displays label and value', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(
       MaterialApp(
         home: StatsCard(

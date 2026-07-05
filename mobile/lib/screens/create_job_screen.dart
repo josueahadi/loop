@@ -241,10 +241,12 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
 
   void _snack(String msg, {bool ok = false}) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(msg),
-      backgroundColor: ok ? primaryGreen : Colors.red,
-    ));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: ok ? primaryGreen : Colors.red,
+      ),
+    );
   }
 
   @override
@@ -282,39 +284,48 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
               userAgentPackageName: 'rw.loop.app',
             ),
             if (_pickup != null && _dropOff != null)
-              PolylineLayer(polylines: [
-                Polyline(
-                  points: [_pickup!, _dropOff!],
-                  strokeWidth: 3,
-                  color: primaryGreen,
-                ),
-              ]),
+              PolylineLayer(
+                polylines: [
+                  Polyline(
+                    points: [_pickup!, _dropOff!],
+                    strokeWidth: 3,
+                    color: primaryGreen,
+                  ),
+                ],
+              ),
             // Draggable pins: drag to reposition; the label is reverse-geocoded
             // once on drag-END (not per frame), so the shared OSM instance isn't
             // hammered while dragging.
-            DragMarkers(markers: [
-              if (_pickup != null)
-                DragMarker(
-                  key: const ValueKey('pickup'),
-                  point: _pickup!,
-                  size: const Size(40, 40),
-                  builder: (_, _, _) => const Icon(Icons.trip_origin,
-                      color: primaryGreen, size: 32),
-                  onDragEnd: (_, point) => _onPinDragEnd(point, true),
-                ),
-              if (_dropOff != null)
-                DragMarker(
-                  key: const ValueKey('dropoff'),
-                  point: _dropOff!,
-                  size: const Size(40, 40),
-                  builder: (_, _, _) =>
-                      const Icon(Icons.place, color: Colors.red, size: 36),
-                  onDragEnd: (_, point) => _onPinDragEnd(point, false),
-                ),
-            ]),
-            RichAttributionWidget(attributions: [
-              TextSourceAttribution('OpenStreetMap contributors'),
-            ]),
+            DragMarkers(
+              markers: [
+                if (_pickup != null)
+                  DragMarker(
+                    key: const ValueKey('pickup'),
+                    point: _pickup!,
+                    size: const Size(40, 40),
+                    builder: (_, _, _) => const Icon(
+                      Icons.trip_origin,
+                      color: primaryGreen,
+                      size: 32,
+                    ),
+                    onDragEnd: (_, point) => _onPinDragEnd(point, true),
+                  ),
+                if (_dropOff != null)
+                  DragMarker(
+                    key: const ValueKey('dropoff'),
+                    point: _dropOff!,
+                    size: const Size(40, 40),
+                    builder: (_, _, _) =>
+                        const Icon(Icons.place, color: Colors.red, size: 36),
+                    onDragEnd: (_, point) => _onPinDragEnd(point, false),
+                  ),
+              ],
+            ),
+            RichAttributionWidget(
+              attributions: [
+                TextSourceAttribution('OpenStreetMap contributors'),
+              ],
+            ),
           ],
         ),
         Positioned(
@@ -366,9 +377,10 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
                   ? const Padding(
                       padding: EdgeInsets.all(12),
                       child: SizedBox(
-                          height: 16,
-                          width: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2)),
+                        height: 16,
+                        width: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
                     )
                   : null,
               hintText: _settingPickup
@@ -388,17 +400,24 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
               child: ListView(
                 shrinkWrap: true,
                 children: [
-                  ..._suggestions.map((r) => ListTile(
-                        dense: true,
-                        leading: const Icon(Icons.place_outlined, size: 20),
-                        title: Text(r.label,
-                            maxLines: 1, overflow: TextOverflow.ellipsis),
-                        onTap: () => _selectSuggestion(r),
-                      )),
+                  ..._suggestions.map(
+                    (r) => ListTile(
+                      dense: true,
+                      leading: const Icon(Icons.place_outlined, size: 20),
+                      title: Text(
+                        r.label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      onTap: () => _selectSuggestion(r),
+                    ),
+                  ),
                   const Padding(
                     padding: EdgeInsets.all(6),
-                    child: Text('© OpenStreetMap contributors',
-                        style: TextStyle(fontSize: 10, color: textGray)),
+                    child: Text(
+                      '© OpenStreetMap contributors',
+                      style: TextStyle(fontSize: 10, color: textGray),
+                    ),
                   ),
                 ],
               ),
@@ -424,21 +443,25 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
         TextFormField(
           controller: _pickupNotesController,
           decoration: const InputDecoration(
-              labelText: 'Pickup note (optional)',
-              hintText: 'e.g. blue gate, call on arrival'),
+            labelText: 'Pickup note (optional)',
+            hintText: 'e.g. blue gate, call on arrival',
+          ),
         ),
         const SizedBox(height: 12),
         TextFormField(
           controller: _dropOffNotesController,
           decoration: const InputDecoration(
-              labelText: 'Drop-off note (optional)',
-              hintText: 'e.g. 2nd house, ask for Alice'),
+            labelText: 'Drop-off note (optional)',
+            hintText: 'e.g. 2nd house, ask for Alice',
+          ),
         ),
         const SizedBox(height: 12),
         TextFormField(
           controller: _cargoTypeController,
           decoration: const InputDecoration(
-              labelText: 'Cargo type', hintText: 'e.g. Furniture, produce'),
+            labelText: 'Cargo type',
+            hintText: 'e.g. Furniture, produce',
+          ),
           validator: (v) =>
               v == null || v.trim().isEmpty ? 'Describe the cargo' : null,
         ),
@@ -477,7 +500,10 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
           onPressed: _estimating ? null : _getEstimate,
           icon: _estimating
               ? const SizedBox(
-                  height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                  height: 18,
+                  width: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
               : const Icon(Icons.calculate_outlined),
           label: const Text('Get estimated cost'),
         ),
@@ -495,12 +521,15 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
                 Text(
                   'Estimated cost: ~${_estimate!.estimatedPrice} RWF',
                   style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                      color: primaryGreen),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: primaryGreen,
+                  ),
                 ),
-                Text('Distance: ${_estimate!.distanceKm.toStringAsFixed(1)} km',
-                    style: const TextStyle(color: textGray, fontSize: 12)),
+                Text(
+                  'Distance: ${_estimate!.distanceKm.toStringAsFixed(1)} km',
+                  style: const TextStyle(color: textGray, fontSize: 12),
+                ),
                 const SizedBox(height: 6),
                 const Text(
                   'This is a reference estimate — you set the price you post.',
@@ -514,7 +543,9 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
             controller: _priceController,
             keyboardType: TextInputType.number,
             decoration: const InputDecoration(
-                labelText: 'Price to post (RWF)', prefixText: 'RWF '),
+              labelText: 'Price to post (RWF)',
+              prefixText: 'RWF ',
+            ),
             validator: (v) => v == null || int.tryParse(v.trim()) == null
                 ? 'Enter a valid whole-franc price'
                 : null,
@@ -529,7 +560,13 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
             onPressed: _posting ? null : _post,
             child: _posting
                 ? const SizedBox(
-                    height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2,
+                    ),
+                  )
                 : const Text('Post job'),
           ),
         ],
