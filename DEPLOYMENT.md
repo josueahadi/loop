@@ -197,10 +197,10 @@ ADMIN=https://loop-admin-prod.up.railway.app
 | 8 | Post a job | `POST $API/jobs` (as owner, with pins) | 201, job created | ☐ pending manual (mobile owner flow) |
 | 9 | Proposal → accept | owner sends proposal, driver accepts | job → `matched`, contact appears on acceptance | ☐ pending manual |
 | 10 | Message over socket | connect Socket.IO w/ JWT, send in the job room | message delivered to the other participant | ☐ pending manual |
-| 11 | Admin verify + view doc | in `$ADMIN`, approve a pending verification and view the document | approve works; document opens (needs Firebase) | ☐ pending manual (document view needs `STORAGE_DRIVER=firebase`) |
+| 11 | Doc upload + signed view URL | driver `POST /verification` (file) → admin `GET /admin/verifications/:id/document-url` | real signed URL (not stub); URL serves the file | ✅ `stub:false`, signed `storage.googleapis.com/loop-rw…` URL, fetch → 200 (Firebase Storage live) |
 | 12 | CORS enforced | request `$API` from a disallowed origin | blocked; allowed origins work | ✅ admin + `localhost:3001` allowed; other origins blocked (no wildcard) |
 
-> Checks 1–7 and 12 were run against the hosted API and passed. Checks 8–11 are the interactive product loop — drive them from the admin web app and the mobile APK ([§6](#6-mobile-apk)). Note geocode (7) is **auth-gated**, so it needs a bearer token.
+> Checks 1–7, 11, 12 were run against the hosted API and passed. Checks 8–10 are the interactive product loop — drive them from the admin web app and the mobile APK ([§6](#6-mobile-apk)). Note geocode (7) is **auth-gated**, so it needs a bearer token.
 
 > The mobile end-to-end (register → verify → go online → owner matches → propose → accept → chat → complete → rate) is the same flow, driven from the APK built in [§6](#6-mobile-apk).
 
