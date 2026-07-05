@@ -5,6 +5,7 @@ dist/
 npm-debug.log*
 coverage/
 .eslintcache
+*.tsbuildinfo
 
 # ---- Env / secrets ----
 .env

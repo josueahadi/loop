@@ -1,11 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import {
-  IsEnum,
-  IsLatitude,
-  IsLongitude,
-  IsOptional,
-  ValidateIf,
-} from 'class-validator';
+import { IsEnum, IsLatitude, IsLongitude, ValidateIf } from 'class-validator';
 import { AvailabilityStatus } from '../../../common/enums';
 
 // Driver online/offline toggle + current location. When going online, lat/lng are

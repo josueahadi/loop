@@ -21,7 +21,9 @@ export class RegisterDto {
   email: string;
 
   @ApiProperty({ example: '+250780000000', description: 'E.164 Rwanda number' })
-  @Matches(/^\+250\d{9}$/, { message: 'phone must be a valid +250 Rwanda number' })
+  @Matches(/^\+250\d{9}$/, {
+    message: 'phone must be a valid +250 Rwanda number',
+  })
   phone: string;
 
   @ApiProperty({ minLength: 8 })

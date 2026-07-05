@@ -1,7 +1,6 @@
 import {
   BadRequestException,
   ConflictException,
-  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -54,7 +53,9 @@ export class ProposalsService {
       },
     });
     if (existing) {
-      throw new ConflictException('A live proposal already exists for this driver');
+      throw new ConflictException(
+        'A live proposal already exists for this driver',
+      );
     }
     const saved = await this.proposals.save(
       this.proposals.create({ jobId, driverId, status: ProposalStatus.SENT }),
@@ -125,7 +126,9 @@ export class ProposalsService {
     }
     if (proposal.status !== ProposalStatus.SENT) {
       if (proposal.status === status) {
-        const coords = (await this.coordsFor([proposal.jobId])).get(proposal.jobId);
+        const coords = (await this.coordsFor([proposal.jobId])).get(
+          proposal.jobId,
+        );
         return this.toDto(proposal, {
           job: proposal.job,
           coords,
@@ -147,7 +150,9 @@ export class ProposalsService {
         body: 'A driver declined your proposal.',
         data: { type: 'proposal_declined', jobId: proposal.jobId },
       });
-      const coords = (await this.coordsFor([proposal.jobId])).get(proposal.jobId);
+      const coords = (await this.coordsFor([proposal.jobId])).get(
+        proposal.jobId,
+      );
       return this.toDto(proposal, { job: proposal.job, coords });
     }
 

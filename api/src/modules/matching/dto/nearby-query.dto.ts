@@ -24,7 +24,9 @@ export class NearbyQueryDto {
   @IsEnum(VehicleType)
   vehicle_type?: VehicleType;
 
-  @ApiPropertyOptional({ description: 'Search radius in km (defaults to config)' })
+  @ApiPropertyOptional({
+    description: 'Search radius in km (defaults to config)',
+  })
   @IsOptional()
   @IsPositive()
   radius?: number;

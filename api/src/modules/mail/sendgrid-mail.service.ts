@@ -35,7 +35,11 @@ export class SendgridMailService implements MailService {
     }
   }
 
-  async sendPasswordReset(to: string, name: string, link: string): Promise<void> {
+  async sendPasswordReset(
+    to: string,
+    name: string,
+    link: string,
+  ): Promise<void> {
     await this.send(
       to,
       'Reset your Loop password',
@@ -43,7 +47,11 @@ export class SendgridMailService implements MailService {
     );
   }
 
-  async sendEmailVerification(to: string, name: string, link: string): Promise<void> {
+  async sendEmailVerification(
+    to: string,
+    name: string,
+    link: string,
+  ): Promise<void> {
     await this.send(
       to,
       'Verify your Loop email',

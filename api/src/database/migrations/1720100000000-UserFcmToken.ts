@@ -5,7 +5,9 @@ export class UserFcmToken1720100000000 implements MigrationInterface {
   name = 'UserFcmToken1720100000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`ALTER TABLE "users" ADD COLUMN "fcm_token" varchar`);
+    await queryRunner.query(
+      `ALTER TABLE "users" ADD COLUMN "fcm_token" varchar`,
+    );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {

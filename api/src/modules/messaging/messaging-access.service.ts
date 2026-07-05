@@ -34,7 +34,10 @@ export class MessagingAccessService {
     return { ownerId: job.ownerId, driverId: accepted.driverId };
   }
 
-  async assertParticipant(userId: string, jobId: string): Promise<Participants> {
+  async assertParticipant(
+    userId: string,
+    jobId: string,
+  ): Promise<Participants> {
     const p = await this.participants(jobId);
     if (userId !== p.ownerId && userId !== p.driverId) {
       throw new ForbiddenException('Not a participant of this job');

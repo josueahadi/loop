@@ -29,8 +29,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
       message =
         typeof body === 'string'
           ? body
-          : ((body as Record<string, unknown>).message as string) ??
-            exception.message;
+          : (((body as Record<string, unknown>).message as string) ??
+            exception.message);
     }
 
     if (status >= 500) {

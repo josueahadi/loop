@@ -113,7 +113,10 @@ export class AuthService {
     );
   }
 
-  async confirmPasswordReset(token: string, newPassword: string): Promise<void> {
+  async confirmPasswordReset(
+    token: string,
+    newPassword: string,
+  ): Promise<void> {
     const userId = await this.tokens.consumeActionToken(
       token,
       ActionTokenType.PASSWORD_RESET,

@@ -49,9 +49,7 @@ export class AdminController {
   }
 
   @Get('verifications')
-  async listVerifications(
-    @Query() query: ListVerificationsQuery,
-  ) {
+  async listVerifications(@Query() query: ListVerificationsQuery) {
     const status = query.status ?? VerificationStatus.PENDING;
     return this.directory.listVerifications(status);
   }

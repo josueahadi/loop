@@ -65,7 +65,10 @@ export default (): AppConfig => ({
     refreshSecret: process.env.JWT_REFRESH_SECRET ?? '',
     accessTtl: process.env.JWT_ACCESS_TTL ?? '15m',
     refreshTtl: process.env.JWT_REFRESH_TTL ?? '30d',
-    actionTokenTtlHours: parseInt(process.env.ACTION_TOKEN_TTL_HOURS ?? '24', 10),
+    actionTokenTtlHours: parseInt(
+      process.env.ACTION_TOKEN_TTL_HOURS ?? '24',
+      10,
+    ),
   },
   mail: {
     driver: (process.env.MAIL_DRIVER as 'stub' | 'sendgrid') ?? 'stub',

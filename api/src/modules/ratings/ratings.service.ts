@@ -11,10 +11,7 @@ import { Job } from '../jobs/entities/job.entity';
 import { Proposal } from '../proposals/entities/proposal.entity';
 import { User } from '../users/entities/user.entity';
 import { Rating } from './entities/rating.entity';
-import {
-  RatingResponseDto,
-  UserRatingsDto,
-} from './dto/rating-dtos';
+import { RatingResponseDto, UserRatingsDto } from './dto/rating-dtos';
 
 const UNIQUE_VIOLATION = '23505';
 
@@ -40,7 +37,9 @@ export class RatingsService {
     const job = await this.jobs.findOne({ where: { id: jobId } });
     if (!job) throw new NotFoundException('Job not found');
     if (job.status !== JobStatus.COMPLETED) {
-      throw new ForbiddenException('You can only rate after the job is completed');
+      throw new ForbiddenException(
+        'You can only rate after the job is completed',
+      );
     }
 
     // Participants = owner + the accepted driver.
@@ -72,7 +71,10 @@ export class RatingsService {
         return RatingResponseDto.from(saved);
       });
     } catch (err) {
-      if (err instanceof QueryFailedError && (err as any).code === UNIQUE_VIOLATION) {
+      if (
+        err instanceof QueryFailedError &&
+        (err as any).code === UNIQUE_VIOLATION
+      ) {
         throw new ConflictException('You have already rated this job');
       }
       throw err;

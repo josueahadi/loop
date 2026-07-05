@@ -23,7 +23,9 @@ export class StorageService implements OnModuleInit {
 
   onModuleInit() {
     if (this.driver !== 'firebase') {
-      this.logger.warn('STORAGE_DRIVER=stub — documents are not uploaded to Firebase');
+      this.logger.warn(
+        'STORAGE_DRIVER=stub — documents are not uploaded to Firebase',
+      );
       return;
     }
     const bucketName = this.config.get<string>('storage.bucket') ?? '';

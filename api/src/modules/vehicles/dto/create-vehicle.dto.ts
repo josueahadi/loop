@@ -25,7 +25,9 @@ export class CreateVehicleDto {
   @MaxLength(32)
   regNo: string;
 
-  @ApiPropertyOptional({ description: 'Storage reference to the vehicle photo' })
+  @ApiPropertyOptional({
+    description: 'Storage reference to the vehicle photo',
+  })
   @IsOptional()
   @IsString()
   photoUrl?: string;

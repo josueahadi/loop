@@ -17,8 +17,7 @@ import { StubMailService } from './stub-mail.service';
         config: ConfigService,
         stub: StubMailService,
         sendgrid: SendgridMailService,
-      ) =>
-        config.get<string>('mail.driver') === 'sendgrid' ? sendgrid : stub,
+      ) => (config.get<string>('mail.driver') === 'sendgrid' ? sendgrid : stub),
     },
   ],
   exports: [MAIL_SERVICE],
