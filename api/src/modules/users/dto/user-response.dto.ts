@@ -13,6 +13,7 @@ export class UserResponseDto {
   @ApiProperty() emailVerified: boolean;
   @ApiProperty({ enum: AvailabilityStatus, nullable: true })
   availabilityStatus: AvailabilityStatus | null;
+  @ApiProperty({ nullable: true }) licenseNumber: string | null;
   @ApiProperty() averageRating: number;
   @ApiProperty() ratingCount: number;
   @ApiProperty() createdAt: Date;
@@ -27,6 +28,7 @@ export class UserResponseDto {
       photoUrl: user.photoUrl,
       emailVerified: user.emailVerifiedAt != null,
       availabilityStatus: user.availabilityStatus,
+      licenseNumber: user.licenseNumber,
       averageRating: Number(user.averageRating),
       ratingCount: user.ratingCount,
       createdAt: user.createdAt,

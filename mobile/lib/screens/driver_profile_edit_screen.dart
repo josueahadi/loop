@@ -205,10 +205,11 @@ class _DriverProfileEditScreenState extends State<DriverProfileEditScreen>
         await authProvider.uploadProfilePhoto(_profileImage!);
       }
 
-      // Update the editable profile fields (name/phone) via PATCH /me.
+      // Update the editable profile fields (name/phone/licence number) via PATCH /me.
       final updatedUser = currentUser.copyWith(
         name: _nameController.text.trim(),
         phoneNumber: _phoneController.text.trim(),
+        driverLicenseNumber: _driverLicenseNumberController.text.trim(),
         updatedAt: DateTime.now(),
       );
       await _userRepository.updateUser(updatedUser);

@@ -110,6 +110,9 @@ export function UserProfile({ id }: { id: string }) {
                 {u.availabilityStatus ?? 'offline'}
               </Stat>
             )}
+            {u.role === 'driver' && (
+              <Stat label="Licence no.">{u.licenseNumber ?? '—'}</Stat>
+            )}
           </div>
         </CardContent>
       </Card>

@@ -61,6 +61,7 @@ export class AdminDirectoryService {
       `SELECT id, name, email, phone, role,
               photo_url AS "photoUrl",
               availability_status AS "availabilityStatus",
+              license_number AS "licenseNumber",
               email_verified_at AS "emailVerifiedAt",
               average_rating AS "averageRating",
               rating_count AS "ratingCount",

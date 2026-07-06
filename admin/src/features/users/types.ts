@@ -62,6 +62,7 @@ export interface AdminUserProfile {
   role: AdminUserRole;
   photoUrl: string | null;
   availabilityStatus: string | null;
+  licenseNumber: string | null;
   emailVerifiedAt: string | null;
   averageRating: string | number;
   ratingCount: number;

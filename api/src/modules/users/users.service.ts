@@ -73,6 +73,10 @@ export class UsersService {
     }
     if (dto.name !== undefined) user.name = dto.name;
     if (dto.photoUrl !== undefined) user.photoUrl = dto.photoUrl;
+    // Licence number is a driver-only attribute; ignore it for other roles.
+    if (dto.licenseNumber !== undefined && user.role === UserRole.DRIVER) {
+      user.licenseNumber = dto.licenseNumber;
+    }
     return this.users.save(user);
   }
 

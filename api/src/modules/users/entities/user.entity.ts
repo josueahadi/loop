@@ -44,6 +44,10 @@ export class User {
   fcmToken: string | null;
 
   // ---- Driver-only fields (null for cargo owners / admin) ----
+  // Driver's licence number, alongside the uploaded licence document.
+  @Column({ name: 'license_number', type: 'varchar', nullable: true })
+  licenseNumber: string | null;
+
   @Column({
     name: 'availability_status',
     type: 'enum',

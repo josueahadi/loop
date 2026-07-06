@@ -21,4 +21,11 @@ export class UpdateMeDto {
   @IsOptional()
   @IsString()
   photoUrl?: string;
+
+  // Driver's licence number (driver-only; ignored for other roles).
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(60)
+  licenseNumber?: string;
 }

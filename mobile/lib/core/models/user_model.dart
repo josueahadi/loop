@@ -77,6 +77,7 @@ class UserModel {
           ? json['availabilityStatus'] == 'online'
           : null,
       rating: (json['averageRating'] as num?)?.toDouble(),
+      driverLicenseNumber: json['licenseNumber'] as String?,
     );
   }
 
@@ -86,6 +87,8 @@ class UserModel {
       'name': name,
       'phone': phoneNumber,
       if (profileImageUrl != null) 'photoUrl': profileImageUrl,
+      if (driverLicenseNumber != null && driverLicenseNumber!.isNotEmpty)
+        'licenseNumber': driverLicenseNumber,
     };
   }
 
