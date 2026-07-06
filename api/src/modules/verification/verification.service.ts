@@ -77,6 +77,18 @@ export class VerificationService {
     return record;
   }
 
+  // A driver may only fetch a short-lived view URL for their OWN documents.
+  async ownDocumentUrl(
+    driverId: string,
+    recordId: string,
+  ): Promise<{ url: string | null; stub: boolean }> {
+    const record = await this.records.findOne({ where: { id: recordId } });
+    if (!record || record.driverId !== driverId) {
+      throw new NotFoundException('Verification record not found');
+    }
+    return this.storage.signedUrl(record.storageReference);
+  }
+
   // ---- admin side ----
   listByStatus(status?: VerificationStatus): Promise<VerificationRecord[]> {
     return this.records.find({

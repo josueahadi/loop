@@ -246,7 +246,6 @@ class _DriverProfileEditScreenState extends State<DriverProfileEditScreen>
     required String description,
     required VoidCallback onTap,
     required bool isUploading,
-    String? currentUrl,
     File? selectedFile,
     String? documentType,
   }) {
@@ -255,6 +254,10 @@ class _DriverProfileEditScreenState extends State<DriverProfileEditScreen>
         : _latestRecordByType[documentType];
     final isRejected = record?['status'] == 'rejected';
     final reviewNote = record?['reviewNote'] as String?;
+    final recordId = record?['id'] as String?;
+    final recordStatus = record?['status'] as String?;
+    // A doc has been submitted if we have a record for this type (any status).
+    final hasSubmitted = record != null;
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       child: Padding(
@@ -265,10 +268,10 @@ class _DriverProfileEditScreenState extends State<DriverProfileEditScreen>
             Row(
               children: [
                 Icon(
-                  selectedFile != null || currentUrl != null
+                  selectedFile != null || hasSubmitted
                       ? Icons.check_circle
                       : Icons.upload_file,
-                  color: selectedFile != null || currentUrl != null
+                  color: selectedFile != null || hasSubmitted
                       ? Colors.green
                       : Colors.grey,
                 ),
@@ -356,24 +359,13 @@ class _DriverProfileEditScreenState extends State<DriverProfileEditScreen>
                   ],
                 ),
               ),
-            ] else if (currentUrl != null) ...[
+            ] else if (hasSubmitted && recordId != null) ...[
               const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.blue[50],
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Row(
-                  children: [
-                    Icon(Icons.cloud_done, color: Colors.blue, size: 16),
-                    SizedBox(width: 8),
-                    Text(
-                      'Document uploaded',
-                      style: TextStyle(fontSize: 12, color: Colors.blue),
-                    ),
-                  ],
-                ),
+              _DocumentPreview(
+                key: ValueKey(recordId),
+                recordId: recordId,
+                status: recordStatus ?? 'pending',
+                repository: _verificationRepository,
               ),
             ],
             const SizedBox(height: 12),
@@ -391,7 +383,7 @@ class _DriverProfileEditScreenState extends State<DriverProfileEditScreen>
                 label: Text(
                   isUploading
                       ? 'Uploading...'
-                      : selectedFile != null || currentUrl != null
+                      : selectedFile != null || hasSubmitted
                       ? 'Replace Document'
                       : 'Upload Document',
                   style: const TextStyle(fontSize: 14),
@@ -657,7 +649,6 @@ class _DriverProfileEditScreenState extends State<DriverProfileEditScreen>
                   );
                 },
                 isUploading: _driverLicenseUploading,
-                currentUrl: _user?.driverLicense,
                 selectedFile: _driverLicenseFile,
                 documentType: 'licence',
               ),
@@ -677,7 +668,6 @@ class _DriverProfileEditScreenState extends State<DriverProfileEditScreen>
                   );
                 },
                 isUploading: _nationalIdUploading,
-                currentUrl: _user?.nationalId,
                 selectedFile: _nationalIdFile,
                 documentType: 'national_id',
               ),
@@ -697,7 +687,6 @@ class _DriverProfileEditScreenState extends State<DriverProfileEditScreen>
                   );
                 },
                 isUploading: _vehicleRegistrationUploading,
-                currentUrl: _user?.vehicleRegistration,
                 selectedFile: _vehicleRegistrationFile,
                 documentType: 'vehicle_reg',
               ),
@@ -717,7 +706,6 @@ class _DriverProfileEditScreenState extends State<DriverProfileEditScreen>
                   );
                 },
                 isUploading: _vehicleImageUploading,
-                currentUrl: _user?.vehicleImageUrl,
                 selectedFile: _vehicleImageFile,
               ),
 
@@ -750,6 +738,166 @@ class _DriverProfileEditScreenState extends State<DriverProfileEditScreen>
           ),
         ),
       ),
+    );
+  }
+}
+
+// Preview of a driver's already-submitted document: a thumbnail (fetched via a
+// short-lived signed URL) with its review status, tappable to view full-screen.
+// Falls back to a plain "submitted" chip when storage is a dev stub (no URL).
+class _DocumentPreview extends StatefulWidget {
+  final String recordId;
+  final String status; // pending | approved | rejected
+  final VerificationRepository repository;
+
+  const _DocumentPreview({
+    super.key,
+    required this.recordId,
+    required this.status,
+    required this.repository,
+  });
+
+  @override
+  State<_DocumentPreview> createState() => _DocumentPreviewState();
+}
+
+class _DocumentPreviewState extends State<_DocumentPreview> {
+  String? _url;
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final url = await widget.repository.documentUrl(widget.recordId);
+    if (!mounted) return;
+    setState(() {
+      _url = url;
+      _loading = false;
+    });
+  }
+
+  ({Color color, String label}) get _statusStyle {
+    switch (widget.status) {
+      case 'approved':
+        return (color: Colors.green, label: 'Approved');
+      case 'rejected':
+        return (color: Colors.red, label: 'Rejected');
+      default:
+        return (color: Colors.orange, label: 'Pending review');
+    }
+  }
+
+  void _openFullScreen() {
+    final url = _url;
+    if (url == null) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => Scaffold(
+          backgroundColor: Colors.black,
+          appBar: AppBar(
+            backgroundColor: Colors.black,
+            iconTheme: const IconThemeData(color: Colors.white),
+          ),
+          body: Center(
+            child: InteractiveViewer(
+              child: Image.network(url, fit: BoxFit.contain),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = _statusStyle;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (_loading)
+          const SizedBox(
+            height: 120,
+            child: Center(
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+          )
+        else if (_url != null)
+          GestureDetector(
+            onTap: _openFullScreen,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Stack(
+                children: [
+                  Image.network(
+                    _url!,
+                    height: 140,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stack) => Container(
+                      height: 140,
+                      color: Colors.grey[200],
+                      child: const Center(
+                        child: Icon(Icons.broken_image, color: Colors.grey),
+                      ),
+                    ),
+                  ),
+                  const Positioned(
+                    right: 8,
+                    bottom: 8,
+                    child: Icon(
+                      Icons.zoom_in,
+                      color: Colors.white,
+                      size: 20,
+                      shadows: [Shadow(blurRadius: 4)],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          )
+        else
+          // Storage stub (dev) — no viewable URL. Show a plain "submitted" chip.
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.blue[50],
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.cloud_done, color: Colors.blue, size: 16),
+                SizedBox(width: 8),
+                Text(
+                  'Document submitted',
+                  style: TextStyle(fontSize: 12, color: Colors.blue),
+                ),
+              ],
+            ),
+          ),
+        const SizedBox(height: 6),
+        Row(
+          children: [
+            Icon(Icons.circle, size: 10, color: s.color),
+            const SizedBox(width: 6),
+            Text(
+              s.label,
+              style: TextStyle(
+                fontSize: 12,
+                color: s.color,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

@@ -2,6 +2,8 @@ import {
   Body,
   Controller,
   Get,
+  Param,
+  ParseUUIDPipe,
   Post,
   UploadedFile,
   UseInterceptors,
@@ -45,5 +47,14 @@ export class VerificationController {
   ): Promise<VerificationResponseDto[]> {
     const records = await this.verification.listOwn(driverId);
     return records.map(VerificationResponseDto.from);
+  }
+
+  // Short-lived signed URL so a driver can preview their OWN uploaded document.
+  @Get(':id/document-url')
+  async documentUrl(
+    @CurrentUser('id') driverId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<{ url: string | null; stub: boolean }> {
+    return this.verification.ownDocumentUrl(driverId, id);
   }
 }
