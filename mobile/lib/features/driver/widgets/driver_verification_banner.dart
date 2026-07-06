@@ -47,19 +47,28 @@ class _DriverVerificationBannerState extends State<DriverVerificationBanner> {
         _verification.listOwn(),
       ]);
       final vehicles = results[0] as List;
+      // listOwn() returns records newest-first, so the FIRST record seen per
+      // document type is the current one. A rejected doc that has since been
+      // re-uploaded therefore reads as 'pending', not 'rejected'.
       final records = (results[1] as List).cast<Map<String, dynamic>>();
+      final latestByType = <String, String>{};
+      for (final r in records) {
+        final type = r['documentType'] as String?;
+        final status = r['status'] as String?;
+        if (type == null || status == null || !_requiredDocs.contains(type)) {
+          continue;
+        }
+        latestByType.putIfAbsent(type, () => status);
+      }
 
       _approvedDocs.clear();
       _hasRejected = false;
       _hasPending = false;
-      for (final r in records) {
-        final type = r['documentType'] as String?;
-        final status = r['status'] as String?;
-        if (type == null || !_requiredDocs.contains(type)) continue;
+      latestByType.forEach((type, status) {
         if (status == 'approved') _approvedDocs.add(type);
         if (status == 'rejected') _hasRejected = true;
         if (status == 'pending') _hasPending = true;
-      }
+      });
       _hasVehicle = vehicles.isNotEmpty;
     } catch (_) {
       // On failure, show nothing rather than a misleading banner.

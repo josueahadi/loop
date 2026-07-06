@@ -80,30 +80,29 @@ class _DriverHomeState extends State<DriverHome> {
       return 'Add a vehicle before going online.';
     }
 
+    // listOwn() is newest-first: keep the latest status per document type so a
+    // re-uploaded (now pending) doc no longer counts as rejected.
     final records = await _verificationRepository.listOwn();
-    final approved = records
-        .where((r) => r['status'] == 'approved')
-        .map((r) => r['documentType'] as String?)
-        .whereType<String>()
-        .where(_requiredDocuments.contains)
+    final latestByType = <String, String>{};
+    for (final r in records) {
+      final type = r['documentType'] as String?;
+      final status = r['status'] as String?;
+      if (type == null || status == null || !_requiredDocuments.contains(type)) {
+        continue;
+      }
+      latestByType.putIfAbsent(type, () => status);
+    }
+
+    final approved = latestByType.entries
+        .where((e) => e.value == 'approved')
+        .map((e) => e.key)
         .toSet();
     if (approved.length == _requiredDocuments.length) return null;
 
-    final hasRejected = records.any(
-      (r) =>
-          _requiredDocuments.contains(r['documentType']) &&
-          r['status'] == 'rejected',
-    );
-    if (hasRejected) {
+    if (latestByType.values.contains('rejected')) {
       return 'A document was rejected. Please re-upload it.';
     }
-
-    final hasPending = records.any(
-      (r) =>
-          _requiredDocuments.contains(r['documentType']) &&
-          r['status'] == 'pending',
-    );
-    if (hasPending) {
+    if (latestByType.values.contains('pending')) {
       return 'Your documents are still under review.';
     }
 
