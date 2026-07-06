@@ -7,7 +7,7 @@ The cargo-owner + driver mobile app for Loop. Talks to the NestJS API (`../api`)
 - Flutter (stable) — developed on 3.32.5, Dart SDK `^3.8.1`
 - `provider` (state), `dio` + `flutter_secure_storage` (API + JWT)
 - `flutter_map` + OpenStreetMap tiles (maps, no API key), `latlong2`, `geolocator` (device location)
-- `firebase_core` + `firebase_storage` retained for FCM push / document storage (later milestones). **Firebase Auth is not used** — identity is the API's JWT.
+- **No Firebase in the client** — auth (JWT), jobs, proposals, messaging, and document upload all go through the NestJS API. Firebase Storage + FCM run **server-side** on the `loop-rw` project; `firebase_core` + `firebase_messaging` are re-added here (pointed at `loop-rw`) only when FCM push is built (later milestone).
 
 > Location search (place/landmark autocomplete + reverse-geocoded pin labels, served by the API's `/geocode/*` proxy over OpenStreetMap) and the "Open in Maps" navigation hand-off (`map_launcher` / `url_launcher` → Google / Apple Maps / Waze) arrive with M3.5–M4. No Google Maps SDK and no API key are used.
 

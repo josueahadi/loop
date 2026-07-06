@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'widgets/firebase_initializer.dart';
 import 'screens/welcome_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/signup_screen.dart';
@@ -26,54 +25,50 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FirebaseInitializer(
-      child: MultiProvider(
-        providers: [
-          ChangeNotifierProvider(create: (_) => AuthProvider()),
-          ChangeNotifierProvider(create: (_) => ButtonProvider()),
-          ProxyProvider0<UserRepository>(
-            update: (_, __) => ApiUserRepository(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => ButtonProvider()),
+        ProxyProvider0<UserRepository>(update: (_, __) => ApiUserRepository()),
+        ChangeNotifierProxyProvider<UserRepository, ProfileProvider>(
+          create: (context) => ProfileProvider(
+            Provider.of<UserRepository>(context, listen: false),
           ),
-          ChangeNotifierProxyProvider<UserRepository, ProfileProvider>(
-            create: (context) => ProfileProvider(
-              Provider.of<UserRepository>(context, listen: false),
-            ),
-            update: (context, userRepo, previous) =>
-                previous ?? ProfileProvider(userRepo),
-          ),
-        ],
-        child: Consumer<AuthProvider>(
-          builder: (context, authProvider, child) {
-            // Initialize auth state when the app starts
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              authProvider.initializeAuth();
-            });
-
-            return MaterialApp(
-              title: 'Loop',
-              debugShowCheckedModeBanner: false,
-              theme: ThemeData(
-                fontFamily: 'Lexend',
-                useMaterial3: true,
-                colorScheme: ColorScheme.fromSeed(seedColor: primaryGreen),
-              ),
-              initialRoute: '/splash',
-              routes: {
-                '/splash': (context) => const SplashScreen(),
-                '/': (context) => WelcomeScreen(),
-                '/login': (context) => LoginScreen(),
-                '/signup': (context) => SignupScreen(),
-                '/forgot-password': (context) => const ForgetPasswordScreen(),
-                '/password-reset-confirmation': (context) =>
-                    const PasswordResetConfirmation(),
-                '/email-verification': (context) =>
-                    const EmailVerificationScreen(),
-                '/home': (context) => const Home(),
-                '/personal-data': (context) => const PersonalDataScreen(),
-              },
-            );
-          },
+          update: (context, userRepo, previous) =>
+              previous ?? ProfileProvider(userRepo),
         ),
+      ],
+      child: Consumer<AuthProvider>(
+        builder: (context, authProvider, child) {
+          // Initialize auth state when the app starts
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            authProvider.initializeAuth();
+          });
+
+          return MaterialApp(
+            title: 'Loop',
+            debugShowCheckedModeBanner: false,
+            theme: ThemeData(
+              fontFamily: 'Lexend',
+              useMaterial3: true,
+              colorScheme: ColorScheme.fromSeed(seedColor: primaryGreen),
+            ),
+            initialRoute: '/splash',
+            routes: {
+              '/splash': (context) => const SplashScreen(),
+              '/': (context) => WelcomeScreen(),
+              '/login': (context) => LoginScreen(),
+              '/signup': (context) => SignupScreen(),
+              '/forgot-password': (context) => const ForgetPasswordScreen(),
+              '/password-reset-confirmation': (context) =>
+                  const PasswordResetConfirmation(),
+              '/email-verification': (context) =>
+                  const EmailVerificationScreen(),
+              '/home': (context) => const Home(),
+              '/personal-data': (context) => const PersonalDataScreen(),
+            },
+          );
+        },
       ),
     );
   }

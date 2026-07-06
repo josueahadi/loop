@@ -1,17 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
+    <!-- Cleartext only for local dev (Android emulator loopback + localhost). -->
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="true">10.0.2.2</domain>
         <domain includeSubdomains="true">localhost</domain>
         <domain includeSubdomains="true">127.0.0.1</domain>
-    </domain-config>
-    <!-- Allow secure connections to Firebase services -->
-    <domain-config cleartextTrafficPermitted="false">
-        <domain includeSubdomains="true">firebase.googleapis.com</domain>
-        <domain includeSubdomains="true">firebaseapp.com</domain>
-        <domain includeSubdomains="true">googleapis.com</domain>
-        <domain includeSubdomains="true">google.com</domain>
-        <domain includeSubdomains="true">gstatic.com</domain>
     </domain-config>
     <base-config cleartextTrafficPermitted="false">
         <trust-anchors>
