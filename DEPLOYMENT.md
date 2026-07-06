@@ -2,7 +2,7 @@
 
 This guide deploys Loop as a single **Railway** project with **three services** — a PostGIS database, the NestJS **API**, and the Next.js **admin** — plus the external **Firebase Storage/FCM** and **SendGrid** dependencies. The Flutter mobile app is built into an APK that points at the API's public URL.
 
-It is written to be **reproducible**: every step lists the tool, the exact command or Railway action, and the environment it applies to. Section 8 is a **runnable verification checklist** to fill in against the hosted stack.
+It is written to be **reproducible**: every step lists the tool, the exact command or Railway action, and the environment it applies to. Section 9 is a **runnable verification checklist** to fill in against the hosted stack.
 
 > Secrets rule: every secret lives in Railway **service variables**. The repo only ever commits `*.example` templates with placeholder values.
 
@@ -36,7 +36,7 @@ It is written to be **reproducible**: every step lists the tool, the exact comma
 
 ### Why these deployment choices
 
-- **One Railway project, three services** — the pilot deliverable is a single, reproducible environment. Co-locating db + api + admin keeps one dashboard, one set of secrets, and private-network DB access with no extra config. (Production alternatives are in [§10](#10-future--production-migration).)
+- **One Railway project, three services** — the pilot deliverable is a single, reproducible environment. Co-locating db + api + admin keeps one dashboard, one set of secrets, and private-network DB access with no extra config. (Production alternatives are in [§11](#11-future--production-migration).)
 - **`postgis/postgis:17-3.5` (custom image), not Railway's Postgres plugin** — Loop's matching/pricing needs the **PostGIS** extension, and using the same image as `docker-compose.yml` means local and prod behave identically.
 - **Stubs first (`MAIL/STORAGE/PUSH=stub`), flip to real later** — the app deploys and the full auth/matching/jobs loop runs **without** Firebase or SendGrid credentials, so a broken third-party integration can't block the first deploy. Going live is then an env-only change ([§5](#5-going-live-flip-stubs--real)).
 - **Migrations as a pre-deploy command, never on app boot** — a DB hiccup during a release fails the migration step, not the running server, so the app can't crash-loop on startup. `synchronize` stays off; schema changes go only through migrations.
@@ -101,7 +101,7 @@ All steps are in the **one** Railway project. Do them in order.
 4. **Settings → Deploy → Serverless** → turn it **OFF** for `db` (this is the "App Sleeping" control). The database must stay warm — a sleeping DB stalls the first request.
 5. Deploy. Unlike Railway's managed Postgres, this raw image does **not** auto-compose a `DATABASE_URL` — the api constructs one from this service's vars ([§4.2](#42-deploy-the-api-service)). The db is **unexposed** (private network only) by default — that is correct; the api reaches it privately.
 
-> **Optional — external DB inspection only.** To browse the data from your laptop (DBeaver/TablePlus), turn on **Settings → Networking → TCP Proxy**. This makes the DB a **public** endpoint (guarded only by the Postgres password — use a strong one), so connect with **SSL disabled** (the image has no TLS), and turn the proxy back **off** when done. Railway bills egress on proxy traffic. Not needed to deploy or to run the [§8](#8-verification-in-the-target-environment) verification.
+> **Optional — external DB inspection only.** To browse the data from your laptop (DBeaver/TablePlus), turn on **Settings → Networking → TCP Proxy**. This makes the DB a **public** endpoint (guarded only by the Postgres password — use a strong one), so connect with **SSL disabled** (the image has no TLS), and turn the proxy back **off** when done. Railway bills egress on proxy traffic. Not needed to deploy or to run the [§9](#9-verification-in-the-target-environment) verification.
 
 ### 4.2 Deploy the API service
 
@@ -141,13 +141,13 @@ Railway serves every generated domain over **HTTPS automatically** — no cert s
 
 ## 5. Going live (flip stubs → real)
 
-Do this once the three services are up and smoke-tested ([§8](#8-verification-in-the-target-environment)). Change **only env vars** on the **api** service, then redeploy:
+Do this once the three services are up and smoke-tested ([§9](#9-verification-in-the-target-environment)). Change **only env vars** on the **api** service, then redeploy:
 
 1. **SendGrid** — `MAIL_DRIVER=sendgrid`, `SENDGRID_API_KEY=<key>`, `SENDGRID_FROM=<verified sender>`. Verify the sender/domain in SendGrid first, or mail silently fails.
 2. **Firebase Storage** — `STORAGE_DRIVER=firebase`, `FIREBASE_SERVICE_ACCOUNT_JSON=<full service-account JSON, inline>`, `FIREBASE_STORAGE_BUCKET=<your-bucket>`. Paste the service-account JSON **exactly as downloaded** — its `private_key` newlines are already `\n`-escaped inside the JSON, and the app `JSON.parse`s the value as-is (no manual re-escaping). This also **activates the M6 admin document signed-URLs** (the admin can then view uploaded documents) and the private-bucket uploads. Keep the bucket **private**.
-3. **FCM** — `PUSH_DRIVER=fcm` (uses the same Firebase credentials above).
+3. **FCM** — `PUSH_DRIVER=fcm` (uses the same Firebase credentials above). Full push setup — client config + platform status — is in [§7](#7-push-notifications-fcm).
 
-Redeploy the api. Re-run the [§8](#8-verification-in-the-target-environment) checks that depend on these (document view, email).
+Redeploy the api. Re-run the [§9](#9-verification-in-the-target-environment) checks that depend on these (document view, email).
 
 ---
 
@@ -164,10 +164,36 @@ flutter build apk --release \
 
 - The Android `<queries>` block for `map_launcher` (Google/Waze deep links) is present in `mobile/android/app/src/main/AndroidManifest.xml` — confirm it is still there before release.
 - **Distribution:** share the APK directly, or upload to **Firebase App Distribution** for testers.
+- **Android build tooling:** requires Android Gradle Plugin **≥ 8.11.1** / Gradle **≥ 8.14.3** (pinned in the repo) because `firebase_messaging` pulls in AndroidX libs needing AGP 8.9.1+.
 
 ---
 
-## 7. Secrets
+## 7. Push notifications (FCM)
+
+Push runs through **Firebase Cloud Messaging** on the **`loop-rw`** project. The API pushes to a user's device on: proposal sent / accepted / declined, new message, and verification approved / rejected. Firebase is used for push (and server-side Storage) **only** — identity stays NestJS JWT.
+
+**Server side (Railway `api` service):**
+
+```
+PUSH_DRIVER=fcm
+FIREBASE_SERVICE_ACCOUNT_JSON={...}   # loop-rw service account, inline (already set for Storage)
+```
+
+`PushService` looks up the recipient's `fcm_token` (stored via `POST /me/push-token`) and sends via `firebase-admin`. It is **best-effort** — a missing token or send failure never fails the underlying action. With `PUSH_DRIVER=stub` (dev default) pushes are only logged.
+
+**Client side (mobile):**
+
+- Native config (`firebase_options.dart`, `android/app/google-services.json`, `ios/Runner/GoogleService-Info.plist`) is generated by `flutterfire configure --project=loop-rw`. These are **client configs** (public app IDs / API keys — no secrets) and are committed. Re-run `flutterfire configure` if app IDs change.
+- On login the app registers its FCM token; `POST /me/push-token` persists it to `users.fcm_token`.
+
+**Platform status:**
+
+- **Android** — fully working on a device *or* an emulator with **Google Play services** (see `mobile/README.md` → Android emulator). No store listing, no paid account.
+- **iOS** — needs a **paid Apple Developer account** to create an **APNs key** (uploaded to Firebase → Cloud Messaging), and a **physical iPhone** (the simulator can't receive remote push). No store listing required. Until the APNs key is added, iOS push is inert; the app still runs.
+
+---
+
+## 8. Secrets
 
 - **All** secrets live in **Railway service variables** — never in git.
 - Only `*.example` files are tracked (`api/.env.example`, `api/.env.production.example`, `admin/.env.production.example`); they contain **placeholders only**.
@@ -176,7 +202,7 @@ flutter build apk --release \
 
 ---
 
-## 8. Verification in the target environment
+## 9. Verification in the target environment
 
 Run these against the **hosted** stack. Results below are from the live deployment on **2026-07-05**:
 
@@ -206,13 +232,13 @@ ADMIN=https://loop-admin-prod.up.railway.app
 
 ---
 
-## 9. Redeploy / rollback
+## 10. Redeploy / rollback
 
 - **Redeploy:** push to `main` (Railway auto-deploys the connected services), or hit **Deploy** in the Railway UI. The api's pre-deploy runs `migration:run:prod` — new migrations apply automatically; already-applied ones are skipped.
 - **Rollback:** Railway → service → **Deployments** → pick a previous successful deployment → **Redeploy**. Note: a rollback redeploys the old **code/image**, it does **not** revert the database. If a migration must be undone, run `npm run migration:revert` (dev) / the equivalent against prod deliberately — data migrations are not auto-reverted.
 - **DB safety:** the db service's volume persists across redeploys; deleting the service or its volume is the only way to lose data.
 
-## 10. Future / production migration
+## 11. Future / production migration
 
 The pilot runs entirely on **Railway** (§1) — one project, three services — chosen for speed and low operational surface while proving the product. That is the right choice for a pilot, **not** the right shape for a long-running product: Railway's Postgres here is a self-managed container (you own backups — see below), and co-locating everything trades tool-fit for convenience.
 
