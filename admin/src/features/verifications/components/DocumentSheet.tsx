@@ -43,7 +43,7 @@ export function DocumentSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
-        className="flex w-full flex-col gap-0 overflow-y-auto p-0 sm:max-w-none md:w-1/2"
+        className="flex w-full flex-col gap-0 overflow-y-auto p-0 sm:max-w-160! md:w-[50vw] md:max-w-[50vw]!"
       >
         <SheetHeader className="border-b">
           <SheetTitle>{group?.driver.name ?? 'Driver'}</SheetTitle>
