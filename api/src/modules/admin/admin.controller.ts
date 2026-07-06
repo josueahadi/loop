@@ -79,6 +79,11 @@ export class AdminController {
     return this.directory.listJobs(query);
   }
 
+  @Get('jobs/:id')
+  async getJob(@Param('id', ParseUUIDPipe) id: string) {
+    return this.directory.getJobDetail(id);
+  }
+
   // Trail of admin actions (verification reviews, admin logins). Paginated;
   // `filter` narrows to a single action string (e.g. 'verification.rejected').
   @Get('audit')

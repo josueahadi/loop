@@ -6,6 +6,7 @@ import '../../../core/models/job.dart';
 import '../../../core/models/user_model.dart';
 import '../../../core/repositories/job_repository.dart';
 import '../../jobs/presentation/owner_job_detail_screen.dart';
+import '../../ratings/presentation/my_ratings_screen.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../features/profile/providers/profile_provider.dart';
 import '../../../screens/create_job_screen.dart';
@@ -480,21 +481,21 @@ class _ProfileTab extends StatelessWidget {
                   );
                 },
               ),
-              // Cargo owners need only an account — no business credentials (MVP scope).
               _ProfileOption(
-                icon: Icons.location_on,
-                title: 'Address',
-                subtitle: user.fullAddress.isNotEmpty
-                    ? user.fullAddress
-                    : 'Add your address',
+                icon: Icons.star_outline,
+                title: 'My Ratings',
+                subtitle: user.rating != null
+                    ? '${user.rating!.toStringAsFixed(1)} average'
+                    : 'View ratings you received',
                 onTap: () {
                   Navigator.of(context).push(
                     MaterialPageRoute(
-                      builder: (context) => const CargoOwnerProfileEditScreen(),
+                      builder: (context) => const MyRatingsScreen(),
                     ),
                   );
                 },
               ),
+              // Cargo owners need only an account — no business credentials (MVP scope).
               _ProfileOption(
                 icon: Icons.notifications,
                 title: 'Notifications',

@@ -107,6 +107,7 @@ export class RatingsService {
     const rows = await this.ratings.find({
       where: { toUserId: userId },
       order: { createdAt: 'DESC' },
+      relations: { fromUser: true },
     });
     return {
       average: Number(user.averageRating),

@@ -153,6 +153,53 @@ export class AdminDirectoryService {
     return base;
   }
 
+  // Full detail for one job + its proposals, message count, and ratings, for
+  // the admin job-detail page. Mirrors getUserProfile's focused-query approach.
+  async getJobDetail(id: string): Promise<any> {
+    const [job] = await this.ds.query(
+      `SELECT j.id, j.cargo_type AS "cargoType", j.size,
+              j.weight_kg AS "weightKg",
+              j.price, j.estimated_price AS "estimatedPrice",
+              j.req_vehicle_type AS "requiredVehicleType", j.status,
+              j.pickup_label AS "pickupLabel", j.pickup_notes AS "pickupNotes",
+              j.drop_off_label AS "dropOffLabel", j.drop_off_notes AS "dropOffNotes",
+              j.created_at AS "createdAt", j.posted_at AS "postedAt",
+              j.matched_at AS "matchedAt", j.accepted_at AS "acceptedAt",
+              j.in_progress_at AS "inProgressAt", j.completed_at AS "completedAt",
+              j.cancelled_at AS "cancelledAt",
+              json_build_object('id', u.id, 'name', u.name, 'email', u.email, 'phone', u.phone) AS owner
+       FROM jobs j JOIN users u ON u.id = j.owner_id
+       WHERE j.id = $1`,
+      [id],
+    );
+    if (!job) throw new NotFoundException('Job not found');
+
+    const proposals = await this.ds.query(
+      `SELECT p.id, p.status, p.created_at AS "createdAt",
+              p.responded_at AS "respondedAt",
+              json_build_object('id', du.id, 'name', du.name, 'phone', du.phone) AS driver
+       FROM proposals p JOIN users du ON du.id = p.driver_id
+       WHERE p.job_id = $1
+       ORDER BY p.created_at ASC`,
+      [id],
+    );
+    const [{ count: messageCount }] = await this.ds.query(
+      `SELECT COUNT(*)::int AS count FROM messages WHERE job_id = $1`,
+      [id],
+    );
+    const ratings = await this.ds.query(
+      `SELECT r.score, r.comment, r.created_at AS "createdAt",
+              fu.name AS "fromName", tu.name AS "toName"
+       FROM ratings r
+       JOIN users fu ON fu.id = r.from_user_id
+       JOIN users tu ON tu.id = r.to_user_id
+       WHERE r.job_id = $1
+       ORDER BY r.created_at ASC`,
+      [id],
+    );
+    return { ...job, proposals, messageCount, ratings };
+  }
+
   async listDrivers(q: DirectoryQuery): Promise<Paginated<any>> {
     const { limit, offset } = this.paginate(q);
     // search matches name/email/phone; filter = matchable | blocked (computed

@@ -1,13 +1,43 @@
 import '../api/api_client.dart';
 
+class RatingItem {
+  final int score;
+  final String? comment;
+  final String? fromName;
+  final DateTime createdAt;
+
+  const RatingItem({
+    required this.score,
+    this.comment,
+    this.fromName,
+    required this.createdAt,
+  });
+
+  factory RatingItem.fromJson(Map<String, dynamic> j) => RatingItem(
+    score: (j['score'] as num?)?.toInt() ?? 0,
+    comment: j['comment'] as String?,
+    fromName: j['fromName'] as String?,
+    createdAt:
+        DateTime.tryParse(j['createdAt'] as String? ?? '') ?? DateTime.now(),
+  );
+}
+
 class UserRatings {
   final double average;
   final int count;
-  const UserRatings({required this.average, required this.count});
+  final List<RatingItem> ratings;
+  const UserRatings({
+    required this.average,
+    required this.count,
+    this.ratings = const [],
+  });
 
   factory UserRatings.fromJson(Map<String, dynamic> j) => UserRatings(
     average: (j['average'] as num?)?.toDouble() ?? 0,
     count: (j['count'] as num?)?.toInt() ?? 0,
+    ratings: ((j['ratings'] as List?) ?? const [])
+        .map((r) => RatingItem.fromJson(r as Map<String, dynamic>))
+        .toList(),
   );
 }
 

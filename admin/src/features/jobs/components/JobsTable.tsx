@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { DataTable, type Column } from '@/components/data-table';
 import { DEFAULT_PAGE_SIZE } from '@/lib/pagination';
@@ -83,6 +84,7 @@ const columns: Column<AdminJob>[] = [
 ];
 
 export function JobsTable() {
+  const router = useRouter();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
@@ -124,6 +126,7 @@ export function JobsTable() {
       filterLabel="All statuses"
       emptyMessage="No jobs found."
       rowKey={(j) => j.id}
+      onRowClick={(j) => router.push(`/jobs/${j.id}`)}
     />
   );
 }

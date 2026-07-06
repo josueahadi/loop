@@ -14,6 +14,7 @@ import '../../../constants.dart';
 import '../../../screens/driver_profile_edit_screen.dart';
 import '../../chat/presentation/job_chat_screen.dart';
 import '../../proposals/presentation/driver_proposals_screen.dart';
+import '../../ratings/presentation/my_ratings_screen.dart';
 import '../../../screens/vehicle_details_screen.dart';
 import '../widgets/driver_verification_banner.dart';
 import '../../../core/theme/ui_kit.dart';
@@ -793,6 +794,20 @@ class _ProfileTab extends StatelessWidget {
                   Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (context) => const DriverProfileEditScreen(),
+                    ),
+                  );
+                },
+              ),
+              _ProfileOption(
+                icon: Icons.star_outline,
+                title: 'My Ratings',
+                subtitle: user?.rating != null
+                    ? '${user!.rating!.toStringAsFixed(1)} average'
+                    : 'View ratings you received',
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const MyRatingsScreen(),
                     ),
                   );
                 },

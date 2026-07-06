@@ -19,7 +19,7 @@ Engineering distillation of the proposal for implementation. Stack-agnostic on p
 Payments are **fully out of scope**. Loop never processes, holds, or records payment — no MoMo/USSD dial shortcut, no card/PSP integration, no escrow. Parties settle payment offline, out of band. The MoMo USSD flow and card payments are cited in **future work only**. See also the out-of-scope list in `CLAUDE.md`.
 
 ### Stretch — post-core polish (optional, NOT MVP-done)
-These are perception/UX upgrades that ride on infrastructure the MVP already has. Build them **only after the core loop (M4) and trust (M5) are green** — they are demo polish, not part of the defensible core (matching, transparent pricing, trust). Both are detailed in §6.
+These are perception/UX upgrades that ride on infrastructure the MVP already has. I will build them **only after the core loop (M4) and trust (M5) are done**.
 - **Live driver position (owner map).** After a proposal is accepted, the owner watches the assigned driver's marker move toward the pickup, over the **existing M4 WebSocket gateway**. Scoped tightly: only post-acceptance, only for the active job, **stops at completion**; shows the live dot + **straight-line distance** ("driver ~800 m away") — never a road ETA (that would need routing, which stays out).
 - **Abstracted / minimal basemap.** Swap the default OSM raster tiles for a muted OSM-based basemap (CartoDB "Positron" / a Stadia/MapTiler *light* style) plus clean custom markers, for an Uber-like look. Raster-only — **no vector tiles, no map SDK**; check the basemap provider's free-tier terms + attribution.
 

@@ -21,13 +21,6 @@ class _CargoOwnerProfileEditScreenState
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
 
-  // Address controllers
-  final _streetController = TextEditingController();
-  final _cityController = TextEditingController();
-  final _stateController = TextEditingController();
-  final _postalCodeController = TextEditingController();
-  final _countryController = TextEditingController();
-
   final UserRepository _userRepository = ApiUserRepository();
 
   bool _isLoading = false;
@@ -46,11 +39,6 @@ class _CargoOwnerProfileEditScreenState
   void dispose() {
     _nameController.dispose();
     _phoneController.dispose();
-    _streetController.dispose();
-    _cityController.dispose();
-    _stateController.dispose();
-    _postalCodeController.dispose();
-    _countryController.dispose();
     super.dispose();
   }
 
@@ -68,13 +56,6 @@ class _CargoOwnerProfileEditScreenState
           _user = userToUse;
           _nameController.text = userToUse.name;
           _phoneController.text = userToUse.phoneNumber;
-
-          // Load address fields
-          _streetController.text = userToUse.street ?? '';
-          _cityController.text = userToUse.city ?? '';
-          _stateController.text = userToUse.state ?? '';
-          _postalCodeController.text = userToUse.postalCode ?? '';
-          _countryController.text = userToUse.country ?? '';
         });
       } catch (e) {
         // Fallback to cached user data if database fetch fails
@@ -82,13 +63,6 @@ class _CargoOwnerProfileEditScreenState
           _user = currentUser;
           _nameController.text = currentUser.name;
           _phoneController.text = currentUser.phoneNumber;
-
-          // Load address fields
-          _streetController.text = currentUser.street ?? '';
-          _cityController.text = currentUser.city ?? '';
-          _stateController.text = currentUser.state ?? '';
-          _postalCodeController.text = currentUser.postalCode ?? '';
-          _countryController.text = currentUser.country ?? '';
         });
       }
     }
@@ -119,14 +93,6 @@ class _CargoOwnerProfileEditScreenState
       final updatedUser = currentUser.copyWith(
         name: _nameController.text.trim(),
         phoneNumber: _phoneController.text.trim(),
-
-        // Update address fields
-        street: _streetController.text.trim(),
-        city: _cityController.text.trim(),
-        state: _stateController.text.trim(),
-        postalCode: _postalCodeController.text.trim(),
-        country: _countryController.text.trim(),
-
         updatedAt: DateTime.now(),
       );
 
@@ -283,77 +249,6 @@ class _CargoOwnerProfileEditScreenState
                   }
                   return null;
                 },
-              ),
-
-              const SizedBox(height: 32),
-
-              // Address Information
-              const Text(
-                'Address Information',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 16),
-
-              TextFormField(
-                controller: _streetController,
-                decoration: const InputDecoration(
-                  labelText: 'Street Address',
-                  hintText: 'Enter your street address',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _cityController,
-                      decoration: const InputDecoration(
-                        labelText: 'City',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _stateController,
-                      decoration: const InputDecoration(
-                        labelText: 'State/Province',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 16),
-
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _postalCodeController,
-                      decoration: const InputDecoration(
-                        labelText: 'Postal Code',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _countryController,
-                      decoration: const InputDecoration(
-                        labelText: 'Country',
-                        hintText: 'e.g., Rwanda',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                  ),
-                ],
               ),
 
               const SizedBox(height: 32),

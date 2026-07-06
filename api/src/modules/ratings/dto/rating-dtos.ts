@@ -31,6 +31,8 @@ export class RatingResponseDto {
   @ApiProperty() score: number;
   @ApiProperty({ nullable: true }) comment: string | null;
   @ApiProperty() createdAt: Date;
+  // Rater's display name, when the fromUser relation is loaded.
+  @ApiPropertyOptional({ nullable: true }) fromName?: string | null;
 
   static from(r: Rating): RatingResponseDto {
     return {
@@ -41,6 +43,7 @@ export class RatingResponseDto {
       score: r.score,
       comment: r.comment,
       createdAt: r.createdAt,
+      fromName: r.fromUser?.name ?? null,
     };
   }
 }

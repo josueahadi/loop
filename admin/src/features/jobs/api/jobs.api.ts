@@ -4,7 +4,7 @@ import {
   type DirectoryParams,
   type Paginated,
 } from '@/lib/pagination';
-import type { AdminJob } from '../types';
+import type { AdminJob, AdminJobDetail } from '../types';
 
 export async function listJobs(
   params: DirectoryParams,
@@ -12,5 +12,10 @@ export async function listJobs(
   const { data } = await api.get<Paginated<AdminJob>>('/admin/jobs', {
     params: directoryQuery(params),
   });
+  return data;
+}
+
+export async function getJobDetail(id: string): Promise<AdminJobDetail> {
+  const { data } = await api.get<AdminJobDetail>(`/admin/jobs/${id}`);
   return data;
 }

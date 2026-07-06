@@ -34,13 +34,6 @@ class UserModel {
   final double? rating;
   final int? completedJobs;
 
-  // ---- Address fields ----
-  final String? street;
-  final String? city;
-  final String? state;
-  final String? postalCode;
-  final String? country;
-
   UserModel({
     required this.uid,
     required this.name,
@@ -62,11 +55,6 @@ class UserModel {
     this.rating,
     this.completedJobs,
     this.plateNumber,
-    this.street,
-    this.city,
-    this.state,
-    this.postalCode,
-    this.country,
   });
 
   /// Builds from the API `/me` response shape.
@@ -120,11 +108,6 @@ class UserModel {
     double? rating,
     int? completedJobs,
     String? plateNumber,
-    String? street,
-    String? city,
-    String? state,
-    String? postalCode,
-    String? country,
   }) {
     return UserModel(
       uid: uid,
@@ -147,11 +130,6 @@ class UserModel {
       rating: rating ?? this.rating,
       completedJobs: completedJobs ?? this.completedJobs,
       plateNumber: plateNumber ?? this.plateNumber,
-      street: street ?? this.street,
-      city: city ?? this.city,
-      state: state ?? this.state,
-      postalCode: postalCode ?? this.postalCode,
-      country: country ?? this.country,
     );
   }
 
@@ -173,30 +151,4 @@ class UserModel {
         }
       : null;
 
-  Map<String, String>? get address {
-    if (street != null ||
-        city != null ||
-        state != null ||
-        postalCode != null ||
-        country != null) {
-      return {
-        if (street != null) 'street': street!,
-        if (city != null) 'city': city!,
-        if (state != null) 'state': state!,
-        if (postalCode != null) 'postalCode': postalCode!,
-        if (country != null) 'country': country!,
-      };
-    }
-    return null;
-  }
-
-  String get fullAddress {
-    final parts = <String>[];
-    if (street?.isNotEmpty == true) parts.add(street!);
-    if (city?.isNotEmpty == true) parts.add(city!);
-    if (state?.isNotEmpty == true) parts.add(state!);
-    if (postalCode?.isNotEmpty == true) parts.add(postalCode!);
-    if (country?.isNotEmpty == true) parts.add(country!);
-    return parts.join(', ');
-  }
 }
