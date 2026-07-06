@@ -47,6 +47,37 @@ flutter run --dart-define=API_BASE_URL=https://loop-api-prod.up.railway.app
 
 Or create the AVD in Android Studio → **Device Manager** → pick a device + a system image **with the Play Store** icon. First Android build is slow (Gradle + native FCM); subsequent runs are cached.
 
+#### Setting a test location (Kigali)
+
+An emulator has no real GPS — you feed it a coordinate. Loop's matching is geo-based, so set a **Kigali** location before testing nearby drivers / pickup / drop-off. Grant the app **location permission** when prompted, or `geolocator` can't read the fix.
+
+```bash
+# adb emu geo fix takes LONGITUDE first, then LATITUDE (reverse of the usual order):
+adb -s emulator-5554 emu geo fix 30.1084 -1.9578   # Remera
+```
+
+| Place (Kigali) | Latitude | Longitude | `adb … emu geo fix <lng> <lat>` |
+| --- | --- | --- | --- |
+| Remera (Amahoro Stadium) | -1.9578 | 30.1084 | `emu geo fix 30.1084 -1.9578` |
+| Kimironko Market | -1.9536 | 30.0606 | `emu geo fix 30.0606 -1.9536` |
+| City Center (CBD) | -1.9441 | 30.0619 | `emu geo fix 30.0619 -1.9441` |
+| Nyabugogo (bus hub) | -1.9394 | 30.0444 | `emu geo fix 30.0444 -1.9394` |
+| Kigali Airport (KGL) | -1.9686 | 30.1395 | `emu geo fix 30.1395 -1.9686` |
+
+Or set it in the emulator UI: **`⋯` (Extended controls) → Location → Single points →** enter lat/lng → **Set Location**. The fix resets on reboot; re-send it. For **iOS Simulator**: **Features → Location → Custom Location…**.
+
+#### Emulator vs. real device — testing constraints
+
+| Capability | Android emulator | iOS simulator | Real device |
+| --- | --- | --- | --- |
+| **Location** | Manual (`geo fix` / UI) — no real GPS or movement | Manual (Features → Location) | Real GPS; can walk a route to test live position |
+| **FCM push** | ✅ Works (image **must** include Google Play services) | ❌ Cannot receive remote push | Android ✅; iOS needs a paid Apple Developer APNs key |
+| **Camera** (document upload) | Emulated/mocked camera; use the gallery/file picker instead | Simulator has no camera — use the photo library | Real camera |
+| **Performance** | Depends on host CPU/RAM; slower than a device | Similar | True device performance (test on low-end too) |
+| **"Open in Maps" deep links** | Only apps installed on the image resolve (Google Maps present on Play images) | Apple Maps present | All installed maps apps |
+
+For the geo-matching flow specifically, an emulator is fine for functional testing (set two points, create a job, see nearby drivers), but **movement / live-position** and **camera capture** are best shown on a real device.
+
 ## Push notifications
 
 FCM push is wired end-to-end: the API pushes to the recipient's device on **proposal sent / accepted / declined**, **new message**, and **verification approved / rejected**. Identity stays JWT — Firebase is used only for push (and server-side Storage). Project: **`loop-rw`**.
