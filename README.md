@@ -4,13 +4,31 @@ Real-time geo-matching platform connecting cargo owners with vehicle drivers in 
 
 ```
 loop/
-├── mobile/   Flutter app (cargo owner + driver)   → see mobile/README.md
-├── api/      NestJS REST API + PostgreSQL/PostGIS  → see api/README.md
+├── mobile/   Flutter app (cargo owner + driver)    → see mobile/README.md
+├── api/      NestJS REST API + PostgreSQL/PostGIS   → see api/README.md
 ├── admin/    Next.js admin (verification + metrics) → see admin/README.md
-└── docs/     spec, diagrams, proposal
+└── docs/     engineering spec (BUILD_SPEC.md)
 ```
 
 The **API is the system of record** (PostgreSQL/PostGIS). The mobile app and admin are clients of it.
+
+## Try it
+
+| | Link |
+| --- | --- |
+| **Admin (web)** | <https://loop-admin-prod.up.railway.app> — login `admin@loop.rw` |
+| **API** | <https://loop-api-prod.up.railway.app> · Swagger at [`/docs`](https://loop-api-prod.up.railway.app/docs) |
+| **Mobile app** | Android APK — _TODO: add download link_. Or build/run it yourself against the deployed API (below). |
+| **Demo video** | _TODO: add walkthrough link_ |
+
+The mobile app runs against the deployed API with no local backend:
+
+```bash
+cd mobile && flutter pub get
+flutter run --dart-define=API_BASE_URL=https://loop-api-prod.up.railway.app
+```
+
+An Android emulator (with Google Play services, for push) or a physical device works — see [mobile/README.md](mobile/README.md#android-emulator).
 
 ## Quick start (local development)
 
@@ -52,7 +70,21 @@ Loop deploys to **Railway** as one project with three services (PostGIS DB, API,
 
 ## Walkthrough video
 
-📹 **Walkthrough video:** _TODO — the recorded demo link will be added here_ (`https://…`). It walks through onboarding a driver, admin verification, posting a job, matching, messaging, and the metrics dashboard.
+📹 **Walkthrough video:** _TODO — add link._ It walks through the core loop: driver verification, posting a job with a cost estimate, nearby matching, sending/accepting a proposal, in-app messaging, completing + rating, and the admin metrics dashboard.
+
+## Screenshots
+
+See [`screenshots/`](screenshots/) for captures of the core flows (owner + driver mobile, admin verification queue, metrics dashboard).
+
+## Testing
+
+Each package has an automated suite (API — Jest; admin — Vitest; mobile — Flutter), plus a manual end-to-end matrix and a post-deploy verification checklist. How to run each, the strategies, and the device/environment constraints are in **[TESTING.md](TESTING.md)**.
+
+```bash
+cd api && npm test        # pricing formula, proposal state machine, auth
+cd admin && npm test      # pagination + metrics formatters
+cd mobile && flutter test # model / screen / widget tests
+```
 
 ## Status
 
@@ -74,4 +106,4 @@ Loop currently runs as a single **Railway** project (PostGIS DB + API + admin), 
 - **Admin → Vercel:** Next.js-native hosting with per-branch preview deployments.
 - **API → Fly.io (Johannesburg region):** lower latency to users in Rwanda than EU-region hosting.
 
-See **[DEPLOYMENT.md §10 (Future / production migration)](DEPLOYMENT.md#10-future--production-migration)** for the detail. Product/feature future work (payments, live driver tracking, an abstracted basemap, road routing) is separate — it's tracked in `docs/BUILD_SPEC.md` and the report's Future Work chapter.
+See **[DEPLOYMENT.md §11 (Future / production migration)](DEPLOYMENT.md#11-future--production-migration)** for the detail. Product/feature future work (payments, live driver tracking, an abstracted basemap, road routing) is separate — it's tracked in [`docs/BUILD_SPEC.md`](docs/BUILD_SPEC.md).
