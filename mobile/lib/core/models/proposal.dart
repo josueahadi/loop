@@ -76,6 +76,15 @@ class Proposal {
 
   bool get isAccepted => status == 'accepted';
 
+  // The proposal stays 'accepted' for the life of the job; whether the work is
+  // still in-flight depends on the JOB's status. A completed/cancelled job is
+  // done, not active.
+  bool get isJobDone =>
+      job?.status == 'completed' || job?.status == 'cancelled';
+
+  // An active job for the driver: they accepted it and it isn't finished yet.
+  bool get isActiveJob => isAccepted && !isJobDone;
+
   factory Proposal.fromJson(Map<String, dynamic> j) => Proposal(
     id: j['id'] as String,
     jobId: j['jobId'] as String,

@@ -320,7 +320,9 @@ class _DashboardTabState extends State<_DashboardTab> {
 
   Future<void> _refresh() async {
     final next = _proposals.incoming();
-    setState(() => _future = next);
+    setState(() {
+      _future = next;
+    });
     await next;
   }
 
@@ -335,7 +337,7 @@ class _DashboardTabState extends State<_DashboardTab> {
         builder: (context, snap) {
           final all = snap.data ?? const <Proposal>[];
           final incoming = all.where((p) => p.status == 'sent').toList();
-          final active = all.where((p) => p.status == 'accepted').toList();
+          final active = all.where((p) => p.isActiveJob).toList();
           final loading = snap.connectionState == ConnectionState.waiting;
 
           return SingleChildScrollView(
@@ -513,7 +515,9 @@ class _AvailableJobsTabState extends State<_AvailableJobsTab> {
 
   Future<void> _refresh() async {
     final next = _proposals.incoming();
-    setState(() => _future = next);
+    setState(() {
+      _future = next;
+    });
     await next;
   }
 
@@ -549,7 +553,9 @@ class _MyJobsTabState extends State<_MyJobsTab> {
 
   Future<void> _refresh() async {
     final next = _proposals.incoming();
-    setState(() => _future = next);
+    setState(() {
+      _future = next;
+    });
     await next;
   }
 
@@ -557,9 +563,10 @@ class _MyJobsTabState extends State<_MyJobsTab> {
   Widget build(BuildContext context) {
     return _ProposalList(
       future: _future,
+      // All jobs the driver took on — active plus completed history.
       filter: (p) => p.status == 'accepted',
       onRefresh: _refresh,
-      emptyTitle: 'No active jobs',
+      emptyTitle: 'No jobs yet',
       emptySubtitle: 'Accept a job request and it will appear here',
     );
   }
@@ -987,12 +994,28 @@ class _ProposalCardState extends State<_ProposalCard> {
       case 'sent':
         return Colors.orange;
       case 'accepted':
+      case 'in_progress':
         return primaryGreen;
+      case 'completed':
+        return Colors.blueGrey;
       case 'declined':
+      case 'cancelled':
         return Colors.red;
       default:
         return Colors.grey;
     }
+  }
+
+  // Once accepted, the meaningful state is the JOB's lifecycle (matched →
+  // in_progress → completed), not the frozen proposal status.
+  String _displayStatus(Proposal p) {
+    if (p.status == 'accepted') {
+      final js = p.job?.status;
+      if (js == 'completed') return 'completed';
+      if (js == 'in_progress') return 'in_progress';
+      if (js == 'cancelled') return 'cancelled';
+    }
+    return p.status;
   }
 
   @override
@@ -1017,23 +1040,28 @@ class _ProposalCardState extends State<_ProposalCard> {
                     ),
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: _statusColor(p.status).withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    p.status,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: _statusColor(p.status),
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                Builder(
+                  builder: (_) {
+                    final display = _displayStatus(p);
+                    return Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _statusColor(display).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        display,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: _statusColor(display),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ],
             ),

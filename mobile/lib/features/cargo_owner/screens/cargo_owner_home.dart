@@ -137,7 +137,9 @@ class _DashboardTabState extends State<_DashboardTab> {
 
   Future<void> _refresh() async {
     final next = _jobs.listOwn();
-    setState(() => _future = next);
+    setState(() {
+      _future = next;
+    });
     await next;
   }
 
@@ -300,7 +302,9 @@ class _MyJobsTabState extends State<_MyJobsTab> {
 
   Future<void> _refresh() async {
     final next = _jobs.listOwn();
-    setState(() => _future = next);
+    setState(() {
+      _future = next;
+    });
     await next;
   }
 
