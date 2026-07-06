@@ -1,12 +1,12 @@
 'use client';
 
-import { useState } from 'react';
-import { Check, Eye, RefreshCw, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { RefreshCw } from 'lucide-react';
 import {
   usePendingVerifications,
   useReviewVerification,
 } from '../hooks/useVerifications';
-import { DOCUMENT_LABELS, type VerificationRecord } from '../types';
+import { DOCUMENT_LABELS } from '../types';
 import { DocumentSheet } from './DocumentSheet';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -20,24 +20,36 @@ import {
   TableRow,
 } from '@/components/ui/table';
 
-export function VerificationQueue() {
+export function VerificationQueue({
+  initialDriverId,
+}: {
+  initialDriverId?: string;
+}) {
   const { data, isLoading, isError, refetch } = usePendingVerifications();
   const review = useReviewVerification();
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const selectedRecord = data?.find((record) => record.id === selectedId);
+  const [selectedDriverId, setSelectedDriverId] = useState<string | null>(null);
+  const deepLinkApplied = useRef(false);
+  const selectedGroup = data?.find(
+    (group) => group.driver.id === selectedDriverId,
+  );
+
+  // Deep-link from the Users table: open a specific driver's docs once, when the
+  // group list first arrives. Guarded so it never re-opens after the admin closes it.
+  useEffect(() => {
+    if (deepLinkApplied.current || !initialDriverId || !data) return;
+    if (data.some((g) => g.driver.id === initialDriverId)) {
+      deepLinkApplied.current = true;
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSelectedDriverId(initialDriverId);
+    }
+  }, [initialDriverId, data]);
 
   function reviewDocument(
-    record: VerificationRecord,
+    documentId: string,
     status: 'approved' | 'rejected',
+    reviewNote?: string,
   ) {
-    review.mutate(
-      { id: record.id, status },
-      {
-        onSuccess: () => {
-          if (selectedId === record.id) setSelectedId(null);
-        },
-      },
-    );
+    review.mutate({ id: documentId, status, reviewNote });
   }
 
   if (isLoading) return <Spinner label="Loading pending verifications…" />;
@@ -57,13 +69,19 @@ export function VerificationQueue() {
     return <EmptyState message="No documents are awaiting review." />;
   }
 
+  const driverCount = data.length;
+  const docCount = data.reduce((sum, g) => sum + g.documentCount, 0);
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <Badge variant="secondary">{data.length} pending</Badge>
+          <Badge variant="secondary">
+            {driverCount} {driverCount === 1 ? 'driver' : 'drivers'} · {docCount}{' '}
+            {docCount === 1 ? 'document' : 'documents'}
+          </Badge>
           <span className="text-sm text-muted-foreground">
-            Driver documents awaiting admin decision
+            Drivers with documents awaiting review
           </span>
         </div>
         <Button variant="outline" size="sm" onClick={() => refetch()}>
@@ -77,67 +95,52 @@ export function VerificationQueue() {
           <TableHeader>
             <TableRow>
               <TableHead>Driver</TableHead>
-              <TableHead>Document</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Submitted</TableHead>
+              <TableHead>Documents pending</TableHead>
+              <TableHead>Oldest submission</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {data.map((record) => {
-              const pending =
-                review.isPending && review.variables?.id === record.id;
-              const driverLabel =
-                record.driver?.name ?? `Driver ${record.driverId.slice(0, 8)}`;
-
+            {data.map((group) => {
+              const oldest = group.documents.reduce(
+                (min, d) => (d.createdAt < min ? d.createdAt : min),
+                group.documents[0].createdAt,
+              );
               return (
-                <TableRow key={record.id}>
+                <TableRow key={group.driver.id}>
                   <TableCell>
                     <div className="flex flex-col">
-                      <span className="font-medium">{driverLabel}</span>
+                      <span className="font-medium">{group.driver.name}</span>
                       <span className="text-xs text-muted-foreground">
-                        {record.driver?.email ?? record.driverId}
+                        {group.driver.email}
                       </span>
-                      {record.driver?.phone && (
+                      {group.driver.phone && (
                         <span className="text-xs text-muted-foreground">
-                          {record.driver.phone}
+                          {group.driver.phone}
                         </span>
                       )}
                     </div>
                   </TableCell>
-                  <TableCell>{DOCUMENT_LABELS[record.documentType]}</TableCell>
                   <TableCell>
-                    <Badge variant="secondary">Pending</Badge>
+                    <div className="flex flex-wrap gap-1.5">
+                      {group.documents.map((doc) => (
+                        <Badge key={doc.id} variant="secondary">
+                          {DOCUMENT_LABELS[doc.documentType]}
+                        </Badge>
+                      ))}
+                    </div>
                   </TableCell>
                   <TableCell>
-                    {new Date(record.createdAt).toLocaleDateString()}
+                    {new Date(oldest).toLocaleDateString()}
                   </TableCell>
                   <TableCell>
-                    <div className="flex justify-end gap-2">
+                    <div className="flex justify-end">
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setSelectedId(record.id)}
+                        onClick={() => setSelectedDriverId(group.driver.id)}
                       >
-                        <Eye data-icon="inline-start" />
-                        View
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => reviewDocument(record, 'approved')}
-                        disabled={pending}
-                      >
-                        <Check data-icon="inline-start" />
-                        Approve
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => reviewDocument(record, 'rejected')}
-                        disabled={pending}
-                      >
-                        <X data-icon="inline-start" />
-                        Reject
+                        Review
                       </Button>
                     </div>
                   </TableCell>
@@ -149,15 +152,13 @@ export function VerificationQueue() {
       </div>
 
       <DocumentSheet
-        record={selectedRecord ?? null}
-        open={selectedId !== null}
+        group={selectedGroup ?? null}
+        open={selectedDriverId !== null}
         onOpenChange={(o) => {
-          if (!o) setSelectedId(null);
+          if (!o) setSelectedDriverId(null);
         }}
         onReview={reviewDocument}
-        reviewing={
-          review.isPending && review.variables?.id === selectedRecord?.id
-        }
+        reviewingId={review.isPending ? review.variables?.id : undefined}
       />
     </div>
   );

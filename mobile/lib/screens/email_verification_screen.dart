@@ -84,7 +84,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                 const Text("Verify your email", style: titleStyle),
                 const SizedBox(height: 8),
                 Text(
-                  "We sent a verification link to $userEmail\nClick the link in your email to verify your account.",
+                  "We sent a verification link to $userEmail\nClick the link in your email to verify your account.\nThe link is valid for 24 hours.",
                   style: subtitleStyle,
                 ),
                 const SizedBox(height: 32),

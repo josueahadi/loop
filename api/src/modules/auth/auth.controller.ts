@@ -1,5 +1,6 @@
-import { Body, Controller, HttpCode, Post } from '@nestjs/common';
+import { Body, Controller, HttpCode, Post, Req } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { Request } from 'express';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
 import { AuthResult, AuthService } from './auth.service';
@@ -26,8 +27,11 @@ export class AuthController {
   @Public()
   @HttpCode(200)
   @Post('login')
-  login(@Body() dto: LoginDto): Promise<AuthResult> {
-    return this.auth.login(dto.email, dto.password);
+  login(@Body() dto: LoginDto, @Req() req: Request): Promise<AuthResult> {
+    return this.auth.login(dto.email, dto.password, {
+      ip: req.ip,
+      userAgent: req.headers['user-agent'] ?? null,
+    });
   }
 
   @Public()

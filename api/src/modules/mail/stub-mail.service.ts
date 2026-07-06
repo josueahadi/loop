@@ -22,4 +22,17 @@ export class StubMailService implements MailService {
   ): Promise<void> {
     this.logger.log(`[email-verify] to=${to} (${name})\n  ${link}`);
   }
+
+  async sendVerificationRejected(
+    to: string,
+    name: string,
+    documentLabel: string,
+    note: string | null,
+  ): Promise<void> {
+    this.logger.log(
+      `[verification-rejected] to=${to} (${name}) doc=${documentLabel}${
+        note ? ` note="${note}"` : ''
+      }`,
+    );
+  }
 }

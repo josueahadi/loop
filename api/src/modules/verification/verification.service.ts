@@ -1,24 +1,36 @@
 import {
   BadRequestException,
   ForbiddenException,
+  Inject,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { extname } from 'path';
 import { Repository } from 'typeorm';
 import { DocumentType, VerificationStatus } from '../../common/enums';
+import { MAIL_SERVICE, MailService } from '../mail/mail.service';
 import { StorageService } from '../storage/storage.service';
 import { VerificationRecord } from './entities/verification-record.entity';
 
 const ALLOWED_MIME = ['image/jpeg', 'image/png', 'application/pdf'];
 
+const DOCUMENT_LABELS: Record<DocumentType, string> = {
+  [DocumentType.LICENCE]: 'Driving licence',
+  [DocumentType.NATIONAL_ID]: 'National ID',
+  [DocumentType.VEHICLE_REG]: 'Vehicle registration',
+};
+
 @Injectable()
 export class VerificationService {
+  private readonly logger = new Logger('Verification');
+
   constructor(
     @InjectRepository(VerificationRecord)
     private readonly records: Repository<VerificationRecord>,
     private readonly storage: StorageService,
+    @Inject(MAIL_SERVICE) private readonly mail: MailService,
   ) {}
 
   // Driver uploads a document (API-mediated → private Storage bucket → DB row).
@@ -75,8 +87,12 @@ export class VerificationService {
     id: string,
     status: VerificationStatus.APPROVED | VerificationStatus.REJECTED,
     adminId: string,
+    reviewNote?: string,
   ): Promise<VerificationRecord> {
-    const record = await this.records.findOne({ where: { id } });
+    const record = await this.records.findOne({
+      where: { id },
+      relations: { driver: true },
+    });
     if (!record) throw new NotFoundException('Verification record not found');
     if (record.status !== VerificationStatus.PENDING) {
       throw new ForbiddenException('Record has already been reviewed');
@@ -84,6 +100,27 @@ export class VerificationService {
     record.status = status;
     record.reviewedBy = adminId;
     record.reviewedAt = new Date();
-    return this.records.save(record);
+    record.reviewNote =
+      status === VerificationStatus.REJECTED ? (reviewNote ?? null) : null;
+    const saved = await this.records.save(record);
+
+    // Notify the driver on rejection so they can fix + resubmit. Best-effort:
+    // a mail failure must not fail the admin's review action.
+    if (status === VerificationStatus.REJECTED && record.driver) {
+      try {
+        await this.mail.sendVerificationRejected(
+          record.driver.email,
+          record.driver.name,
+          DOCUMENT_LABELS[record.documentType],
+          saved.reviewNote,
+        );
+      } catch (err) {
+        this.logger.error(
+          'Rejection email delivery failed (continuing)',
+          err as Error,
+        );
+      }
+    }
+    return saved;
   }
 }

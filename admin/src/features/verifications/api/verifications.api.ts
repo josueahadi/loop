@@ -1,14 +1,15 @@
 import { api } from '@/lib/api';
 import type {
   DocumentUrl,
-  VerificationRecord,
+  VerificationDocument,
+  VerificationGroup,
   VerificationStatus,
 } from '../types';
 
 export async function listVerifications(
   status: VerificationStatus = 'pending',
-): Promise<VerificationRecord[]> {
-  const { data } = await api.get<VerificationRecord[]>('/admin/verifications', {
+): Promise<VerificationGroup[]> {
+  const { data } = await api.get<VerificationGroup[]>('/admin/verifications', {
     params: { status },
   });
   return data;
@@ -17,10 +18,11 @@ export async function listVerifications(
 export async function reviewVerification(
   id: string,
   status: 'approved' | 'rejected',
-): Promise<VerificationRecord> {
-  const { data } = await api.patch<VerificationRecord>(
+  reviewNote?: string,
+): Promise<VerificationDocument> {
+  const { data } = await api.patch<VerificationDocument>(
     `/admin/verifications/${id}`,
-    { status },
+    { status, ...(reviewNote ? { reviewNote } : {}) },
   );
   return data;
 }

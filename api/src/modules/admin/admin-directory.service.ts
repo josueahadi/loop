@@ -23,24 +23,32 @@ export class AdminDirectoryService {
     return { data, total, page: q.page, limit: q.limit };
   }
 
+  // Grouped by driver: one entry per driver carrying all their documents at the
+  // requested status, so the queue shows a single row per driver (not per doc).
   async listVerifications(status: VerificationStatus) {
     return this.ds.query(
-      `SELECT vr.id,
-              vr.driver_id AS "driverId",
-              vr.document_type AS "documentType",
-              vr.status,
-              vr.reviewed_at AS "reviewedAt",
-              vr.created_at AS "createdAt",
-              json_build_object(
+      `SELECT json_build_object(
                 'id', u.id,
                 'name', u.name,
                 'email', u.email,
                 'phone', u.phone
-              ) AS driver
+              ) AS driver,
+              json_agg(
+                json_build_object(
+                  'id', vr.id,
+                  'documentType', vr.document_type,
+                  'status', vr.status,
+                  'reviewNote', vr.review_note,
+                  'reviewedAt', vr.reviewed_at,
+                  'createdAt', vr.created_at
+                ) ORDER BY vr.created_at ASC
+              ) AS documents,
+              COUNT(*)::int AS "documentCount"
        FROM verification_records vr
        JOIN users u ON u.id = vr.driver_id
        WHERE vr.status = $1
-       ORDER BY vr.created_at ASC`,
+       GROUP BY u.id
+       ORDER BY MIN(vr.created_at) ASC`,
       [status],
     );
   }

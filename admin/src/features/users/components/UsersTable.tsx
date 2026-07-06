@@ -1,7 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
+import { FileCheck } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { DataTable, type Column } from '@/components/data-table';
 import { DEFAULT_PAGE_SIZE } from '@/lib/pagination';
 import { useUsers } from '../hooks/useUsers';
@@ -49,6 +52,21 @@ const columns: Column<AdminUser>[] = [
   {
     header: 'Joined',
     cell: (u) => new Date(u.createdAt).toLocaleDateString(),
+  },
+  {
+    header: '',
+    // Drivers are the only verified role — route straight to their pending docs.
+    cell: (u) =>
+      u.role === 'driver' ? (
+        <div className="flex justify-end">
+          <Button asChild variant="outline" size="sm">
+            <Link href={`/verifications?driver=${u.id}`}>
+              <FileCheck data-icon="inline-start" />
+              Verifications
+            </Link>
+          </Button>
+        </div>
+      ) : null,
   },
 ];
 

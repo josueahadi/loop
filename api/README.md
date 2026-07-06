@@ -18,6 +18,16 @@ NestJS + TypeORM over PostgreSQL/PostGIS. This service owns identity, verificati
 | Geocoding (M3.5) | OpenStreetMap via Photon (search) + Nominatim (reverse), API-proxied |
 | API docs | OpenAPI / Swagger at `/docs` (source of truth for generated clients) |
 
+## Deployed (production)
+
+The API is hosted on Railway:
+
+- **Base URL:** `https://loop-api-prod.up.railway.app`
+- **Hosted Swagger:** `https://loop-api-prod.up.railway.app/docs`
+- Quick check: `curl https://loop-api-prod.up.railway.app/admin/metrics` (401 without a token confirms it's up and auth-guarded).
+
+Point the mobile app at it with `--dart-define=API_BASE_URL=https://loop-api-prod.up.railway.app` (see `../mobile/README.md`), and the admin with `NEXT_PUBLIC_API_BASE_URL=https://loop-api-prod.up.railway.app`. Full deploy details are in `../DEPLOYMENT.md`.
+
 ## Prerequisites
 
 - Node.js 20+ and npm

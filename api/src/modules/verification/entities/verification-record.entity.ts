@@ -49,6 +49,10 @@ export class VerificationRecord {
   @Column({ name: 'reviewed_at', type: 'timestamptz', nullable: true })
   reviewedAt: Date | null;
 
+  // Admin's reason on rejection (shown to the driver so they can fix + resubmit).
+  @Column({ name: 'review_note', type: 'text', nullable: true })
+  reviewNote: string | null;
+
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;
 }

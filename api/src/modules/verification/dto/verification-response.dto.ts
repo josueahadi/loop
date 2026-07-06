@@ -10,6 +10,7 @@ export class VerificationResponseDto {
   @ApiProperty({ enum: DocumentType }) documentType: DocumentType;
   @ApiProperty({ enum: VerificationStatus }) status: VerificationStatus;
   @ApiProperty({ nullable: true }) reviewedAt: Date | null;
+  @ApiProperty({ nullable: true }) reviewNote: string | null;
   @ApiProperty() createdAt: Date;
 
   static from(r: VerificationRecord): VerificationResponseDto {
@@ -19,6 +20,7 @@ export class VerificationResponseDto {
       documentType: r.documentType,
       status: r.status,
       reviewedAt: r.reviewedAt,
+      reviewNote: r.reviewNote,
       createdAt: r.createdAt,
     };
   }

@@ -21,10 +21,12 @@ export function useReviewVerification() {
     mutationFn: ({
       id,
       status,
+      reviewNote,
     }: {
       id: string;
       status: 'approved' | 'rejected';
-    }) => reviewVerification(id, status),
+      reviewNote?: string;
+    }) => reviewVerification(id, status, reviewNote),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['verifications'] });
       // Verification completion feeds a dashboard metric — refresh it too.

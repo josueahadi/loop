@@ -1,5 +1,7 @@
 'use client';
 
+import Link from 'next/link';
+import { ArrowRight } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, Cell, XAxis, YAxis } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -26,16 +28,28 @@ const PALETTE = [
 export function CountsChart({
   title,
   data,
+  href,
 }: {
   title: string;
   data: Record<string, number>;
+  href?: string;
 }) {
   const rows = Object.entries(data).map(([name, count]) => ({ name, count }));
 
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
+        <div className="flex items-center justify-between gap-3">
+          <CardTitle className="text-sm font-medium">{title}</CardTitle>
+          {href && (
+            <Link
+              href={href}
+              className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+            >
+              View all <ArrowRight className="size-3" />
+            </Link>
+          )}
+        </div>
       </CardHeader>
       <CardContent>
         {rows.length === 0 ? (

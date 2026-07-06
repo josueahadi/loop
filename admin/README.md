@@ -12,6 +12,22 @@ Internal admin web app for Loop — the **verification queue** and the **metrics
 
 All colours come from shadcn design tokens (`background`/`foreground`/`card`/ `muted-foreground`/…) that invert together in dark mode — no hardcoded black/white, so both themes stay readable. Toggle via the sun/moon in the nav; defaults to the OS preference.
 
+## Deployed (production)
+
+Hosted on Railway alongside the API:
+
+- **Admin URL:** `https://loop-admin-prod.up.railway.app`
+- **API it talks to:** `https://loop-api-prod.up.railway.app`
+
+`NEXT_PUBLIC_API_BASE_URL` is inlined **at build time**, so the hosted admin is baked against the prod API. To run a local admin against the hosted API instead of a local one:
+
+```bash
+echo 'NEXT_PUBLIC_API_BASE_URL=https://loop-api-prod.up.railway.app' > .env.local
+npm run dev
+```
+
+Full deploy details are in `../DEPLOYMENT.md`.
+
 ## Structure (feature-based, per BUILD_SPEC §9)
 
 ```
