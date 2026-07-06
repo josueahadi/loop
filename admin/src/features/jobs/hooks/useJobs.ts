@@ -1,8 +1,13 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import type { DirectoryParams } from '@/lib/pagination';
 import { listJobs } from '../api/jobs.api';
 
-export function useJobs() {
-  return useQuery({ queryKey: ['jobs'], queryFn: listJobs });
+export function useJobs(params: DirectoryParams) {
+  return useQuery({
+    queryKey: ['jobs', params],
+    queryFn: () => listJobs(params),
+    placeholderData: keepPreviousData,
+  });
 }
