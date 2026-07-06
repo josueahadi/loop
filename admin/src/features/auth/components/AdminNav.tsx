@@ -94,12 +94,12 @@ export function AdminNav({ children }: { children: ReactNode }) {
             <SidebarMenuItem>
               <SidebarMenuButton size="lg" asChild tooltip="Loop Admin">
                 <Link href="/metrics">
-                  <span className="flex size-8 items-center justify-center rounded-md bg-primary text-base font-bold text-primary-foreground">
+                  <span className="flex aspect-square size-8 shrink-0 items-center justify-center rounded-md bg-primary text-base font-bold text-primary-foreground">
                     L
                   </span>
-                  <span className="flex min-w-0 flex-col">
-                    <span className="font-semibold">Loop Admin</span>
-                    <span className="text-xs text-muted-foreground">
+                  <span className="flex min-w-0 flex-col group-data-[collapsible=icon]:hidden">
+                    <span className="truncate font-semibold">Loop Admin</span>
+                    <span className="truncate text-xs text-muted-foreground">
                       Operations console
                     </span>
                   </span>
@@ -146,14 +146,20 @@ export function AdminNav({ children }: { children: ReactNode }) {
         </SidebarContent>
         <SidebarFooter>
           <SidebarSeparator />
-          <div className="flex items-center justify-between gap-2 px-2">
+          <div className="flex items-center justify-between gap-2 px-2 group-data-[collapsible=icon]:hidden">
             <span className="truncate text-xs text-muted-foreground">
               {user?.email ?? 'Admin'}
             </span>
           </div>
-          <Button variant="outline" size="sm" onClick={onLogout}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onLogout}
+            title="Sign out"
+            className="justify-start group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0!"
+          >
             <LogOut />
-            Sign out
+            <span className="group-data-[collapsible=icon]:hidden">Sign out</span>
           </Button>
         </SidebarFooter>
         <SidebarRail />
