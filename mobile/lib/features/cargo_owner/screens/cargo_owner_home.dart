@@ -517,35 +517,49 @@ class _ProfileTab extends StatelessWidget {
                   // TODO: Navigate to about
                 },
               ),
-              const SizedBox(height: 24),
-
-              // Logout Button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () async {
-                    await authProvider.signOut();
-                    if (context.mounted) {
-                      Navigator.pushNamedAndRemoveUntil(
-                        context,
-                        '/',
-                        (route) => false,
-                      );
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                  child: const Text('Logout'),
-                ),
+              const SizedBox(height: 8),
+              const Divider(),
+              _ProfileOption(
+                icon: Icons.logout,
+                title: 'Logout',
+                isDestructive: true,
+                onTap: () => _confirmLogout(context, authProvider),
               ),
             ],
           ),
         );
       },
     );
+  }
+
+  Future<void> _confirmLogout(
+    BuildContext context,
+    AuthProvider authProvider,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Log out?'),
+        content: const Text('You can sign back in anytime.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Log out'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    await authProvider.signOut();
+    if (context.mounted) {
+      Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+    }
   }
 }
 
@@ -687,21 +701,29 @@ class _ProfileOption extends StatelessWidget {
   final String title;
   final String? subtitle;
   final VoidCallback onTap;
+  final bool isDestructive;
 
   const _ProfileOption({
     required this.icon,
     required this.title,
     this.subtitle,
     required this.onTap,
+    this.isDestructive = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    final color = isDestructive ? Colors.red : appGreen;
     return ListTile(
-      leading: Icon(icon, color: appGreen),
-      title: Text(title),
+      leading: Icon(icon, color: color),
+      title: Text(
+        title,
+        style: isDestructive ? const TextStyle(color: Colors.red) : null,
+      ),
       subtitle: subtitle != null ? Text(subtitle!) : null,
-      trailing: Icon(Icons.chevron_right, color: appGreen),
+      trailing: isDestructive
+          ? null
+          : Icon(Icons.chevron_right, color: appGreen),
       onTap: onTap,
     );
   }
