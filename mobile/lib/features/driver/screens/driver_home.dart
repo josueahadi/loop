@@ -30,21 +30,43 @@ class DriverHome extends StatefulWidget {
   State<DriverHome> createState() => _DriverHomeState();
 }
 
-class _DriverHomeState extends State<DriverHome> {
+class _DriverHomeState extends State<DriverHome> with WidgetsBindingObserver {
   int _selectedIndex = 0;
   final _proposalRepository = ProposalRepository();
   final _vehicleRepository = VehicleRepository();
   final _verificationRepository = VerificationRepository();
   int _pendingProposalCount = 0;
+  // Bumped whenever a proposal is answered so ALL tabs remount + refetch and the
+  // header badge recounts — the three tabs otherwise hold independent futures.
+  int _reloadCounter = 0;
+
+  void _onProposalsChanged() {
+    _loadProposalCount();
+    setState(() => _reloadCounter++);
+  }
 
   static const _requiredDocuments = {'licence', 'national_id', 'vehicle_reg'};
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadData();
     });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // On resume, recount pending proposals + remount tabs so a proposal that
+    // arrived (or was answered on another device) while away is reflected.
+    if (state == AppLifecycleState.resumed) _onProposalsChanged();
   }
 
   void _loadData() {
@@ -87,7 +109,9 @@ class _DriverHomeState extends State<DriverHome> {
     for (final r in records) {
       final type = r['documentType'] as String?;
       final status = r['status'] as String?;
-      if (type == null || status == null || !_requiredDocuments.contains(type)) {
+      if (type == null ||
+          status == null ||
+          !_requiredDocuments.contains(type)) {
         continue;
       }
       latestByType.putIfAbsent(type, () => status);
@@ -111,10 +135,22 @@ class _DriverHomeState extends State<DriverHome> {
 
   @override
   Widget build(BuildContext context) {
+    // Keying the tabs by _reloadCounter remounts them together when a proposal
+    // is answered anywhere, so no tab is left showing a job in the wrong bucket.
     final List<Widget> pages = [
-      _DashboardTab(onNavigateToTab: _onItemTapped),
-      const _AvailableJobsTab(),
-      const _MyJobsTab(),
+      _DashboardTab(
+        key: ValueKey('dashboard-$_reloadCounter'),
+        onNavigateToTab: _onItemTapped,
+        onProposalsChanged: _onProposalsChanged,
+      ),
+      _AvailableJobsTab(
+        key: ValueKey('available-$_reloadCounter'),
+        onProposalsChanged: _onProposalsChanged,
+      ),
+      _MyJobsTab(
+        key: ValueKey('myjobs-$_reloadCounter'),
+        onProposalsChanged: _onProposalsChanged,
+      ),
       const _ProfileTab(),
     ];
 
@@ -301,8 +337,15 @@ class _ProposalBadge extends StatelessWidget {
 // So "available" = incoming proposals still 'sent'; "active" = 'accepted'.
 class _DashboardTab extends StatefulWidget {
   final Function(int) onNavigateToTab;
+  // Notifies the parent so all tabs remount + the header badge recounts after a
+  // proposal is answered here.
+  final VoidCallback onProposalsChanged;
 
-  const _DashboardTab({super.key, required this.onNavigateToTab});
+  const _DashboardTab({
+    super.key,
+    required this.onNavigateToTab,
+    required this.onProposalsChanged,
+  });
 
   @override
   State<_DashboardTab> createState() => _DashboardTabState();
@@ -324,6 +367,12 @@ class _DashboardTabState extends State<_DashboardTab> {
       _future = next;
     });
     await next;
+  }
+
+  // A proposal was answered: notify the parent so every tab remounts and the
+  // header badge recounts (the parent bumps the shared reload key).
+  Future<void> _onCardChanged() async {
+    widget.onProposalsChanged();
   }
 
   @override
@@ -462,7 +511,10 @@ class _DashboardTabState extends State<_DashboardTab> {
                   ...incoming
                       .take(3)
                       .map(
-                        (p) => _ProposalCard(proposal: p, onChanged: _refresh),
+                        (p) => _ProposalCard(
+                          proposal: p,
+                          onChanged: _onCardChanged,
+                        ),
                       ),
 
                 // Active jobs
@@ -484,7 +536,10 @@ class _DashboardTabState extends State<_DashboardTab> {
                   ...active
                       .take(3)
                       .map(
-                        (p) => _ProposalCard(proposal: p, onChanged: _refresh),
+                        (p) => _ProposalCard(
+                          proposal: p,
+                          onChanged: _onCardChanged,
+                        ),
                       ),
               ],
             ),
@@ -497,7 +552,8 @@ class _DashboardTabState extends State<_DashboardTab> {
 
 // Incoming job requests (proposals still 'sent') — accept / decline.
 class _AvailableJobsTab extends StatefulWidget {
-  const _AvailableJobsTab();
+  final VoidCallback onProposalsChanged;
+  const _AvailableJobsTab({super.key, required this.onProposalsChanged});
 
   @override
   State<_AvailableJobsTab> createState() => _AvailableJobsTabState();
@@ -527,6 +583,7 @@ class _AvailableJobsTabState extends State<_AvailableJobsTab> {
       future: _future,
       filter: (p) => p.status == 'sent',
       onRefresh: _refresh,
+      onCardChanged: widget.onProposalsChanged,
       emptyTitle: 'No job requests',
       emptySubtitle: 'Owners send you a proposal when they pick you for a job',
     );
@@ -535,7 +592,8 @@ class _AvailableJobsTabState extends State<_AvailableJobsTab> {
 
 // The driver's accepted jobs (proposals 'accepted').
 class _MyJobsTab extends StatefulWidget {
-  const _MyJobsTab();
+  final VoidCallback onProposalsChanged;
+  const _MyJobsTab({super.key, required this.onProposalsChanged});
 
   @override
   State<_MyJobsTab> createState() => _MyJobsTabState();
@@ -566,6 +624,7 @@ class _MyJobsTabState extends State<_MyJobsTab> {
       // All jobs the driver took on — active plus completed history.
       filter: (p) => p.status == 'accepted',
       onRefresh: _refresh,
+      onCardChanged: widget.onProposalsChanged,
       emptyTitle: 'No jobs yet',
       emptySubtitle: 'Accept a job request and it will appear here',
     );
@@ -577,6 +636,9 @@ class _ProposalList extends StatelessWidget {
   final Future<List<Proposal>> future;
   final bool Function(Proposal) filter;
   final Future<void> Function() onRefresh;
+  // Pull-to-refresh reloads this list; onCardChanged fires when a proposal is
+  // answered so the parent can remount all tabs + recount the badge.
+  final VoidCallback onCardChanged;
   final String emptyTitle;
   final String emptySubtitle;
 
@@ -584,6 +646,7 @@ class _ProposalList extends StatelessWidget {
     required this.future,
     required this.filter,
     required this.onRefresh,
+    required this.onCardChanged,
     required this.emptyTitle,
     required this.emptySubtitle,
   });
@@ -629,8 +692,10 @@ class _ProposalList extends StatelessWidget {
           return ListView.builder(
             padding: const EdgeInsets.all(16),
             itemCount: items.length,
-            itemBuilder: (context, i) =>
-                _ProposalCard(proposal: items[i], onChanged: onRefresh),
+            itemBuilder: (context, i) => _ProposalCard(
+              proposal: items[i],
+              onChanged: () async => onCardChanged(),
+            ),
           );
         },
       ),
@@ -647,175 +712,155 @@ class _ProfileTab extends StatelessWidget {
       builder: (context, authProvider, profileProvider, child) {
         final user = profileProvider.currentUser ?? authProvider.user;
 
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            children: [
-              // Profile Header
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: lightGreen,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  children: [
-                    CircleAvatar(
-                      radius: 40,
-                      backgroundColor: primaryGreen,
-                      child: Text(
-                        user?.name.isNotEmpty == true
-                            ? user!.name[0].toUpperCase()
-                            : 'D',
+        // Pull-to-refresh re-fetches the user (rating/jobs-done update after a
+        // counterparty rates you — otherwise stale until app restart).
+        return RefreshIndicator(
+          onRefresh: authProvider.refreshUserData,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                // Profile Header
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: lightGreen,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    children: [
+                      CircleAvatar(
+                        radius: 40,
+                        backgroundColor: primaryGreen,
+                        child: Text(
+                          user?.name.isNotEmpty == true
+                              ? user!.name[0].toUpperCase()
+                              : 'D',
+                          style: const TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        user?.name ?? 'Driver',
                         style: const TextStyle(
-                          fontSize: 32,
+                          fontSize: 20,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      user?.name ?? 'Driver',
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
+                      const SizedBox(height: 4),
+                      Text(
+                        user?.email ?? '',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey.shade600,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      user?.email ?? '',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: primaryGreen,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Text(
-                            'Driver',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: primaryGreen,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Text(
+                              'Driver',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: user?.isAvailable == true
-                                ? primaryGreen
-                                : Colors.orange,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            user?.isAvailable == true ? 'Available' : 'Offline',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: user?.isAvailable == true
+                                  ? primaryGreen
+                                  : Colors.orange,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              user?.isAvailable == true
+                                  ? 'Available'
+                                  : 'Offline',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            children: [
-                              Text(
-                                user?.rating?.toStringAsFixed(1) ?? '0.0',
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              children: [
+                                Text(
+                                  user?.rating?.toStringAsFixed(1) ?? '0.0',
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
-                              ),
-                              const Text(
-                                'Rating',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey,
+                                const Text(
+                                  'Rating',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey,
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
-                        Expanded(
-                          child: Column(
-                            children: [
-                              Text(
-                                '${user?.completedJobs ?? 0}',
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
+                          Expanded(
+                            child: Column(
+                              children: [
+                                Text(
+                                  '${user?.completedJobs ?? 0}',
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
-                              ),
-                              const Text(
-                                'Jobs Done',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey,
+                                const Text(
+                                  'Jobs Done',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey,
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 24),
+                const SizedBox(height: 24),
 
-              // Profile Options
-              _ProfileOption(
-                icon: Icons.edit,
-                title: 'Edit Profile',
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => const DriverProfileEditScreen(),
-                    ),
-                  );
-                },
-              ),
-              _ProfileOption(
-                icon: Icons.star_outline,
-                title: 'My Ratings',
-                subtitle: user?.rating != null
-                    ? '${user!.rating!.toStringAsFixed(1)} average'
-                    : 'View ratings you received',
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => const MyRatingsScreen(),
-                    ),
-                  );
-                },
-              ),
-              if (user != null) ...[
+                // Profile Options
                 _ProfileOption(
-                  icon: Icons.card_membership,
-                  title: 'Driver License',
-                  subtitle: user.driverLicense ?? 'Add license details',
+                  icon: Icons.edit,
+                  title: 'Edit Profile',
                   onTap: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(
@@ -825,61 +870,89 @@ class _ProfileTab extends StatelessWidget {
                   },
                 ),
                 _ProfileOption(
-                  icon: Icons.directions_car,
-                  title: 'Vehicle Details',
-                  subtitle: user.primaryVehicle != null
-                      ? '${user.primaryVehicle!['type']} - ${user.primaryVehicle!['capacity']}'
-                      : 'Add vehicle details',
+                  icon: Icons.star_outline,
+                  title: 'My Ratings',
+                  subtitle: user?.rating != null
+                      ? '${user!.rating!.toStringAsFixed(1)} average'
+                      : 'View ratings you received',
                   onTap: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (context) => const VehicleDetailsScreen(),
+                        builder: (context) => const MyRatingsScreen(),
+                      ),
+                    );
+                  },
+                ),
+                if (user != null) ...[
+                  _ProfileOption(
+                    icon: Icons.card_membership,
+                    title: 'Driver License',
+                    subtitle: user.driverLicense ?? 'Add license details',
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const DriverProfileEditScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  _ProfileOption(
+                    icon: Icons.directions_car,
+                    title: 'Vehicle Details',
+                    subtitle: user.primaryVehicle != null
+                        ? '${user.primaryVehicle!['type']} - ${user.primaryVehicle!['capacity']}'
+                        : 'Add vehicle details',
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const VehicleDetailsScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  _ProfileOption(
+                    icon: Icons.map_outlined,
+                    title: 'My Location',
+                    subtitle: 'See where cargo owners find you',
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const DriverLocationScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+                _ProfileOption(
+                  icon: Icons.settings,
+                  title: 'Settings',
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => const SettingsScreen(),
                       ),
                     );
                   },
                 ),
                 _ProfileOption(
-                  icon: Icons.map_outlined,
-                  title: 'My Location',
-                  subtitle: 'See where cargo owners find you',
+                  icon: Icons.help,
+                  title: 'Help & Support',
                   onTap: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (context) => const DriverLocationScreen(),
+                        builder: (context) => const HelpSupportScreen(),
                       ),
                     );
                   },
                 ),
+                _ProfileOption(
+                  icon: Icons.logout,
+                  title: 'Logout',
+                  isDestructive: true,
+                  onTap: () => _showLogoutDialog(context),
+                ),
               ],
-              _ProfileOption(
-                icon: Icons.settings,
-                title: 'Settings',
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => const SettingsScreen(),
-                    ),
-                  );
-                },
-              ),
-              _ProfileOption(
-                icon: Icons.help,
-                title: 'Help & Support',
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => const HelpSupportScreen(),
-                    ),
-                  );
-                },
-              ),
-              _ProfileOption(
-                icon: Icons.logout,
-                title: 'Logout',
-                isDestructive: true,
-                onTap: () => _showLogoutDialog(context),
-              ),
-            ],
+            ),
           ),
         );
       },

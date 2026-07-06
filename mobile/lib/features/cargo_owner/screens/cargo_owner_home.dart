@@ -21,14 +21,38 @@ class CargoOwnerHome extends StatefulWidget {
   State<CargoOwnerHome> createState() => _CargoOwnerHomeState();
 }
 
-class _CargoOwnerHomeState extends State<CargoOwnerHome> {
+class _CargoOwnerHomeState extends State<CargoOwnerHome>
+    with WidgetsBindingObserver {
   int _selectedIndex = 0;
-  // Bumped after posting a job so the job-list tabs remount and re-fetch.
+  // Bumped to remount the job-list tabs so they re-fetch: after posting a job,
+  // on returning to a job tab, and when the app resumes — so a status change
+  // made elsewhere (e.g. a driver accepting) is reflected without a manual pull.
   int _reloadKey = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Refetch job state when the owner returns to the app.
+    if (state == AppLifecycleState.resumed) _reloadJobs();
+  }
 
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
+      // Landing on the Dashboard (0) or My Jobs (2) → refetch so job statuses
+      // (matched/in-progress/completed) are current.
+      if (index == 0 || index == 2) _reloadKey++;
     });
   }
 
@@ -404,128 +428,137 @@ class _ProfileTab extends StatelessWidget {
         final user =
             profileProvider.currentUser ?? authProvider.user as UserModel;
 
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            children: [
-              // Profile Header
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: lightGreen,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  children: [
-                    CircleAvatar(
-                      radius: 40,
-                      backgroundColor: primaryGreen,
-                      child: Text(
-                        user.name.isNotEmpty ? user.name[0].toUpperCase() : 'U',
+        // Pull-to-refresh re-fetches the user so the rating updates after a
+        // driver rates this owner (otherwise stale until app restart).
+        return RefreshIndicator(
+          onRefresh: authProvider.refreshUserData,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                // Profile Header
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: lightGreen,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    children: [
+                      CircleAvatar(
+                        radius: 40,
+                        backgroundColor: primaryGreen,
+                        child: Text(
+                          user.name.isNotEmpty
+                              ? user.name[0].toUpperCase()
+                              : 'U',
+                          style: const TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        user.name,
                         style: const TextStyle(
-                          fontSize: 32,
+                          fontSize: 20,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      user.name,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      user.email,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: primaryGreen,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Text(
-                        'Cargo Owner',
+                      const SizedBox(height: 4),
+                      Text(
+                        user.email,
                         style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: Colors.grey.shade600,
                         ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: primaryGreen,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Text(
+                          'Cargo Owner',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 24),
+                const SizedBox(height: 24),
 
-              // Profile Options
-              _ProfileOption(
-                icon: Icons.person,
-                title: 'Edit Profile',
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => const CargoOwnerProfileEditScreen(),
-                    ),
-                  );
-                },
-              ),
-              _ProfileOption(
-                icon: Icons.star_outline,
-                title: 'My Ratings',
-                subtitle: user.rating != null
-                    ? '${user.rating!.toStringAsFixed(1)} average'
-                    : 'View ratings you received',
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => const MyRatingsScreen(),
-                    ),
-                  );
-                },
-              ),
-              // Cargo owners need only an account — no business credentials (MVP scope).
-              _ProfileOption(
-                icon: Icons.notifications,
-                title: 'Notifications',
-                onTap: () {
-                  // TODO: Navigate to notifications settings
-                },
-              ),
-              _ProfileOption(
-                icon: Icons.help,
-                title: 'Help & Support',
-                onTap: () {
-                  // TODO: Navigate to help
-                },
-              ),
-              _ProfileOption(
-                icon: Icons.info,
-                title: 'About',
-                onTap: () {
-                  // TODO: Navigate to about
-                },
-              ),
-              const SizedBox(height: 8),
-              const Divider(),
-              _ProfileOption(
-                icon: Icons.logout,
-                title: 'Logout',
-                isDestructive: true,
-                onTap: () => _confirmLogout(context, authProvider),
-              ),
-            ],
+                // Profile Options
+                _ProfileOption(
+                  icon: Icons.person,
+                  title: 'Edit Profile',
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            const CargoOwnerProfileEditScreen(),
+                      ),
+                    );
+                  },
+                ),
+                _ProfileOption(
+                  icon: Icons.star_outline,
+                  title: 'My Ratings',
+                  subtitle: user.rating != null
+                      ? '${user.rating!.toStringAsFixed(1)} average'
+                      : 'View ratings you received',
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => const MyRatingsScreen(),
+                      ),
+                    );
+                  },
+                ),
+                // Cargo owners need only an account — no business credentials (MVP scope).
+                _ProfileOption(
+                  icon: Icons.notifications,
+                  title: 'Notifications',
+                  onTap: () {
+                    // TODO: Navigate to notifications settings
+                  },
+                ),
+                _ProfileOption(
+                  icon: Icons.help,
+                  title: 'Help & Support',
+                  onTap: () {
+                    // TODO: Navigate to help
+                  },
+                ),
+                _ProfileOption(
+                  icon: Icons.info,
+                  title: 'About',
+                  onTap: () {
+                    // TODO: Navigate to about
+                  },
+                ),
+                const SizedBox(height: 8),
+                const Divider(),
+                _ProfileOption(
+                  icon: Icons.logout,
+                  title: 'Logout',
+                  isDestructive: true,
+                  onTap: () => _confirmLogout(context, authProvider),
+                ),
+              ],
+            ),
           ),
         );
       },

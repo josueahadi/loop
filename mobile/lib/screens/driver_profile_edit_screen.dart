@@ -217,6 +217,18 @@ class _DriverProfileEditScreenState extends State<DriverProfileEditScreen>
       // Refresh auth provider with updated user
       await authProvider.refreshUserData();
 
+      // Re-fetch verification status + clear the just-uploaded file selections so
+      // the document cards reflect the new (pending) records — the cards no longer
+      // show a stale 'Rejected' banner even if the screen stays open.
+      if (mounted) {
+        setState(() {
+          _driverLicenseFile = null;
+          _nationalIdFile = null;
+          _vehicleRegistrationFile = null;
+        });
+        await _loadVerificationStatus();
+      }
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
