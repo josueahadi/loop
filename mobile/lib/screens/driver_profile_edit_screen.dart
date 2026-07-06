@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../core/models/user_model.dart';
 import '../core/repositories/user_repository.dart';
 import '../core/repositories/vehicle_repository.dart';
+import '../core/repositories/verification_repository.dart';
 import '../providers/auth_provider.dart';
 import '../mixins/image_picker_mixin.dart';
 import 'vehicle_details_screen.dart';
@@ -36,10 +37,16 @@ class _DriverProfileEditScreenState extends State<DriverProfileEditScreen>
 
   final UserRepository _userRepository = ApiUserRepository();
   final VehicleRepository _vehicleRepository = VehicleRepository();
+  final VerificationRepository _verificationRepository =
+      VerificationRepository();
 
   bool _isLoading = false;
   int _vehicleCount = 0;
   UserModel? _user;
+
+  // Latest verification record per document type (licence | national_id |
+  // vehicle_reg), so a rejected document can show its status + admin note.
+  final Map<String, Map<String, dynamic>> _latestRecordByType = {};
 
   // Document files
   File? _profileImage;
@@ -59,6 +66,7 @@ class _DriverProfileEditScreenState extends State<DriverProfileEditScreen>
     super.initState();
     _loadUserData();
     _loadVehicleCount();
+    _loadVerificationStatus();
     if (widget.scrollToDocuments) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _scrollToDocuments();
@@ -147,6 +155,29 @@ class _DriverProfileEditScreenState extends State<DriverProfileEditScreen>
     } catch (_) {
       // Vehicle setup is surfaced as a shortcut here; profile editing can still
       // load even if the vehicle endpoint is temporarily unavailable.
+    }
+  }
+
+  // Records come back newest-first; keep the first (latest) per document type so
+  // a rejected document surfaces its status + the admin's note for re-upload.
+  Future<void> _loadVerificationStatus() async {
+    try {
+      final records = await _verificationRepository.listOwn();
+      if (!mounted) return;
+      final latest = <String, Map<String, dynamic>>{};
+      for (final record in records) {
+        final type = record['documentType'] as String?;
+        if (type != null && !latest.containsKey(type)) {
+          latest[type] = record;
+        }
+      }
+      setState(() {
+        _latestRecordByType
+          ..clear()
+          ..addAll(latest);
+      });
+    } catch (_) {
+      // Non-critical: the upload cards still work without status decoration.
     }
   }
 
@@ -243,7 +274,13 @@ class _DriverProfileEditScreenState extends State<DriverProfileEditScreen>
     required bool isUploading,
     String? currentUrl,
     File? selectedFile,
+    String? documentType,
   }) {
+    final record = documentType == null
+        ? null
+        : _latestRecordByType[documentType];
+    final isRejected = record?['status'] == 'rejected';
+    final reviewNote = record?['reviewNote'] as String?;
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       child: Padding(
@@ -282,6 +319,43 @@ class _DriverProfileEditScreenState extends State<DriverProfileEditScreen>
                 ),
               ],
             ),
+            if (isRejected && selectedFile == null) ...[
+              const SizedBox(height: 8),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.red[50],
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.cancel, color: Colors.red[700], size: 16),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Rejected — please re-upload',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.red[700],
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (reviewNote != null && reviewNote.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        reviewNote,
+                        style: TextStyle(fontSize: 12, color: Colors.red[900]),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
             if (selectedFile != null) ...[
               const SizedBox(height: 8),
               Container(
@@ -682,6 +756,7 @@ class _DriverProfileEditScreenState extends State<DriverProfileEditScreen>
                 isUploading: _driverLicenseUploading,
                 currentUrl: _user?.driverLicense,
                 selectedFile: _driverLicenseFile,
+                documentType: 'licence',
               ),
 
               _buildDocumentUploadCard(
@@ -701,6 +776,7 @@ class _DriverProfileEditScreenState extends State<DriverProfileEditScreen>
                 isUploading: _nationalIdUploading,
                 currentUrl: _user?.nationalId,
                 selectedFile: _nationalIdFile,
+                documentType: 'national_id',
               ),
 
               _buildDocumentUploadCard(
@@ -720,6 +796,7 @@ class _DriverProfileEditScreenState extends State<DriverProfileEditScreen>
                 isUploading: _vehicleRegistrationUploading,
                 currentUrl: _user?.vehicleRegistration,
                 selectedFile: _vehicleRegistrationFile,
+                documentType: 'vehicle_reg',
               ),
 
               _buildDocumentUploadCard(

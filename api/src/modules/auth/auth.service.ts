@@ -8,6 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as argon2 from 'argon2';
 import { ActionTokenType, UserRole } from '../../common/enums';
+import { AuditContext, AuditService } from '../admin/audit.service';
 import { MAIL_SERVICE, MailService } from '../mail/mail.service';
 import { User } from '../users/entities/user.entity';
 import { UserResponseDto } from '../users/dto/user-response.dto';
@@ -30,6 +31,7 @@ export class AuthService {
     private readonly tokens: TokensService,
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
+    private readonly audit: AuditService,
     @Inject(MAIL_SERVICE) private readonly mail: MailService,
   ) {}
 
@@ -73,12 +75,25 @@ export class AuthService {
     return this.buildResult(user);
   }
 
-  async login(email: string, password: string): Promise<AuthResult> {
+  async login(
+    email: string,
+    password: string,
+    ctx?: AuditContext,
+  ): Promise<AuthResult> {
     const user = await this.users.findByEmail(email);
     if (!user || !(await argon2.verify(user.passwordHash, password))) {
       throw new UnauthorizedException('Invalid credentials');
     }
     // Note: email verification is intentionally not enforced here.
+    // Audit admin logins only (scope decision) — never fails the login.
+    if (user.role === UserRole.ADMIN) {
+      await this.audit.record({
+        actorId: user.id,
+        action: 'admin.login',
+        ip: ctx?.ip ?? null,
+        userAgent: ctx?.userAgent ?? null,
+      });
+    }
     return this.buildResult(user);
   }
 

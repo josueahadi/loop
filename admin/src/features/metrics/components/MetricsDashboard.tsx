@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import {
   ClipboardCheck,
   Clock3,
@@ -60,14 +61,17 @@ export function MetricsDashboard() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <div className="flex flex-col gap-1 rounded-lg border bg-background p-4">
+            <Link
+              href="/verifications"
+              className="flex flex-col gap-1 rounded-lg border bg-background p-4 transition-colors hover:border-primary/50"
+            >
               <span className="text-xs text-muted-foreground">
                 Pending review
               </span>
               <span className="text-2xl font-semibold tabular-nums">
                 {formatNumber(oc.pending_verifications)}
               </span>
-            </div>
+            </Link>
             <div className="flex flex-col gap-1 rounded-lg border bg-background p-4">
               <span className="text-xs text-muted-foreground">
                 Active signal
@@ -122,6 +126,7 @@ export function MetricsDashboard() {
           detail={`${m.verification_completion.approved_drivers} / ${m.verification_completion.total_drivers} drivers`}
           hint="All 3 documents approved"
           icon={ClipboardCheck}
+          href="/drivers"
         />
         <KpiCard
           label="Match rate (proxy)"
@@ -136,13 +141,22 @@ export function MetricsDashboard() {
           detail={`${oc.proposals.accepted} / ${oc.proposals.sent} proposals`}
           hint="Accepted of sent"
           icon={Users}
+          href="/jobs"
         />
       </section>
 
       {/* Operational breakdowns — rendered straight from the server's count maps. */}
       <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <CountsChart title="Users by role" data={oc.users_by_role} />
-        <CountsChart title="Jobs by status" data={oc.jobs_by_status} />
+        <CountsChart
+          title="Users by role"
+          data={oc.users_by_role}
+          href="/users"
+        />
+        <CountsChart
+          title="Jobs by status"
+          data={oc.jobs_by_status}
+          href="/jobs"
+        />
       </section>
 
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -160,6 +174,7 @@ export function MetricsDashboard() {
           label="Pending verifications"
           value={formatNumber(oc.pending_verifications)}
           icon={ClipboardCheck}
+          href="/verifications"
         />
         <KpiCard
           label="Proposals sent"

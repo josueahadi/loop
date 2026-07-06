@@ -25,7 +25,7 @@ class PasswordResetConfirmation extends StatelessWidget {
             const Text('Check your email', style: titleStyle),
             const SizedBox(height: 10),
             const Text(
-              'We sent a password reset link to your email address. Click the link in your email to reset your password.',
+              'We sent a password reset link to your email address. Click the link in your email to reset your password. The link is valid for 24 hours.',
               style: subtitleStyle,
             ),
             const SizedBox(height: 40),

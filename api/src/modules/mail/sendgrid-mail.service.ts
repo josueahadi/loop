@@ -58,4 +58,20 @@ export class SendgridMailService implements MailService {
       `<p>Hi ${name},</p><p>Confirm your email address:</p><p><a href="${link}">Verify email</a></p>`,
     );
   }
+
+  async sendVerificationRejected(
+    to: string,
+    name: string,
+    documentLabel: string,
+    note: string | null,
+  ): Promise<void> {
+    const reason = note
+      ? `<p>Reason: ${note}</p>`
+      : '';
+    await this.send(
+      to,
+      'A Loop document needs re-uploading',
+      `<p>Hi ${name},</p><p>Your <strong>${documentLabel}</strong> was not approved.</p>${reason}<p>Please re-upload it in the app so an admin can review it again.</p>`,
+    );
+  }
 }

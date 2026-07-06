@@ -9,7 +9,6 @@ import {
   BriefcaseBusiness,
   ClipboardCheck,
   LogOut,
-  ShieldCheck,
   UserRoundCog,
   Users,
 } from 'lucide-react';
@@ -95,8 +94,8 @@ export function AdminNav({ children }: { children: ReactNode }) {
             <SidebarMenuItem>
               <SidebarMenuButton size="lg" asChild tooltip="Loop Admin">
                 <Link href="/metrics">
-                  <span className="flex size-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
-                    <ShieldCheck />
+                  <span className="flex size-8 items-center justify-center rounded-md bg-primary text-base font-bold text-primary-foreground">
+                    L
                   </span>
                   <span className="flex min-w-0 flex-col">
                     <span className="font-semibold">Loop Admin</span>

@@ -1,10 +1,12 @@
+import Link from 'next/link';
 import type { LucideIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 // A single KPI: headline value + the underlying n/denominator, always shown so a
 // small sample is visible (e.g. "1 / 20 drivers") rather than hidden behind a
-// smoothed percentage.
+// smoothed percentage. When `href` is set the whole card links to the related
+// directory page.
 export function KpiCard({
   label,
   value,
@@ -12,6 +14,7 @@ export function KpiCard({
   hint,
   icon: Icon,
   badge,
+  href,
 }: {
   label: string;
   value: string;
@@ -19,10 +22,17 @@ export function KpiCard({
   hint?: string;
   icon?: LucideIcon;
   badge?: string;
+  href?: string;
 }) {
   const noData = value === 'No data yet';
-  return (
-    <Card className="bg-card/95">
+  const card = (
+    <Card
+      className={
+        href
+          ? 'h-full bg-card/95 transition-colors hover:border-primary/50 hover:bg-card'
+          : 'bg-card/95'
+      }
+    >
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-2">
@@ -59,4 +69,13 @@ export function KpiCard({
       </CardContent>
     </Card>
   );
+
+  if (href) {
+    return (
+      <Link href={href} className="block">
+        {card}
+      </Link>
+    );
+  }
+  return card;
 }

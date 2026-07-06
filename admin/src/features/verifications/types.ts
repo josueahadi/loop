@@ -1,20 +1,28 @@
-// Mirrors admin verification rows from the API.
+// Mirrors admin verification data from the API.
 export type DocumentType = 'licence' | 'national_id' | 'vehicle_reg';
 export type VerificationStatus = 'pending' | 'approved' | 'rejected';
 
-export interface VerificationRecord {
+// A single document within a driver's group.
+export interface VerificationDocument {
   id: string;
-  driverId: string;
-  driver?: {
+  documentType: DocumentType;
+  status: VerificationStatus;
+  reviewNote: string | null;
+  reviewedAt: string | null;
+  createdAt: string;
+}
+
+// GET /admin/verifications — one group per driver, carrying their documents at
+// the requested status.
+export interface VerificationGroup {
+  driver: {
     id: string;
     name: string;
     email: string;
     phone: string;
   };
-  documentType: DocumentType;
-  status: VerificationStatus;
-  reviewedAt: string | null;
-  createdAt: string;
+  documents: VerificationDocument[];
+  documentCount: number;
 }
 
 // GET /admin/verifications/:id/document-url

@@ -6,8 +6,10 @@ import {
   ParseUUIDPipe,
   Patch,
   Query,
+  Req,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { Request } from 'express';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { UserRole, VerificationStatus } from '../../common/enums';
@@ -16,6 +18,7 @@ import { VerificationResponseDto } from '../verification/dto/verification-respon
 import { VerificationService } from '../verification/verification.service';
 import { AdminDirectoryService } from './admin-directory.service';
 import { AdminMetricsService } from './admin-metrics.service';
+import { AuditService } from './audit.service';
 import { DirectoryQuery } from './dto/directory-query.dto';
 import { ListVerificationsQuery } from './dto/list-verifications.query';
 import { ReviewVerificationDto } from './dto/review-verification.dto';
@@ -31,6 +34,7 @@ export class AdminController {
     private readonly directory: AdminDirectoryService,
     private readonly metrics: AdminMetricsService,
     private readonly storage: StorageService,
+    private readonly audit: AuditService,
   ) {}
 
   // Server-computed evaluation metrics — the dashboard only renders these.
@@ -70,13 +74,35 @@ export class AdminController {
     return this.directory.listJobs(query);
   }
 
+  // Trail of admin actions (verification reviews, admin logins). Paginated;
+  // `filter` narrows to a single action string (e.g. 'verification.rejected').
+  @Get('audit')
+  async listAudit(@Query() query: DirectoryQuery) {
+    return this.audit.list(query);
+  }
+
   @Patch('verifications/:id')
   async reviewVerification(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: ReviewVerificationDto,
     @CurrentUser('id') adminId: string,
+    @Req() req: Request,
   ): Promise<VerificationResponseDto> {
-    const record = await this.verification.review(id, dto.status, adminId);
+    const record = await this.verification.review(
+      id,
+      dto.status,
+      adminId,
+      dto.reviewNote,
+    );
+    await this.audit.record({
+      actorId: adminId,
+      action: `verification.${dto.status}`,
+      targetType: 'verification_record',
+      targetId: id,
+      ip: req.ip,
+      userAgent: req.headers['user-agent'] ?? null,
+      metadata: { documentType: record.documentType, driverId: record.driverId },
+    });
     return VerificationResponseDto.from(record);
   }
 }

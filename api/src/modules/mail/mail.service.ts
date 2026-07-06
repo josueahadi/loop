@@ -4,4 +4,10 @@ export const MAIL_SERVICE = 'MAIL_SERVICE';
 export interface MailService {
   sendPasswordReset(to: string, name: string, link: string): Promise<void>;
   sendEmailVerification(to: string, name: string, link: string): Promise<void>;
+  sendVerificationRejected(
+    to: string,
+    name: string,
+    documentLabel: string,
+    note: string | null,
+  ): Promise<void>;
 }
