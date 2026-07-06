@@ -6,6 +6,7 @@ import '../core/location/location_service.dart';
 import '../core/models/user_model.dart';
 import '../core/repositories/verification_repository.dart';
 import '../services/auth_service.dart';
+import '../services/push_messaging.dart';
 
 /// App-wide auth state, now backed by the NestJS API (JWT) instead of FirebaseAuth.
 /// Public method names are preserved so existing screens need no changes.
@@ -13,14 +14,22 @@ class AuthProvider with ChangeNotifier {
   final AuthService _authService;
   final VerificationRepository _verification;
   final LocationService _location;
+  final PushMessaging _push;
 
   AuthProvider({
     AuthService? authService,
     VerificationRepository? verification,
     LocationService? location,
+    PushMessaging? push,
   }) : _authService = authService ?? AuthService(),
        _verification = verification ?? VerificationRepository(),
-       _location = location ?? LocationService();
+       _location = location ?? LocationService(),
+       _push = push ?? PushMessaging();
+
+  // Registers this device's FCM token once authenticated (best-effort).
+  void _syncPush() {
+    if (_user != null) _push.start();
+  }
 
   UserModel? _user;
   bool _isLoading = false;
@@ -37,6 +46,7 @@ class AuthProvider with ChangeNotifier {
   Future<void> initializeAuth() async {
     try {
       _user = await _authService.getCurrentUserData();
+      _syncPush();
     } catch (e) {
       _error = e.toString();
     }
@@ -60,6 +70,7 @@ class AuthProvider with ChangeNotifier {
         phoneNumber: phoneNumber,
         role: role,
       );
+      _syncPush();
       return true;
     } catch (e) {
       _setError(_clean(e));
@@ -77,6 +88,7 @@ class AuthProvider with ChangeNotifier {
         email: email,
         password: password,
       );
+      _syncPush();
       return true;
     } catch (e) {
       _setError(_clean(e));
@@ -89,6 +101,7 @@ class AuthProvider with ChangeNotifier {
   Future<void> signOut() async {
     try {
       _setLoading(true);
+      await _push.stop();
       await _authService.signOut();
       _user = null;
     } catch (e) {

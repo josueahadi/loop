@@ -1,5 +1,8 @@
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'services/push_messaging.dart';
 import 'screens/welcome_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/signup_screen.dart';
@@ -17,6 +20,17 @@ import 'package:cargo_app/constants.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Firebase powers FCM push only. Guarded so the app still boots if the native
+  // config (google-services.json / plist) isn't present yet — push simply stays
+  // off in that case. On Android/iOS initializeApp() reads the bundled config.
+  try {
+    await Firebase.initializeApp();
+    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+  } catch (e) {
+    debugPrint('Firebase init skipped (push disabled): $e');
+  }
+
   runApp(const MyApp());
 }
 

@@ -11,6 +11,7 @@ import { extname } from 'path';
 import { Repository } from 'typeorm';
 import { DocumentType, VerificationStatus } from '../../common/enums';
 import { MAIL_SERVICE, MailService } from '../mail/mail.service';
+import { PushService } from '../push/push.service';
 import { StorageService } from '../storage/storage.service';
 import { VerificationRecord } from './entities/verification-record.entity';
 
@@ -30,6 +31,7 @@ export class VerificationService {
     @InjectRepository(VerificationRecord)
     private readonly records: Repository<VerificationRecord>,
     private readonly storage: StorageService,
+    private readonly push: PushService,
     @Inject(MAIL_SERVICE) private readonly mail: MailService,
   ) {}
 
@@ -104,6 +106,8 @@ export class VerificationService {
       status === VerificationStatus.REJECTED ? (reviewNote ?? null) : null;
     const saved = await this.records.save(record);
 
+    const label = DOCUMENT_LABELS[record.documentType];
+
     // Notify the driver on rejection so they can fix + resubmit. Best-effort:
     // a mail failure must not fail the admin's review action.
     if (status === VerificationStatus.REJECTED && record.driver) {
@@ -111,7 +115,7 @@ export class VerificationService {
         await this.mail.sendVerificationRejected(
           record.driver.email,
           record.driver.name,
-          DOCUMENT_LABELS[record.documentType],
+          label,
           saved.reviewNote,
         );
       } catch (err) {
@@ -120,6 +124,23 @@ export class VerificationService {
           err as Error,
         );
       }
+    }
+
+    // Push the decision to the driver's device (best-effort — never throws).
+    if (status === VerificationStatus.REJECTED) {
+      void this.push.sendToUser(record.driverId, {
+        title: 'Document not approved',
+        body: `Your ${label} needs re-uploading${
+          saved.reviewNote ? `: ${saved.reviewNote}` : '.'
+        }`,
+        data: { type: 'verification_rejected', documentType: record.documentType },
+      });
+    } else {
+      void this.push.sendToUser(record.driverId, {
+        title: 'Document approved',
+        body: `Your ${label} was approved.`,
+        data: { type: 'verification_approved', documentType: record.documentType },
+      });
     }
     return saved;
   }
