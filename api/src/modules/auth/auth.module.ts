@@ -4,6 +4,7 @@ import { PassportModule } from '@nestjs/passport';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsersModule } from '../users/users.module';
 import { AuthController } from './auth.controller';
+import { AuthPagesController } from './auth-pages.controller';
 import { AuthService } from './auth.service';
 import { ActionToken } from './entities/action-token.entity';
 import { RefreshToken } from './entities/refresh-token.entity';
@@ -17,7 +18,7 @@ import { TokensService } from './tokens.service';
     JwtModule.register({}),
     TypeOrmModule.forFeature([RefreshToken, ActionToken]),
   ],
-  controllers: [AuthController],
+  controllers: [AuthController, AuthPagesController],
   providers: [AuthService, TokensService, JwtStrategy],
   exports: [AuthService],
 })

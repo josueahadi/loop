@@ -7,10 +7,9 @@ import {
   useReviewVerification,
 } from '../hooks/useVerifications';
 import { DOCUMENT_LABELS, type VerificationRecord } from '../types';
-import { DocumentViewer } from './DocumentViewer';
+import { DocumentSheet } from './DocumentSheet';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState, Spinner } from '@/components/ui/states';
 import {
   Table,
@@ -149,60 +148,17 @@ export function VerificationQueue() {
         </Table>
       </div>
 
-      {selectedRecord && (
-        <Card>
-          <CardHeader>
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="flex flex-col gap-1">
-                <CardTitle>Document preview</CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  {selectedRecord.driver?.name ??
-                    `Driver ${selectedRecord.driverId.slice(0, 8)}`}{' '}
-                  · {DOCUMENT_LABELS[selectedRecord.documentType]}
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  onClick={() => reviewDocument(selectedRecord, 'approved')}
-                  disabled={
-                    review.isPending &&
-                    review.variables?.id === selectedRecord.id
-                  }
-                >
-                  <Check data-icon="inline-start" />
-                  Approve
-                </Button>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => reviewDocument(selectedRecord, 'rejected')}
-                  disabled={
-                    review.isPending &&
-                    review.variables?.id === selectedRecord.id
-                  }
-                >
-                  <X data-icon="inline-start" />
-                  Reject
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col gap-3">
-              <Button
-                variant="outline"
-                size="sm"
-                className="self-start"
-                onClick={() => setSelectedId(null)}
-              >
-                Close
-              </Button>
-              <DocumentViewer recordId={selectedRecord.id} />
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      <DocumentSheet
+        record={selectedRecord ?? null}
+        open={selectedId !== null}
+        onOpenChange={(o) => {
+          if (!o) setSelectedId(null);
+        }}
+        onReview={reviewDocument}
+        reviewing={
+          review.isPending && review.variables?.id === selectedRecord?.id
+        }
+      />
     </div>
   );
 }

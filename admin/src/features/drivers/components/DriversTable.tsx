@@ -1,97 +1,91 @@
 'use client';
 
+import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { EmptyState, Spinner } from '@/components/ui/states';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { DataTable, type Column } from '@/components/data-table';
+import { DEFAULT_PAGE_SIZE } from '@/lib/pagination';
 import { useDrivers } from '../hooks/useDrivers';
+import type { AdminDriver } from '../types';
+
+const columns: Column<AdminDriver>[] = [
+  {
+    header: 'Driver',
+    cell: (d) => (
+      <div className="flex flex-col">
+        <span className="font-medium">{d.name}</span>
+        <span className="text-xs text-muted-foreground">{d.email}</span>
+        <span className="text-xs text-muted-foreground">{d.phone}</span>
+      </div>
+    ),
+  },
+  {
+    header: 'Availability',
+    cell: (d) => (
+      <Badge variant={d.availabilityStatus === 'online' ? 'default' : 'secondary'}>
+        {d.availabilityStatus ?? 'offline'}
+      </Badge>
+    ),
+  },
+  { header: 'Vehicles', cell: (d) => d.vehicleCount },
+  { header: 'Approved docs', cell: (d) => `${d.approvedDocumentCount}/3` },
+  {
+    header: 'Matchability',
+    cell: (d) => (
+      <div className="flex flex-col gap-1">
+        <Badge
+          variant={d.matchabilityStatus === 'matchable' ? 'default' : 'destructive'}
+        >
+          {d.matchabilityStatus}
+        </Badge>
+        {d.missing.length > 0 && (
+          <span className="text-xs text-muted-foreground">
+            Missing {d.missing.join(', ')}
+          </span>
+        )}
+      </div>
+    ),
+  },
+];
 
 export function DriversTable() {
-  const { data, isLoading, isError, refetch } = useDrivers();
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState('all');
 
-  if (isLoading) return <Spinner label="Loading drivers…" />;
-  if (isError) {
-    return (
-      <div className="flex flex-col items-start gap-3">
-        <p className="text-sm text-destructive">Could not load drivers.</p>
-        <Button variant="outline" onClick={() => refetch()}>
-          Retry
-        </Button>
-      </div>
-    );
-  }
-  if (!data || data.length === 0) {
-    return <EmptyState message="No drivers found." />;
-  }
+  const { data, isLoading, isError } = useDrivers({
+    page,
+    limit: DEFAULT_PAGE_SIZE,
+    search,
+    filter: filter === 'all' ? undefined : filter,
+  });
 
   return (
-    <div className="overflow-hidden rounded-lg border bg-card">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Driver</TableHead>
-            <TableHead>Availability</TableHead>
-            <TableHead>Vehicles</TableHead>
-            <TableHead>Approved docs</TableHead>
-            <TableHead>Matchability</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {data.map((driver) => (
-            <TableRow key={driver.id}>
-              <TableCell>
-                <div className="flex flex-col">
-                  <span className="font-medium">{driver.name}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {driver.email}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {driver.phone}
-                  </span>
-                </div>
-              </TableCell>
-              <TableCell>
-                <Badge
-                  variant={
-                    driver.availabilityStatus === 'online'
-                      ? 'default'
-                      : 'secondary'
-                  }
-                >
-                  {driver.availabilityStatus ?? 'offline'}
-                </Badge>
-              </TableCell>
-              <TableCell>{driver.vehicleCount}</TableCell>
-              <TableCell>{driver.approvedDocumentCount}/3</TableCell>
-              <TableCell>
-                <div className="flex flex-col gap-1">
-                  <Badge
-                    variant={
-                      driver.matchabilityStatus === 'matchable'
-                        ? 'default'
-                        : 'destructive'
-                    }
-                  >
-                    {driver.matchabilityStatus}
-                  </Badge>
-                  {driver.missing.length > 0 && (
-                    <span className="text-xs text-muted-foreground">
-                      Missing {driver.missing.join(', ')}
-                    </span>
-                  )}
-                </div>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
+    <DataTable
+      columns={columns}
+      rows={data?.data ?? []}
+      total={data?.total ?? 0}
+      page={page}
+      limit={DEFAULT_PAGE_SIZE}
+      isLoading={isLoading}
+      isError={isError}
+      onPageChange={setPage}
+      onSearchChange={(s) => {
+        setSearch(s);
+        setPage(1);
+      }}
+      searchPlaceholder="Search name, email, or phone…"
+      filterOptions={[
+        { label: 'Matchable', value: 'matchable' },
+        { label: 'Blocked', value: 'blocked' },
+      ]}
+      filterValue={filter}
+      onFilterChange={(v) => {
+        setFilter(v);
+        setPage(1);
+      }}
+      filterLabel="All drivers"
+      emptyMessage="No drivers found."
+      rowKey={(d) => d.id}
+    />
   );
 }

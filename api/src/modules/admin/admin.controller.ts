@@ -16,6 +16,7 @@ import { VerificationResponseDto } from '../verification/dto/verification-respon
 import { VerificationService } from '../verification/verification.service';
 import { AdminDirectoryService } from './admin-directory.service';
 import { AdminMetricsService } from './admin-metrics.service';
+import { DirectoryQuery } from './dto/directory-query.dto';
 import { ListVerificationsQuery } from './dto/list-verifications.query';
 import { ReviewVerificationDto } from './dto/review-verification.dto';
 
@@ -55,18 +56,18 @@ export class AdminController {
   }
 
   @Get('drivers')
-  async listDrivers() {
-    return this.directory.listDrivers();
+  async listDrivers(@Query() query: DirectoryQuery) {
+    return this.directory.listDrivers(query);
   }
 
   @Get('users')
-  async listUsers() {
-    return this.directory.listUsers();
+  async listUsers(@Query() query: DirectoryQuery) {
+    return this.directory.listUsers(query);
   }
 
   @Get('jobs')
-  async listJobs() {
-    return this.directory.listJobs();
+  async listJobs(@Query() query: DirectoryQuery) {
+    return this.directory.listJobs(query);
   }
 
   @Patch('verifications/:id')
