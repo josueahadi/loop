@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "847418164773",
+    "project_id": "loop-rw",
+    "storage_bucket": "loop-rw.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:847418164773:android:3caaa84ed45c128e8721cc",
+        "android_client_info": {
+          "package_name": "com.example.cargo_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCJDvPbKoX442zLqrU206Luby4_PlOO114"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
