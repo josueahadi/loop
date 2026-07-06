@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { FileCheck } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -55,10 +56,11 @@ const columns: Column<AdminUser>[] = [
   },
   {
     header: '',
-    // Drivers are the only verified role — route straight to their pending docs.
+    // Drivers are the only verified role — jump straight to their docs. Stop
+    // propagation so this doesn't also trigger the row's navigate-to-profile.
     cell: (u) =>
       u.role === 'driver' ? (
-        <div className="flex justify-end">
+        <div className="flex justify-end" onClick={(e) => e.stopPropagation()}>
           <Button asChild variant="outline" size="sm">
             <Link href={`/verifications?driver=${u.id}`}>
               <FileCheck data-icon="inline-start" />
@@ -71,6 +73,7 @@ const columns: Column<AdminUser>[] = [
 ];
 
 export function UsersTable() {
+  const router = useRouter();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
@@ -110,6 +113,7 @@ export function UsersTable() {
       filterLabel="All roles"
       emptyMessage="No users found."
       rowKey={(u) => u.id}
+      onRowClick={(u) => router.push(`/users/${u.id}`)}
     />
   );
 }

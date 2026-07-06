@@ -69,6 +69,11 @@ export class AdminController {
     return this.directory.listUsers(query);
   }
 
+  @Get('users/:id')
+  async getUser(@Param('id', ParseUUIDPipe) id: string) {
+    return this.directory.getUserProfile(id);
+  }
+
   @Get('jobs')
   async listJobs(@Query() query: DirectoryQuery) {
     return this.directory.listJobs(query);

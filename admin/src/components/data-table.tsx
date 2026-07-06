@@ -50,6 +50,8 @@ interface DataTableProps<T> {
   filterLabel?: string;
   emptyMessage?: string;
   rowKey: (row: T) => string;
+  // When set, rows become clickable (cursor + hover) and call this on click.
+  onRowClick?: (row: T) => void;
 }
 
 // A server-paginated table: debounced search box, optional filter dropdown, and
@@ -72,6 +74,7 @@ export function DataTable<T>({
   filterLabel = 'All',
   emptyMessage = 'Nothing to show yet.',
   rowKey,
+  onRowClick,
 }: DataTableProps<T>) {
   const [searchInput, setSearchInput] = useState('');
 
@@ -151,7 +154,11 @@ export function DataTable<T>({
               </TableRow>
             ) : (
               rows.map((row) => (
-                <TableRow key={rowKey(row)}>
+                <TableRow
+                  key={rowKey(row)}
+                  onClick={onRowClick ? () => onRowClick(row) : undefined}
+                  className={onRowClick ? 'cursor-pointer' : undefined}
+                >
                   {columns.map((c) => (
                     <TableCell key={c.header} className={c.className}>
                       {c.cell(row)}

@@ -4,7 +4,7 @@ import {
   type DirectoryParams,
   type Paginated,
 } from '@/lib/pagination';
-import type { AdminUser } from '../types';
+import type { AdminUser, AdminUserProfile } from '../types';
 
 export async function listUsers(
   params: DirectoryParams,
@@ -12,5 +12,10 @@ export async function listUsers(
   const { data } = await api.get<Paginated<AdminUser>>('/admin/users', {
     params: directoryQuery(params),
   });
+  return data;
+}
+
+export async function getUserProfile(id: string): Promise<AdminUserProfile> {
+  const { data } = await api.get<AdminUserProfile>(`/admin/users/${id}`);
   return data;
 }

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { VerificationStatus } from '../../common/enums';
@@ -51,6 +51,106 @@ export class AdminDirectoryService {
        ORDER BY MIN(vr.created_at) ASC`,
       [status],
     );
+  }
+
+  // Full profile for one user + their related data, for the admin detail page.
+  // Driver → vehicles, documents, matchability; owner → posted jobs. Both →
+  // ratings received/given. Assembled from focused queries (small per-user sets).
+  async getUserProfile(id: string): Promise<any> {
+    const [user] = await this.ds.query(
+      `SELECT id, name, email, phone, role,
+              photo_url AS "photoUrl",
+              availability_status AS "availabilityStatus",
+              email_verified_at AS "emailVerifiedAt",
+              average_rating AS "averageRating",
+              rating_count AS "ratingCount",
+              created_at AS "createdAt"
+       FROM users WHERE id = $1`,
+      [id],
+    );
+    if (!user) throw new NotFoundException('User not found');
+
+    const ratingsReceived = await this.ds.query(
+      `SELECT r.score, r.comment, r.created_at AS "createdAt",
+              r.job_id AS "jobId", fu.name AS "fromName"
+       FROM ratings r JOIN users fu ON fu.id = r.from_user_id
+       WHERE r.to_user_id = $1
+       ORDER BY r.created_at DESC`,
+      [id],
+    );
+    const ratingsGiven = await this.ds.query(
+      `SELECT r.score, r.comment, r.created_at AS "createdAt",
+              r.job_id AS "jobId", tu.name AS "toName"
+       FROM ratings r JOIN users tu ON tu.id = r.to_user_id
+       WHERE r.from_user_id = $1
+       ORDER BY r.created_at DESC`,
+      [id],
+    );
+
+    const base = { ...user, ratingsReceived, ratingsGiven };
+
+    if (user.role === 'driver') {
+      const vehicles = await this.ds.query(
+        `SELECT id, type, capacity_kg AS "capacityKg", reg_no AS "regNo",
+                photo_url AS "photoUrl"
+         FROM vehicles WHERE driver_id = $1`,
+        [id],
+      );
+      const documents = await this.ds.query(
+        `SELECT id, document_type AS "documentType", status,
+                review_note AS "reviewNote", reviewed_at AS "reviewedAt",
+                created_at AS "createdAt"
+         FROM verification_records WHERE driver_id = $1
+         ORDER BY created_at DESC`,
+        [id],
+      );
+      // Same matchability rule as the drivers list (≥1 vehicle + all 3 docs approved).
+      const approvedTypes = new Set(
+        documents
+          .filter(
+            (d: any) =>
+              d.status === 'approved' &&
+              REQUIRED_DOCUMENTS.includes(d.documentType),
+          )
+          .map((d: any) => d.documentType),
+      );
+      const missing: string[] = [];
+      if (vehicles.length < 1) missing.push('vehicle');
+      if (approvedTypes.size < REQUIRED_DOCUMENTS.length) missing.push('documents');
+      const assignedJobs = await this.ds.query(
+        `SELECT j.id, j.cargo_type AS "cargoType", j.status,
+                j.price, j.estimated_price AS "estimatedPrice",
+                j.pickup_label AS "pickupLabel", j.drop_off_label AS "dropOffLabel",
+                j.created_at AS "createdAt"
+         FROM jobs j JOIN proposals p ON p.job_id = j.id
+         WHERE p.driver_id = $1 AND p.status = 'accepted'
+         ORDER BY j.created_at DESC`,
+        [id],
+      );
+      return {
+        ...base,
+        vehicles,
+        documents,
+        matchabilityStatus: missing.length === 0 ? 'matchable' : 'blocked',
+        missing,
+        assignedJobs,
+      };
+    }
+
+    if (user.role === 'cargo_owner') {
+      const jobs = await this.ds.query(
+        `SELECT id, cargo_type AS "cargoType", status,
+                price, estimated_price AS "estimatedPrice",
+                pickup_label AS "pickupLabel", drop_off_label AS "dropOffLabel",
+                created_at AS "createdAt"
+         FROM jobs WHERE owner_id = $1
+         ORDER BY created_at DESC`,
+        [id],
+      );
+      return { ...base, jobs };
+    }
+
+    return base;
   }
 
   async listDrivers(q: DirectoryQuery): Promise<Paginated<any>> {

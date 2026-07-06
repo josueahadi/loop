@@ -69,6 +69,14 @@ const PAGE_TITLES: Record<string, string> = {
   '/jobs': 'Jobs',
 };
 
+// Resolve a title for a path, falling back to the top-level section for detail
+// routes like /users/<id> (which have no exact entry).
+function pageTitle(pathname: string): string {
+  if (PAGE_TITLES[pathname]) return PAGE_TITLES[pathname];
+  const top = `/${pathname.split('/')[1] ?? ''}`;
+  return PAGE_TITLES[top] ?? 'Dashboard';
+}
+
 export function AdminNav({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -173,14 +181,12 @@ export function AdminNav({ children }: { children: ReactNode }) {
                 <BreadcrumbItem>Admin</BreadcrumbItem>
                 <BreadcrumbSeparator />
                 <BreadcrumbItem>
-                  <BreadcrumbPage>
-                    {PAGE_TITLES[pathname] ?? 'Dashboard'}
-                  </BreadcrumbPage>
+                  <BreadcrumbPage>{pageTitle(pathname)}</BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
             <h1 className="truncate text-lg font-semibold">
-              {PAGE_TITLES[pathname] ?? 'Dashboard'}
+              {pageTitle(pathname)}
             </h1>
           </div>
           <Badge variant="outline">Admin</Badge>
