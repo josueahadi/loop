@@ -16,6 +16,7 @@ import '../../../screens/driver_profile_edit_screen.dart';
 import '../../chat/presentation/job_chat_screen.dart';
 import '../../proposals/presentation/driver_proposals_screen.dart';
 import '../../ratings/presentation/my_ratings_screen.dart';
+import '../../ratings/presentation/rating_screen.dart';
 import '../../notifications/presentation/notification_bell.dart';
 import '../../../providers/notification_provider.dart';
 import 'driver_job_detail_screen.dart';
@@ -1072,6 +1073,7 @@ class _ProposalCardState extends State<_ProposalCard> {
   final _repo = ProposalRepository();
   final _messages = MessageRepository();
   bool _busy = false;
+  bool _rated = false;
   int _unread = 0;
 
   @override
@@ -1108,6 +1110,16 @@ class _ProposalCardState extends State<_ProposalCard> {
 
   Future<void> _call(String phone) =>
       launchUrl(Uri(scheme: 'tel', path: phone));
+
+  Future<void> _rateOwner(String jobId, String name) async {
+    final done = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => RatingScreen(jobId: jobId, counterpartyName: name),
+      ),
+    );
+    if (done == true && mounted) setState(() => _rated = true);
+  }
 
   Color _statusColor(String s) {
     switch (s) {
@@ -1284,6 +1296,16 @@ class _ProposalCardState extends State<_ProposalCard> {
                       icon: const Icon(Icons.navigation_outlined, size: 18),
                       label: const Text('Pickup'),
                     ),
+                    // Rate the owner once the job is completed.
+                    if (job.status == 'completed')
+                      _rated
+                          ? const Chip(label: Text('Rated ✓'))
+                          : OutlinedButton.icon(
+                              onPressed: () =>
+                                  _rateOwner(p.jobId, p.contact!.name),
+                              icon: const Icon(Icons.star_border, size: 18),
+                              label: const Text('Rate owner'),
+                            ),
                   ],
                 ),
               ],
