@@ -1,7 +1,9 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, FileCheck } from 'lucide-react';
+import { ArrowLeft, Eye, FileCheck } from 'lucide-react';
+import { DocumentPreviewDialog } from '@/features/verifications/components/DocumentPreviewDialog';
 import { useUserProfile } from '../hooks/useUsers';
 import type {
   AdminUserProfile,
@@ -239,34 +241,58 @@ function statusVariant(status: ProfileDocument['status']) {
 }
 
 function DocumentsTable({ documents }: { documents: ProfileDocument[] }) {
+  const [preview, setPreview] = useState<ProfileDocument | null>(null);
+
   if (documents.length === 0) {
     return <EmptyState message="No documents submitted." />;
   }
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Document</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead>Note</TableHead>
-          <TableHead>Submitted</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {documents.map((d) => (
-          <TableRow key={d.id}>
-            <TableCell>{docLabels[d.documentType]}</TableCell>
-            <TableCell>
-              <Badge variant={statusVariant(d.status)}>{d.status}</Badge>
-            </TableCell>
-            <TableCell className="text-sm text-muted-foreground">
-              {d.reviewNote ?? '—'}
-            </TableCell>
-            <TableCell>{date(d.createdAt)}</TableCell>
+    <>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Document</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Note</TableHead>
+            <TableHead>Submitted</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
           </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+        </TableHeader>
+        <TableBody>
+          {documents.map((d) => (
+            <TableRow key={d.id}>
+              <TableCell>{docLabels[d.documentType]}</TableCell>
+              <TableCell>
+                <Badge variant={statusVariant(d.status)}>{d.status}</Badge>
+              </TableCell>
+              <TableCell className="text-sm text-muted-foreground">
+                {d.reviewNote ?? '—'}
+              </TableCell>
+              <TableCell>{date(d.createdAt)}</TableCell>
+              <TableCell className="text-right">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPreview(d)}
+                >
+                  <Eye data-icon="inline-start" />
+                  View
+                </Button>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+
+      <DocumentPreviewDialog
+        documentId={preview?.id ?? null}
+        title={preview ? docLabels[preview.documentType] : 'Document'}
+        open={preview !== null}
+        onOpenChange={(o) => {
+          if (!o) setPreview(null);
+        }}
+      />
+    </>
   );
 }
 
