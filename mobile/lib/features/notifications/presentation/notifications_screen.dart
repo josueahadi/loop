@@ -4,11 +4,15 @@ import 'package:provider/provider.dart';
 import '../../../constants.dart';
 import '../../../core/enums/app_enums.dart';
 import '../../../core/models/app_notification.dart';
+import '../../../core/repositories/job_repository.dart';
 import '../../../core/repositories/notification_repository.dart';
+import '../../../core/repositories/proposal_repository.dart';
 import '../../../core/theme/ui_kit.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/notification_provider.dart';
 import '../../../screens/driver_profile_edit_screen.dart';
+import '../../driver/screens/driver_job_detail_screen.dart';
+import '../../jobs/presentation/owner_job_detail_screen.dart';
 import '../../proposals/presentation/driver_proposals_screen.dart';
 
 /// The notification centre: a list of the user's notifications (proposal
@@ -35,7 +39,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   Future<void> _refresh() async {
     final next = _repo.list();
-    setState(() => _future = next);
+    setState(() {
+      _future = next;
+    });
     await next;
   }
 
@@ -131,36 +137,65 @@ class _NotificationTile extends StatelessWidget {
   // Route to the screen where the user can act on this notification. We only
   // have {type, jobId} — not the full job/contact — so we land on the relevant
   // list rather than deep-linking a specific chat we can't reconstruct.
-  void _onTap(BuildContext context) {
-    final role = context.read<AuthProvider>().user?.role;
-    final isDriver = role == UserRole.driver;
+  // Open the thing the notification is about. Job-related types deep-link to
+  // that job's detail (driver or owner variant); verification types open the
+  // documents screen. Falls back gracefully if the job can't be loaded.
+  Future<void> _onTap(BuildContext context) async {
+    final auth = context.read<AuthProvider>();
+    final isDriver = auth.user?.role == UserRole.driver;
+    final jobId = item.data['jobId'] as String?;
+    final nav = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+
     switch (item.type) {
-      case 'proposal':
-      case 'proposal_accepted':
-      case 'message':
-        if (isDriver) {
-          Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const DriverProposalsScreen()),
-          );
-        } else {
-          // Owner: their jobs live on the home's My Jobs tab; go back to it.
-          Navigator.of(context).popUntil((r) => r.isFirst);
-        }
-        break;
-      case 'proposal_declined':
-        Navigator.of(context).popUntil((r) => r.isFirst);
-        break;
       case 'verification_approved':
       case 'verification_rejected':
-        Navigator.of(context).push(
+        nav.push(
           MaterialPageRoute(
             builder: (_) =>
                 const DriverProfileEditScreen(scrollToDocuments: true),
           ),
         );
-        break;
+        return;
+      case 'proposal':
+      case 'proposal_accepted':
+      case 'proposal_declined':
+      case 'message':
+        if (jobId == null) return;
+        try {
+          if (isDriver) {
+            // Find the driver's proposal for this job → job-detail screen.
+            final proposals = await ProposalRepository().incoming();
+            final match = proposals.where((p) => p.jobId == jobId).toList();
+            if (match.isEmpty) {
+              nav.push(
+                MaterialPageRoute(
+                  builder: (_) => const DriverProposalsScreen(),
+                ),
+              );
+              return;
+            }
+            nav.push(
+              MaterialPageRoute(
+                builder: (_) => DriverJobDetailScreen(proposal: match.first),
+              ),
+            );
+          } else {
+            final job = await JobRepository().getById(jobId);
+            nav.push(
+              MaterialPageRoute(
+                builder: (_) => OwnerJobDetailScreen(job: job),
+              ),
+            );
+          }
+        } catch (_) {
+          messenger.showSnackBar(
+            const SnackBar(content: Text('Could not open this item.')),
+          );
+        }
+        return;
       default:
-        break;
+        return;
     }
   }
 

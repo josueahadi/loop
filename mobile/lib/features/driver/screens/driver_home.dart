@@ -51,17 +51,28 @@ class _DriverHomeState extends State<DriverHome> with WidgetsBindingObserver {
 
   static const _requiredDocuments = {'licence', 'national_id', 'vehicle_reg'};
 
+  NotificationProvider? _notifications;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadData();
+      // A new notification (e.g. a message) → remount cards so their unread
+      // message counts refetch. Kept separate from the badge's own refresh.
+      _notifications = context.read<NotificationProvider>()
+        ..addListener(_onNotificationsChanged);
     });
+  }
+
+  void _onNotificationsChanged() {
+    if (mounted) setState(() => _reloadCounter++);
   }
 
   @override
   void dispose() {
+    _notifications?.removeListener(_onNotificationsChanged);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }

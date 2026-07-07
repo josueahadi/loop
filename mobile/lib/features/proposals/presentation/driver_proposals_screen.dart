@@ -32,7 +32,9 @@ class _DriverProposalsScreenState extends State<DriverProposalsScreen> {
 
   Future<void> _refresh() async {
     final next = _repo.incoming();
-    setState(() => _future = next);
+    setState(() {
+      _future = next;
+    });
     await next;
   }
 
