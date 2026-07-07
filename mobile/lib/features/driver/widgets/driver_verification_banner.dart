@@ -30,6 +30,8 @@ class _DriverVerificationBannerState extends State<DriverVerificationBanner> {
   bool _loading = true;
   bool _hasVehicle = false;
   final Set<String> _approvedDocs = {};
+  // Required doc types that have a record of ANY status (submitted at least once).
+  final Set<String> _submittedDocs = {};
   bool _hasRejected = false;
   bool _hasPending = false;
 
@@ -62,6 +64,9 @@ class _DriverVerificationBannerState extends State<DriverVerificationBanner> {
       }
 
       _approvedDocs.clear();
+      _submittedDocs
+        ..clear()
+        ..addAll(latestByType.keys);
       _hasRejected = false;
       _hasPending = false;
       latestByType.forEach((type, status) {
@@ -76,6 +81,9 @@ class _DriverVerificationBannerState extends State<DriverVerificationBanner> {
       _approvedDocs
         ..clear()
         ..addAll(_requiredDocs);
+      _submittedDocs
+        ..clear()
+        ..addAll(_requiredDocs);
       _hasRejected = false;
       _hasPending = false;
     } finally {
@@ -86,6 +94,9 @@ class _DriverVerificationBannerState extends State<DriverVerificationBanner> {
   bool get _allApproved => _requiredDocs.every(_approvedDocs.contains);
 
   int get _approvedCount => _requiredDocs.where(_approvedDocs.contains).length;
+
+  // Every required doc has been submitted at least once (any status).
+  bool get _allSubmitted => _requiredDocs.every(_submittedDocs.contains);
 
   bool get _isComplete => _hasVehicle && _allApproved;
 
@@ -98,16 +109,20 @@ class _DriverVerificationBannerState extends State<DriverVerificationBanner> {
     final hasRejected = _hasRejected;
     final anyPending = _hasPending;
 
+    // Muted accents — softer than the bright Material defaults so the card reads
+    // as an informative nudge, not an alarm, alongside the app's green theme.
+    const rejectedAccent = Color(0xFFB4453B); // muted brick red
+    const pendingAccent = Color(0xFFB57A28); // muted amber
     final (Color accent, IconData icon, String title, String body) = hasRejected
         ? (
-            Colors.red,
+            rejectedAccent,
             Icons.error_outline,
             'A document was rejected',
             'Re-upload the rejected document so an admin can review it again.',
           )
         : anyPending && !needsVehicle
         ? (
-            Colors.orange,
+            pendingAccent,
             Icons.hourglass_top,
             'Verification under review',
             'Your documents are with our team. You can add or update details '
@@ -125,9 +140,9 @@ class _DriverVerificationBannerState extends State<DriverVerificationBanner> {
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: accent.withValues(alpha: 0.08),
+        color: accent.withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: accent, width: 1.5),
+        border: Border.all(color: accent.withValues(alpha: 0.55), width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -171,19 +186,36 @@ class _DriverVerificationBannerState extends State<DriverVerificationBanner> {
                       minimumSize: const Size.fromHeight(48),
                     ),
                   ),
+                // Rejected → re-upload; everything submitted & awaiting review →
+                // nothing to upload, so view (a calm outlined button); otherwise
+                // still uploading (a solid call-to-action).
                 if (!_allApproved)
-                  ElevatedButton.icon(
-                    onPressed: () => _open(
-                      const DriverProfileEditScreen(scrollToDocuments: true),
+                  if (_allSubmitted && !hasRejected)
+                    OutlinedButton.icon(
+                      onPressed: () => _open(
+                        const DriverProfileEditScreen(scrollToDocuments: true),
+                      ),
+                      icon: const Icon(Icons.description_outlined, size: 18),
+                      label: const Text('View documents'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: accent,
+                        side: BorderSide(color: accent.withValues(alpha: 0.55)),
+                        minimumSize: const Size.fromHeight(48),
+                      ),
+                    )
+                  else
+                    ElevatedButton.icon(
+                      onPressed: () => _open(
+                        const DriverProfileEditScreen(scrollToDocuments: true),
+                      ),
+                      icon: const Icon(Icons.upload_file, size: 18),
+                      label: Text(hasRejected ? 'Re-upload' : 'Upload docs'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: accent,
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size.fromHeight(48),
+                      ),
                     ),
-                    icon: const Icon(Icons.upload_file, size: 18),
-                    label: Text(hasRejected ? 'Re-upload' : 'Upload docs'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: accent,
-                      foregroundColor: Colors.white,
-                      minimumSize: const Size.fromHeight(48),
-                    ),
-                  ),
               ];
 
               if (buttons.length == 1 || constraints.maxWidth < 420) {
