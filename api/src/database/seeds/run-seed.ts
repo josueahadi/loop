@@ -62,12 +62,18 @@ async function seed() {
     process.env.ADMIN_PHONE ?? '+250780000000',
   );
 
-  // ---- demo/grader admin ----
-  // A fixed, documented login so an evaluator can reach the admin console on the
-  // deployed instance (there is no public admin signup). Throwaway credentials —
-  // rotate or remove after evaluation. Overridable via env; skip by setting
-  // DEMO_ADMIN_EMAIL empty. Skipped if it would collide with the primary admin
-  // (e.g. a local run where both default to admin@loop.rw).
+  // ---- demo admin (THROWAWAY — evaluation only) ----
+  // WHY THIS EXISTS: the admin console has no public signup, so an evaluator
+  // testing the DEPLOYED instance would otherwise have no way in. This seeds a
+  // fixed, documented login (in the root README) purely so the hosted admin app
+  // can be signed into for grading.
+  //
+  // THROWAWAY: these are intentionally known, published credentials — NOT a real
+  // account. The default password is committed to the repo/README, so treat this
+  // as public. Rotate it (set DEMO_ADMIN_PASSWORD) or disable it (set
+  // DEMO_ADMIN_EMAIL empty) once evaluation is done. Overridable via env; skipped
+  // when it would collide with the primary admin (e.g. a local run where both
+  // default to admin@loop.rw).
   const demoAdminEmail = (
     process.env.DEMO_ADMIN_EMAIL ?? 'admin@loop.rw'
   ).toLowerCase();
