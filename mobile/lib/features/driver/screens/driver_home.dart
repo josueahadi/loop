@@ -682,12 +682,12 @@ class _ProposalList extends StatelessWidget {
           }
           if (snap.hasError) {
             return ListView(
-              children: [
-                const SizedBox(height: 120),
+              children: const [
+                SizedBox(height: 120),
                 Center(
                   child: Text(
-                    snap.error.toString().replaceFirst('Exception: ', ''),
-                    style: const TextStyle(color: Colors.red),
+                    "Couldn't load. Pull down to retry.",
+                    style: TextStyle(color: textGray),
                   ),
                 ),
               ],

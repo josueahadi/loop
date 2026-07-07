@@ -279,11 +279,11 @@ class _DashboardTabState extends State<_DashboardTab> {
                     child: Center(child: CircularProgressIndicator()),
                   )
                 else if (snap.hasError)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8),
+                  const Padding(
+                    padding: EdgeInsets.only(top: 8),
                     child: Text(
-                      snap.error.toString().replaceFirst('Exception: ', ''),
-                      style: const TextStyle(color: Colors.red),
+                      "Couldn't load your jobs. Pull down to retry.",
+                      style: TextStyle(color: textGray),
                     ),
                   )
                 else if (jobs.isEmpty)
@@ -344,12 +344,12 @@ class _MyJobsTabState extends State<_MyJobsTab> {
           }
           if (snap.hasError) {
             return ListView(
-              children: [
-                const SizedBox(height: 120),
+              children: const [
+                SizedBox(height: 120),
                 Center(
                   child: Text(
-                    snap.error.toString().replaceFirst('Exception: ', ''),
-                    style: const TextStyle(color: Colors.red),
+                    "Couldn't load your jobs. Pull down to retry.",
+                    style: TextStyle(color: textGray),
                   ),
                 ),
               ],

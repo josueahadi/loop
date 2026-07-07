@@ -17,6 +17,7 @@ import 'providers/auth_provider.dart';
 import 'providers/notification_provider.dart';
 import 'providers/onboarding_provider.dart';
 import 'features/profile/providers/profile_provider.dart';
+import 'core/api/api_client.dart';
 import 'core/repositories/user_repository.dart';
 import 'package:cargo_app/constants.dart';
 
@@ -40,6 +41,7 @@ void main() async {
 // Global messenger so foreground-push snackbars can be shown from anywhere.
 final GlobalKey<ScaffoldMessengerState> _messengerKey =
     GlobalKey<ScaffoldMessengerState>();
+final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -76,6 +78,18 @@ class MyApp extends StatelessWidget {
             );
           }
 
+          // When the session dies unrecoverably (refresh failed), sign out and
+          // route to login instead of stranding the user on a screen firing 401s.
+          ApiClient.onUnauthorized = () {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              authProvider.signOut();
+              _navigatorKey.currentState?.pushNamedAndRemoveUntil(
+                '/',
+                (route) => false,
+              );
+            });
+          };
+
           // Foreground pushes: refresh the unread badge + show an in-app banner
           // (the OS shows nothing while the app is open).
           authProvider.push.onForegroundMessage = (message) {
@@ -95,6 +109,7 @@ class MyApp extends StatelessWidget {
 
           return MaterialApp(
             title: 'Loop',
+            navigatorKey: _navigatorKey,
             scaffoldMessengerKey: _messengerKey,
             debugShowCheckedModeBanner: false,
             theme: ThemeData(

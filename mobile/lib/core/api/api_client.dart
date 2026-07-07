@@ -21,6 +21,12 @@ class ApiClient {
   // repos fire at once on a screen open). Tests can still inject overrides.
   static ApiClient? _shared;
 
+  // Invoked once when the session is unrecoverable (refresh failed → tokens
+  // cleared). The app root wires this to sign out + route to login, so the user
+  // isn't stranded on a screen firing raw 401s. Static so it survives the
+  // singleton and is set once at startup.
+  static void Function()? onUnauthorized;
+
   factory ApiClient({TokenStore? tokenStore, Dio? dioOverride}) {
     if (tokenStore == null && dioOverride == null) {
       return _shared ??= ApiClient._internal();
@@ -90,7 +96,10 @@ class ApiClient {
 
   Future<bool> _doRefresh() async {
     final refresh = await _tokens.refreshToken;
-    if (refresh == null) return false;
+    if (refresh == null) {
+      _sessionDied();
+      return false;
+    }
     try {
       final res = await dio.post(
         '/auth/refresh',
@@ -104,7 +113,14 @@ class ApiClient {
       return true;
     } catch (_) {
       await _tokens.clear();
+      _sessionDied();
       return false;
     }
+  }
+
+  // Session is unrecoverable — let the app sign out + route to login so the user
+  // isn't stranded firing raw 401s.
+  void _sessionDied() {
+    onUnauthorized?.call();
   }
 }
