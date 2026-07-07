@@ -4,8 +4,8 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { AvailabilityStatus, UserRole } from '../../common/enums';
 import { User } from './entities/user.entity';
 import { UpdateMeDto } from './dto/update-me.dto';
@@ -15,7 +15,34 @@ export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly users: Repository<User>,
+    @InjectDataSource() private readonly ds: DataSource,
   ) {}
+
+  // Completed jobs for a user: for a driver, jobs they were assigned (accepted
+  // proposal) that are completed; for a cargo owner, their own completed jobs.
+  async completedJobsCount(user: User): Promise<number> {
+    if (user.role === UserRole.DRIVER) {
+      const [{ count }] = await this.ds.query(
+        `SELECT COUNT(*)::int AS count
+         FROM proposals p
+         JOIN jobs j ON j.id = p.job_id
+         WHERE p.driver_id = $1
+           AND p.status = 'accepted'
+           AND j.status = 'completed'`,
+        [user.id],
+      );
+      return count;
+    }
+    if (user.role === UserRole.CARGO_OWNER) {
+      const [{ count }] = await this.ds.query(
+        `SELECT COUNT(*)::int AS count
+         FROM jobs WHERE owner_id = $1 AND status = 'completed'`,
+        [user.id],
+      );
+      return count;
+    }
+    return 0;
+  }
 
   findById(id: string): Promise<User | null> {
     return this.users.findOne({ where: { id } });

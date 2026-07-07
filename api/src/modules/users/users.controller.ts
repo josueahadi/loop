@@ -30,7 +30,11 @@ export class UsersController {
 
   @Get('me')
   async me(@CurrentUser('id') id: string): Promise<UserResponseDto> {
-    return UserResponseDto.from(await this.users.getByIdOrFail(id));
+    const user = await this.users.getByIdOrFail(id);
+    return UserResponseDto.from(
+      user,
+      await this.users.completedJobsCount(user),
+    );
   }
 
   @Patch('me')

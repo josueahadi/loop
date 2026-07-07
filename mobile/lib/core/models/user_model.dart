@@ -77,6 +77,7 @@ class UserModel {
           ? json['availabilityStatus'] == 'online'
           : null,
       rating: (json['averageRating'] as num?)?.toDouble(),
+      completedJobs: (json['completedJobs'] as num?)?.toInt(),
       driverLicenseNumber: json['licenseNumber'] as String?,
     );
   }

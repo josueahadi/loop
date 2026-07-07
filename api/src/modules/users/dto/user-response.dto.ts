@@ -16,9 +16,10 @@ export class UserResponseDto {
   @ApiProperty({ nullable: true }) licenseNumber: string | null;
   @ApiProperty() averageRating: number;
   @ApiProperty() ratingCount: number;
+  @ApiProperty() completedJobs: number;
   @ApiProperty() createdAt: Date;
 
-  static from(user: User): UserResponseDto {
+  static from(user: User, completedJobs = 0): UserResponseDto {
     return {
       id: user.id,
       name: user.name,
@@ -31,6 +32,7 @@ export class UserResponseDto {
       licenseNumber: user.licenseNumber,
       averageRating: Number(user.averageRating),
       ratingCount: user.ratingCount,
+      completedJobs,
       createdAt: user.createdAt,
     };
   }
