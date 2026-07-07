@@ -13,40 +13,71 @@ async function seed() {
   const ds = new DataSource(dataSourceOptions);
   await ds.initialize();
 
-  // ---- admin user ----
-  // Upsert: create the admin if missing, otherwise refresh password/name/phone
-  // from the current env vars. This keeps the seed idempotent AND self-healing —
-  // rotating ADMIN_PASSWORD and re-running the seed updates the login, rather than
-  // silently keeping a stale password. (No public admin signup exists.)
   const users = ds.getRepository(User);
-  const adminEmail = (process.env.ADMIN_EMAIL ?? 'admin@loop.rw').toLowerCase();
-  const passwordHash = await argon2.hash(
+
+  // Upsert an admin: create if missing, otherwise refresh password/name/phone.
+  // Idempotent AND self-healing — rotating the password and re-running the seed
+  // updates the login rather than keeping a stale one. (No public admin signup.)
+  async function upsertAdmin(
+    email: string,
+    password: string,
+    name: string,
+    phone: string,
+  ): Promise<void> {
+    const lower = email.toLowerCase();
+    const passwordHash = await argon2.hash(password);
+    const existing = await users.findOne({ where: { email: lower } });
+    if (existing) {
+      existing.name = name;
+      existing.phone = phone;
+      existing.passwordHash = passwordHash;
+      existing.role = UserRole.ADMIN;
+      await users.save(existing);
+      console.log(`Updated admin: ${lower}`);
+    } else {
+      await users.save(
+        users.create({
+          name,
+          email: lower,
+          phone,
+          passwordHash,
+          role: UserRole.ADMIN,
+          availabilityStatus: null,
+          emailVerifiedAt: new Date(),
+          averageRating: 0,
+        }),
+      );
+      console.log(`Seeded admin: ${lower}`);
+    }
+  }
+
+  // ---- primary admin (env-driven) ----
+  const primaryAdminEmail = (
+    process.env.ADMIN_EMAIL ?? 'admin@loop.rw'
+  ).toLowerCase();
+  await upsertAdmin(
+    primaryAdminEmail,
     process.env.ADMIN_PASSWORD ?? 'change-me-admin',
+    process.env.ADMIN_NAME ?? 'Loop Admin',
+    process.env.ADMIN_PHONE ?? '+250780000000',
   );
-  const adminName = process.env.ADMIN_NAME ?? 'Loop Admin';
-  const adminPhone = process.env.ADMIN_PHONE ?? '+250780000000';
-  const existingAdmin = await users.findOne({ where: { email: adminEmail } });
-  if (existingAdmin) {
-    existingAdmin.name = adminName;
-    existingAdmin.phone = adminPhone;
-    existingAdmin.passwordHash = passwordHash;
-    existingAdmin.role = UserRole.ADMIN;
-    await users.save(existingAdmin);
-    console.log(`Updated admin: ${adminEmail}`);
-  } else {
-    await users.save(
-      users.create({
-        name: adminName,
-        email: adminEmail,
-        phone: adminPhone,
-        passwordHash,
-        role: UserRole.ADMIN,
-        availabilityStatus: null,
-        emailVerifiedAt: new Date(),
-        averageRating: 0,
-      }),
+
+  // ---- demo/grader admin ----
+  // A fixed, documented login so an evaluator can reach the admin console on the
+  // deployed instance (there is no public admin signup). Throwaway credentials —
+  // rotate or remove after evaluation. Overridable via env; skip by setting
+  // DEMO_ADMIN_EMAIL empty. Skipped if it would collide with the primary admin
+  // (e.g. a local run where both default to admin@loop.rw).
+  const demoAdminEmail = (
+    process.env.DEMO_ADMIN_EMAIL ?? 'admin@loop.rw'
+  ).toLowerCase();
+  if (demoAdminEmail && demoAdminEmail !== primaryAdminEmail) {
+    await upsertAdmin(
+      demoAdminEmail,
+      process.env.DEMO_ADMIN_PASSWORD ?? 'Admin@2026',
+      process.env.DEMO_ADMIN_NAME ?? 'Loop Demo Admin',
+      process.env.DEMO_ADMIN_PHONE ?? '+250780000001',
     );
-    console.log(`Seeded admin: ${adminEmail}`);
   }
 
   // ---- pricing config (per vehicle type, RWF integers) ----

@@ -16,7 +16,7 @@ The **API is the system of record** (PostgreSQL/PostGIS). The mobile app and adm
 
 | | Link |
 | --- | --- |
-| **Admin (web)** | <https://loop-admin-prod.up.railway.app> — login `admin@loop.rw` |
+| **Admin (web)** | <https://loop-admin-prod.up.railway.app> — sign in with the demo admin `admin@loop.rw` / `Admin@2026` (there is no public admin signup) |
 | **API** | <https://loop-api-prod.up.railway.app> · Swagger at [`/docs`](https://loop-api-prod.up.railway.app/docs) |
 | **Mobile app** | Android APK — _TODO: add download link_. Or build/run it yourself against the deployed API (below). |
 | **Demo video** | _TODO: add walkthrough link_ |
@@ -62,7 +62,7 @@ flutter run --dart-define=API_BASE_URL=http://localhost:3000
 
 To run the mobile app against the **deployed** backend, just point `API_BASE_URL` at the hosted API — see [`mobile/README.md`](mobile/README.md#run) and, for the release APK, [DEPLOYMENT.md §6](DEPLOYMENT.md#6-mobile-apk).
 
-The seeded admin credentials come from `ADMIN_EMAIL` / `ADMIN_PASSWORD` in `api/.env` (defaults: `admin@loop.rw` / `change-me-admin`). Backend details and the full endpoint list are in [`api/README.md`](api/README.md); the admin app is documented in [`admin/README.md`](admin/README.md).
+The seeded admin credentials come from `ADMIN_EMAIL` / `ADMIN_PASSWORD` in `api/.env` (defaults: `admin@loop.rw` / `change-me-admin`). The seed also provisions a fixed **demo admin** — `admin@loop.rw` / `Admin@2026` — so the deployed admin console can be signed into for evaluation without a public admin signup (`DEMO_ADMIN_EMAIL` / `DEMO_ADMIN_PASSWORD` override it; it's a throwaway login, rotate or remove after). Backend details and the full endpoint list are in [`api/README.md`](api/README.md); the admin app is documented in [`admin/README.md`](admin/README.md).
 
 ## Deployment
 
