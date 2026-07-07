@@ -43,6 +43,11 @@ final GlobalKey<ScaffoldMessengerState> _messengerKey =
     GlobalKey<ScaffoldMessengerState>();
 final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
 
+// Guards the unrecoverable-session handler so a burst of 401s (or a call while
+// already logged out) can't re-run sign-out + re-route on a loop — which showed
+// up as the welcome screen re-animating ("swiping") over and over after logout.
+bool _handlingSessionDeath = false;
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -80,13 +85,19 @@ class MyApp extends StatelessWidget {
 
           // When the session dies unrecoverably (refresh failed), sign out and
           // route to login instead of stranding the user on a screen firing 401s.
+          // Guarded + no-ops if already signed out, so a burst of concurrent 401s
+          // can't loop sign-out + re-route (the "welcome keeps swiping" bug).
           ApiClient.onUnauthorized = () {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              authProvider.signOut();
+            if (_handlingSessionDeath) return;
+            if (!authProvider.isAuthenticated) return;
+            _handlingSessionDeath = true;
+            WidgetsBinding.instance.addPostFrameCallback((_) async {
+              await authProvider.signOut();
               _navigatorKey.currentState?.pushNamedAndRemoveUntil(
                 '/',
                 (route) => false,
               );
+              _handlingSessionDeath = false;
             });
           };
 

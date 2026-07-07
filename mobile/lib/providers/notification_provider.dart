@@ -16,7 +16,15 @@ class NotificationProvider with ChangeNotifier {
   int get unread => _unread;
 
   Future<void> refreshUnread() async {
-    final count = await _repo.unreadCount();
+    // A badge refresh is best-effort: never let a failed/unauthenticated call
+    // bubble into the ApiClient's session-death path (that would fire a spurious
+    // sign-out + re-route loop, e.g. right after logout).
+    int count;
+    try {
+      count = await _repo.unreadCount();
+    } catch (_) {
+      return;
+    }
     if (_disposed) return;
     if (count != _unread) {
       _unread = count;
