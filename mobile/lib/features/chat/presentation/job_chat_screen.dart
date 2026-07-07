@@ -95,6 +95,19 @@ class _JobChatScreenState extends State<JobChatScreen> {
     await launchUrl(uri);
   }
 
+  // Time on a message bubble: HH:mm today, else "d/M HH:mm".
+  String _formatTime(DateTime t) {
+    final local = t.toLocal();
+    final hh = local.hour.toString().padLeft(2, '0');
+    final mm = local.minute.toString().padLeft(2, '0');
+    final now = DateTime.now();
+    final sameDay =
+        local.year == now.year &&
+        local.month == now.month &&
+        local.day == now.day;
+    return sameDay ? '$hh:$mm' : '${local.day}/${local.month} $hh:$mm';
+  }
+
   @override
   void dispose() {
     _sub?.cancel();
@@ -147,11 +160,29 @@ class _JobChatScreenState extends State<JobChatScreen> {
                             color: mine ? primaryGreen : searchBg,
                             borderRadius: BorderRadius.circular(14),
                           ),
-                          child: Text(
-                            m.content,
-                            style: TextStyle(
-                              color: mine ? Colors.white : textDark,
-                            ),
+                          child: Column(
+                            crossAxisAlignment: mine
+                                ? CrossAxisAlignment.end
+                                : CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                m.content,
+                                style: TextStyle(
+                                  color: mine ? Colors.white : textDark,
+                                ),
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                _formatTime(m.sentAt),
+                                style: TextStyle(
+                                  fontSize: 10.5,
+                                  color: mine
+                                      ? Colors.white70
+                                      : textGray,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       );

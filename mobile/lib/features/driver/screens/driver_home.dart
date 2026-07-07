@@ -8,6 +8,7 @@ import '../../../providers/auth_provider.dart';
 import '../../../core/location/enable_location_prompt.dart';
 import '../../../core/location/location_service.dart';
 import '../../../core/repositories/proposal_repository.dart';
+import '../../../core/repositories/message_repository.dart';
 import '../../../core/repositories/vehicle_repository.dart';
 import '../../../core/repositories/verification_repository.dart';
 import '../../../constants.dart';
@@ -17,6 +18,7 @@ import '../../proposals/presentation/driver_proposals_screen.dart';
 import '../../ratings/presentation/my_ratings_screen.dart';
 import '../../notifications/presentation/notification_bell.dart';
 import '../../../providers/notification_provider.dart';
+import 'driver_job_detail_screen.dart';
 import '../../../screens/vehicle_details_screen.dart';
 import '../widgets/driver_verification_banner.dart';
 import '../../../core/theme/ui_kit.dart';
@@ -1057,7 +1059,21 @@ class _ProposalCard extends StatefulWidget {
 
 class _ProposalCardState extends State<_ProposalCard> {
   final _repo = ProposalRepository();
+  final _messages = MessageRepository();
   bool _busy = false;
+  int _unread = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.proposal.isAccepted) _loadUnread();
+  }
+
+  Future<void> _loadUnread() async {
+    final map = await _messages.unreadByJob();
+    if (!mounted) return;
+    setState(() => _unread = map[widget.proposal.jobId] ?? 0);
+  }
 
   Future<void> _respond(String status) async {
     if (_busy) return;
@@ -1117,133 +1133,151 @@ class _ProposalCardState extends State<_ProposalCard> {
     final job = p.job;
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    job?.cargoType ?? 'Job',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: job == null
+            ? null
+            : () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => DriverJobDetailScreen(proposal: p),
                 ),
-                Builder(
-                  builder: (_) {
-                    final display = _displayStatus(p);
-                    return Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: _statusColor(display).withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        display,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: _statusColor(display),
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ],
-            ),
-            if (job != null) ...[
-              const SizedBox(height: 8),
-              Text(
-                '${job.pickupLabel ?? 'Pickup'} → ${job.dropOffLabel ?? 'Drop-off'}',
-                style: const TextStyle(color: textGray, fontSize: 13.5),
               ),
-              const SizedBox(height: 4),
-              Text(
-                '${job.reqVehicleType.label} · ${job.price} RWF',
-                style: const TextStyle(fontWeight: FontWeight.w600),
-              ),
-            ],
-            const SizedBox(height: 12),
-            if (p.status == 'sent')
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
               Row(
                 children: [
                   Expanded(
-                    child: OutlinedButton(
-                      onPressed: _busy ? null : () => _respond('declined'),
-                      child: const Text('Decline'),
+                    child: Text(
+                      job?.cargoType ?? 'Job',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: ElevatedButton(
+                  Builder(
+                    builder: (_) {
+                      final display = _displayStatus(p);
+                      return Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _statusColor(display).withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          display,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: _statusColor(display),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+              if (job != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  '${job.pickupLabel ?? 'Pickup'} → ${job.dropOffLabel ?? 'Drop-off'}',
+                  style: const TextStyle(color: textGray, fontSize: 13.5),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${job.reqVehicleType.label} · ${job.price} RWF',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ],
+              const SizedBox(height: 12),
+              if (p.status == 'sent')
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: _busy ? null : () => _respond('declined'),
+                        child: const Text('Decline'),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: primaryGreen,
+                          foregroundColor: Colors.white,
+                        ),
+                        onPressed: _busy ? null : () => _respond('accepted'),
+                        child: _busy
+                            ? const SizedBox(
+                                height: 18,
+                                width: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Text('Accept'),
+                      ),
+                    ),
+                  ],
+                ),
+              // Contact + actions ONLY once accepted (contact is null otherwise).
+              if (p.isAccepted && p.contact != null && job != null) ...[
+                const Divider(height: 20),
+                Text(
+                  'Cargo owner: ${p.contact!.name}',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                Text(p.contact!.phone, style: const TextStyle(color: textGray)),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: primaryGreen,
                         foregroundColor: Colors.white,
                       ),
-                      onPressed: _busy ? null : () => _respond('accepted'),
-                      child: _busy
-                          ? const SizedBox(
-                              height: 18,
-                              width: 18,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Text('Accept'),
+                      onPressed: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => JobChatScreen(
+                              jobId: p.jobId,
+                              contact: p.contact!,
+                            ),
+                          ),
+                        );
+                        // Opening the chat marks it read server-side; refresh.
+                        _loadUnread();
+                      },
+                      icon: const Icon(Icons.chat, size: 18),
+                      label: Text(_unread > 0 ? 'Chat ($_unread)' : 'Chat'),
                     ),
-                  ),
-                ],
-              ),
-            // Contact + actions ONLY once accepted (contact is null otherwise).
-            if (p.isAccepted && p.contact != null && job != null) ...[
-              const Divider(height: 20),
-              Text(
-                'Cargo owner: ${p.contact!.name}',
-                style: const TextStyle(fontWeight: FontWeight.w600),
-              ),
-              Text(p.contact!.phone, style: const TextStyle(color: textGray)),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: primaryGreen,
-                      foregroundColor: Colors.white,
+                    OutlinedButton.icon(
+                      onPressed: () => _call(p.contact!.phone),
+                      icon: const Icon(Icons.call, size: 18),
+                      label: const Text('Call'),
                     ),
-                    onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            JobChatScreen(jobId: p.jobId, contact: p.contact!),
-                      ),
+                    OutlinedButton.icon(
+                      onPressed: () =>
+                          OpenInMaps.directions(context, job.pickup),
+                      icon: const Icon(Icons.navigation_outlined, size: 18),
+                      label: const Text('Pickup'),
                     ),
-                    icon: const Icon(Icons.chat, size: 18),
-                    label: const Text('Chat'),
-                  ),
-                  OutlinedButton.icon(
-                    onPressed: () => _call(p.contact!.phone),
-                    icon: const Icon(Icons.call, size: 18),
-                    label: const Text('Call'),
-                  ),
-                  OutlinedButton.icon(
-                    onPressed: () => OpenInMaps.directions(context, job.pickup),
-                    icon: const Icon(Icons.navigation_outlined, size: 18),
-                    label: const Text('Pickup'),
-                  ),
-                ],
-              ),
+                  ],
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );

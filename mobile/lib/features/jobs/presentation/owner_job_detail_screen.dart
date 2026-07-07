@@ -9,6 +9,7 @@ import '../../../core/models/job.dart';
 import '../../../core/models/proposal.dart';
 import '../../../core/navigation/open_in_maps.dart';
 import '../../../core/repositories/job_repository.dart';
+import '../../../core/repositories/message_repository.dart';
 import '../../../core/repositories/proposal_repository.dart';
 import '../../chat/presentation/job_chat_screen.dart';
 import '../../matching/presentation/nearby_drivers_map.dart';
@@ -29,10 +30,12 @@ class OwnerJobDetailScreen extends StatefulWidget {
 class _OwnerJobDetailScreenState extends State<OwnerJobDetailScreen> {
   final _jobs = JobRepository();
   final _proposals = ProposalRepository();
+  final _messages = MessageRepository();
   late Job _job = widget.job;
   Proposal? _accepted;
   bool _ownerRated = false;
   bool _busy = false;
+  int _unread = 0;
 
   static const _assignedStatuses = {'matched', 'in_progress', 'completed'};
 
@@ -40,6 +43,13 @@ class _OwnerJobDetailScreenState extends State<OwnerJobDetailScreen> {
   void initState() {
     super.initState();
     _loadAccepted();
+    _loadUnread();
+  }
+
+  Future<void> _loadUnread() async {
+    final map = await _messages.unreadByJob();
+    if (!mounted) return;
+    setState(() => _unread = map[_job.id] ?? 0);
   }
 
   Future<void> _loadAccepted() async {
@@ -384,14 +394,17 @@ class _OwnerJobDetailScreenState extends State<OwnerJobDetailScreen> {
                   backgroundColor: primaryGreen,
                   foregroundColor: Colors.white,
                 ),
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => JobChatScreen(jobId: _job.id, contact: c),
-                  ),
-                ),
+                onPressed: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => JobChatScreen(jobId: _job.id, contact: c),
+                    ),
+                  );
+                  _loadUnread();
+                },
                 icon: const Icon(Icons.chat, size: 18),
-                label: const Text('Chat'),
+                label: Text(_unread > 0 ? 'Chat ($_unread)' : 'Chat'),
               ),
             ],
           ),

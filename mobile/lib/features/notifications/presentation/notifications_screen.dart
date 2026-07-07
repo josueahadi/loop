@@ -2,10 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../constants.dart';
+import '../../../core/enums/app_enums.dart';
 import '../../../core/models/app_notification.dart';
 import '../../../core/repositories/notification_repository.dart';
 import '../../../core/theme/ui_kit.dart';
+import '../../../providers/auth_provider.dart';
 import '../../../providers/notification_provider.dart';
+import '../../../screens/driver_profile_edit_screen.dart';
+import '../../proposals/presentation/driver_proposals_screen.dart';
 
 /// The notification centre: a list of the user's notifications (proposal
 /// received/accepted/declined, new message, verification decisions), newest
@@ -124,13 +128,52 @@ class _NotificationTile extends StatelessWidget {
     return '${diff.inDays}d ago';
   }
 
+  // Route to the screen where the user can act on this notification. We only
+  // have {type, jobId} — not the full job/contact — so we land on the relevant
+  // list rather than deep-linking a specific chat we can't reconstruct.
+  void _onTap(BuildContext context) {
+    final role = context.read<AuthProvider>().user?.role;
+    final isDriver = role == UserRole.driver;
+    switch (item.type) {
+      case 'proposal':
+      case 'proposal_accepted':
+      case 'message':
+        if (isDriver) {
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const DriverProposalsScreen()),
+          );
+        } else {
+          // Owner: their jobs live on the home's My Jobs tab; go back to it.
+          Navigator.of(context).popUntil((r) => r.isFirst);
+        }
+        break;
+      case 'proposal_declined':
+        Navigator.of(context).popUntil((r) => r.isFirst);
+        break;
+      case 'verification_approved':
+      case 'verification_rejected':
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) =>
+                const DriverProfileEditScreen(scrollToDocuments: true),
+          ),
+        );
+        break;
+      default:
+        break;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final s = _style;
-    return AppCard(
-      color: item.read ? null : kTintGreen,
-      padding: const EdgeInsets.all(14),
-      child: Row(
+    return InkWell(
+      onTap: () => _onTap(context),
+      borderRadius: BorderRadius.circular(12),
+      child: AppCard(
+        color: item.read ? null : kTintGreen,
+        padding: const EdgeInsets.all(14),
+        child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(s.icon, color: s.color, size: 22),
@@ -156,10 +199,11 @@ class _NotificationTile extends StatelessWidget {
                   _timeAgo(item.createdAt),
                   style: const TextStyle(fontSize: 11.5, color: textGray),
                 ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

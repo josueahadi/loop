@@ -67,9 +67,17 @@ class MyApp extends StatelessWidget {
             authProvider.initializeAuth();
           });
 
+          // Seed the unread badge as soon as the user is authenticated (login or
+          // session restore), not only when a home screen's bell mounts.
+          final notifications = context.read<NotificationProvider>();
+          if (authProvider.isAuthenticated) {
+            WidgetsBinding.instance.addPostFrameCallback(
+              (_) => notifications.refreshUnread(),
+            );
+          }
+
           // Foreground pushes: refresh the unread badge + show an in-app banner
           // (the OS shows nothing while the app is open).
-          final notifications = context.read<NotificationProvider>();
           authProvider.push.onForegroundMessage = (message) {
             notifications.refreshUnread();
             final messenger = _messengerKey.currentState;

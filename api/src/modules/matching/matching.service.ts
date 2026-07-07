@@ -62,6 +62,16 @@ export class MatchingService {
           GROUP BY driver_id
           HAVING COUNT(DISTINCT document_type) = 3
         )
+        -- Exclude drivers already busy on an active job (no double-booking).
+        -- They become matchable again once the job completes/cancels.
+        AND NOT EXISTS (
+          SELECT 1
+          FROM proposals p
+          JOIN jobs j ON j.id = p.job_id
+          WHERE p.driver_id = u.id
+            AND p.status = 'accepted'
+            AND j.status IN ('matched', 'in_progress')
+        )
       GROUP BY u.id, ref.g
       ORDER BY "distanceM" ASC
       `,

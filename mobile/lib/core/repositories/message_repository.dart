@@ -22,4 +22,16 @@ class MessageRepository {
     );
     return ChatMessageApi.fromJson(res.data as Map<String, dynamic>);
   }
+
+  /// { jobId: unreadCount } for the current user — jobs with no unread omitted.
+  Future<Map<String, int>> unreadByJob() async {
+    try {
+      final res = await _api.dio.get('/messages/unread');
+      return (res.data as Map).map(
+        (k, v) => MapEntry(k as String, (v as num).toInt()),
+      );
+    } catch (_) {
+      return const {};
+    }
+  }
 }
