@@ -1,7 +1,11 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { FileCheck } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { DataTable, type Column } from '@/components/data-table';
 import { DEFAULT_PAGE_SIZE } from '@/lib/pagination';
 import { useDrivers } from '../hooks/useDrivers';
@@ -45,9 +49,25 @@ const columns: Column<AdminDriver>[] = [
       </div>
     ),
   },
+  {
+    header: '',
+    // Jump straight to this driver's document review sheet. Stop propagation so
+    // it doesn't also trigger the row's navigate-to-profile.
+    cell: (d) => (
+      <div className="flex justify-end" onClick={(e) => e.stopPropagation()}>
+        <Button asChild variant="outline" size="sm">
+          <Link href={`/verifications?driver=${d.id}`}>
+            <FileCheck data-icon="inline-start" />
+            Verifications
+          </Link>
+        </Button>
+      </div>
+    ),
+  },
 ];
 
 export function DriversTable() {
+  const router = useRouter();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
@@ -86,6 +106,7 @@ export function DriversTable() {
       filterLabel="All drivers"
       emptyMessage="No drivers found."
       rowKey={(d) => d.id}
+      onRowClick={(d) => router.push(`/users/${d.id}`)}
     />
   );
 }
