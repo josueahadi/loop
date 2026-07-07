@@ -14,6 +14,7 @@ import 'screens/email_verification_screen.dart';
 import 'screens/home.dart';
 import 'screens/personal_data_screen.dart';
 import 'providers/auth_provider.dart';
+import 'providers/notification_provider.dart';
 import 'providers/onboarding_provider.dart';
 import 'features/profile/providers/profile_provider.dart';
 import 'core/repositories/user_repository.dart';
@@ -36,6 +37,10 @@ void main() async {
   runApp(const MyApp());
 }
 
+// Global messenger so foreground-push snackbars can be shown from anywhere.
+final GlobalKey<ScaffoldMessengerState> _messengerKey =
+    GlobalKey<ScaffoldMessengerState>();
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -44,6 +49,7 @@ class MyApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => NotificationProvider()),
         ChangeNotifierProvider(create: (_) => ButtonProvider()),
         ProxyProvider0<UserRepository>(update: (_, __) => ApiUserRepository()),
         ChangeNotifierProxyProvider<UserRepository, ProfileProvider>(
@@ -61,8 +67,27 @@ class MyApp extends StatelessWidget {
             authProvider.initializeAuth();
           });
 
+          // Foreground pushes: refresh the unread badge + show an in-app banner
+          // (the OS shows nothing while the app is open).
+          final notifications = context.read<NotificationProvider>();
+          authProvider.push.onForegroundMessage = (message) {
+            notifications.refreshUnread();
+            final messenger = _messengerKey.currentState;
+            final n = message.notification;
+            if (messenger != null && n != null) {
+              messenger.showSnackBar(
+                SnackBar(
+                  content: Text(n.title ?? n.body ?? 'New notification'),
+                  backgroundColor: primaryGreen,
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            }
+          };
+
           return MaterialApp(
             title: 'Loop',
+            scaffoldMessengerKey: _messengerKey,
             debugShowCheckedModeBanner: false,
             theme: ThemeData(
               fontFamily: 'Lexend',

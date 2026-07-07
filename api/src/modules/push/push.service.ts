@@ -4,6 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import * as admin from 'firebase-admin';
 import { Repository } from 'typeorm';
 import { User } from '../users/entities/user.entity';
+import { NotificationsService } from '../notifications/notifications.service';
 import { loadFirebaseServiceAccount } from '../../common/firebase-credentials';
 
 export interface PushMessage {
@@ -24,6 +25,7 @@ export class PushService implements OnModuleInit {
   constructor(
     private readonly config: ConfigService,
     @InjectRepository(User) private readonly users: Repository<User>,
+    private readonly notifications: NotificationsService,
   ) {
     this.driver = this.config.get<string>('push.driver') ?? 'stub';
   }
@@ -55,6 +57,9 @@ export class PushService implements OnModuleInit {
 
   // Fire-and-forget; callers do not await success and are never affected by failure.
   async sendToUser(userId: string, msg: PushMessage): Promise<void> {
+    // Persist the in-app notification regardless of the push driver, so the
+    // notification centre works even when FCM is a dev stub or unconfigured.
+    await this.notifications.record(userId, msg.title, msg.body, msg.data);
     try {
       if (this.driver !== 'fcm') {
         this.logger.log(

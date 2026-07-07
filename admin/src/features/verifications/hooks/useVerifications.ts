@@ -1,6 +1,7 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import {
   listVerifications,
   reviewVerification,
@@ -27,11 +28,17 @@ export function useReviewVerification() {
       status: 'approved' | 'rejected';
       reviewNote?: string;
     }) => reviewVerification(id, status, reviewNote),
-    onSuccess: () => {
+    onSuccess: (_data, { status }) => {
+      toast.success(
+        status === 'approved' ? 'Document approved' : 'Document rejected',
+      );
       qc.invalidateQueries({ queryKey: ['verifications'] });
       // Verification completion feeds a dashboard metric — refresh it too.
       qc.invalidateQueries({ queryKey: ['metrics'] });
       qc.invalidateQueries({ queryKey: ['drivers'] });
+    },
+    onError: () => {
+      toast.error('Could not update the document. Please try again.');
     },
   });
 }

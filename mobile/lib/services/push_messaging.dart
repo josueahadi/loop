@@ -21,6 +21,11 @@ class PushMessaging {
   final AuthService _auth;
   bool _started = false;
 
+  /// Called when a push arrives while the app is in the foreground — the app
+  /// wires this to show an in-app banner and refresh the unread badge (the OS
+  /// does not display a foreground notification on its own).
+  void Function(RemoteMessage message)? onForegroundMessage;
+
   /// Call once the user is authenticated (the API needs a JWT to store the
   /// token against the user). Safe to call more than once.
   Future<void> start() async {
@@ -40,6 +45,11 @@ class PushMessaging {
       // Token can rotate; keep the server copy current.
       messaging.onTokenRefresh.listen((t) {
         _auth.registerPushToken(t);
+      });
+
+      // Foreground pushes: the OS shows nothing, so surface them in-app.
+      FirebaseMessaging.onMessage.listen((message) {
+        onForegroundMessage?.call(message);
       });
     } catch (e) {
       debugPrint('PushMessaging.start failed (continuing): $e');

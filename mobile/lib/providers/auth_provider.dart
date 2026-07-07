@@ -26,6 +26,9 @@ class AuthProvider with ChangeNotifier {
        _location = location ?? LocationService(),
        _push = push ?? PushMessaging();
 
+  // The FCM wrapper — exposed so the app root can wire its foreground handler.
+  PushMessaging get push => _push;
+
   // Registers this device's FCM token once authenticated (best-effort).
   void _syncPush() {
     if (_user != null) _push.start();

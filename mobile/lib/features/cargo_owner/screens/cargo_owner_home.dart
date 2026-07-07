@@ -7,6 +7,9 @@ import '../../../core/models/user_model.dart';
 import '../../../core/repositories/job_repository.dart';
 import '../../jobs/presentation/owner_job_detail_screen.dart';
 import '../../ratings/presentation/my_ratings_screen.dart';
+import '../../notifications/presentation/notification_bell.dart';
+import '../../notifications/presentation/notifications_screen.dart';
+import '../../../providers/notification_provider.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../features/profile/providers/profile_provider.dart';
 import '../../../screens/create_job_screen.dart';
@@ -43,8 +46,11 @@ class _CargoOwnerHomeState extends State<CargoOwnerHome>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    // Refetch job state when the owner returns to the app.
-    if (state == AppLifecycleState.resumed) _reloadJobs();
+    // Refetch job state + unread notifications when the owner returns.
+    if (state == AppLifecycleState.resumed) {
+      _reloadJobs();
+      context.read<NotificationProvider>().refreshUnread();
+    }
   }
 
   void _onItemTapped(int index) {
@@ -97,14 +103,7 @@ class _CargoOwnerHomeState extends State<CargoOwnerHome>
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         automaticallyImplyLeading: false,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications),
-            onPressed: () {
-              // TODO: Implement notifications
-            },
-          ),
-        ],
+        actions: const [NotificationBell()],
       ),
       body: pages[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
@@ -532,7 +531,11 @@ class _ProfileTab extends StatelessWidget {
                   icon: Icons.notifications,
                   title: 'Notifications',
                   onTap: () {
-                    // TODO: Navigate to notifications settings
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const NotificationsScreen(),
+                      ),
+                    );
                   },
                 ),
                 _ProfileOption(

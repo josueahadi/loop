@@ -15,6 +15,8 @@ import '../../../screens/driver_profile_edit_screen.dart';
 import '../../chat/presentation/job_chat_screen.dart';
 import '../../proposals/presentation/driver_proposals_screen.dart';
 import '../../ratings/presentation/my_ratings_screen.dart';
+import '../../notifications/presentation/notification_bell.dart';
+import '../../../providers/notification_provider.dart';
 import '../../../screens/vehicle_details_screen.dart';
 import '../widgets/driver_verification_banner.dart';
 import '../../../core/theme/ui_kit.dart';
@@ -64,9 +66,12 @@ class _DriverHomeState extends State<DriverHome> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    // On resume, recount pending proposals + remount tabs so a proposal that
-    // arrived (or was answered on another device) while away is reflected.
-    if (state == AppLifecycleState.resumed) _onProposalsChanged();
+    // On resume, recount pending proposals + unread notifications, and remount
+    // tabs so anything that changed while away is reflected.
+    if (state == AppLifecycleState.resumed) {
+      _onProposalsChanged();
+      context.read<NotificationProvider>().refreshUnread();
+    }
   }
 
   void _loadData() {
@@ -253,6 +258,7 @@ class _DriverHomeState extends State<DriverHome> with WidgetsBindingObserver {
               );
             },
           ),
+          const NotificationBell(),
           IconButton(
             icon: _ProposalBadge(count: _pendingProposalCount),
             tooltip: 'Proposals',

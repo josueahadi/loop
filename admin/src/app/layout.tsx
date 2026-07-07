@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Geist_Mono, Plus_Jakarta_Sans } from 'next/font/google';
 import './globals.css';
+import { Toaster } from 'sonner';
 import { QueryProvider } from '@/lib/query-provider';
 import { ThemeProvider } from '@/lib/theme-provider';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -38,6 +39,7 @@ export default function RootLayout({
           <TooltipProvider>
             <QueryProvider>{children}</QueryProvider>
           </TooltipProvider>
+          <Toaster richColors position="top-right" />
         </ThemeProvider>
       </body>
     </html>
