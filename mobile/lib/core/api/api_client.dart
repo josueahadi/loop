@@ -9,7 +9,26 @@ class ApiClient {
   final Dio dio;
   final TokenStore _tokens;
 
-  ApiClient({TokenStore? tokenStore, Dio? dioOverride})
+  // A single in-flight refresh shared by all concurrent 401s. The refresh token
+  // is single-use (rotating) server-side, so letting each 401 refresh
+  // independently would have the first rotation revoke the token and every
+  // other refresh then fail — clearing the session (a spurious logout). This
+  // dedupes them: the first 401 refreshes, the rest await the same result.
+  Future<bool>? _refreshInFlight;
+
+  // Shared singleton: every repository defaults to this ONE client, so the
+  // refresh-dedupe above spans the whole app, not just one repo's calls (many
+  // repos fire at once on a screen open). Tests can still inject overrides.
+  static ApiClient? _shared;
+
+  factory ApiClient({TokenStore? tokenStore, Dio? dioOverride}) {
+    if (tokenStore == null && dioOverride == null) {
+      return _shared ??= ApiClient._internal();
+    }
+    return ApiClient._internal(tokenStore: tokenStore, dioOverride: dioOverride);
+  }
+
+  ApiClient._internal({TokenStore? tokenStore, Dio? dioOverride})
     : _tokens = tokenStore ?? TokenStore(),
       dio =
           dioOverride ??
@@ -61,7 +80,15 @@ class ApiClient {
     );
   }
 
-  Future<bool> _tryRefresh() async {
+  // Coalesce concurrent refreshes into one so the rotating refresh token is
+  // spent exactly once per burst of 401s.
+  Future<bool> _tryRefresh() {
+    return _refreshInFlight ??= _doRefresh().whenComplete(() {
+      _refreshInFlight = null;
+    });
+  }
+
+  Future<bool> _doRefresh() async {
     final refresh = await _tokens.refreshToken;
     if (refresh == null) return false;
     try {
