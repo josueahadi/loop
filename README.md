@@ -18,8 +18,8 @@ The **API is the system of record** (PostgreSQL/PostGIS). The mobile app and adm
 | --- | --- |
 | **Admin (web)** | <https://loop-admin-prod.up.railway.app> — sign in with the demo admin `admin@loop.rw` / `Admin@2026` (there is no public admin signup) |
 | **API** | <https://loop-api-prod.up.railway.app> · Swagger at [`/docs`](https://loop-api-prod.up.railway.app/docs) |
-| **Mobile app** | Android APK — _TODO: add download link_. Or build/run it yourself against the deployed API (below). |
-| **Demo video** | _TODO: add walkthrough link_ |
+| **Mobile app** | Build/run the Flutter app against the deployed API (below). |
+| **Demo video** | <https://youtu.be/iMEG5E_Awnc> |
 
 The mobile app runs against the deployed API with no local backend:
 
