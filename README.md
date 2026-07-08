@@ -18,7 +18,7 @@ The **API is the system of record** (PostgreSQL/PostGIS). The mobile app and adm
 | --- | --- |
 | **Admin (web)** | <https://loop-admin-prod.up.railway.app> — sign in with the demo admin `admin@loop.rw` / `Admin@2026` (there is no public admin signup) |
 | **API** | <https://loop-api-prod.up.railway.app> · Swagger at [`/docs`](https://loop-api-prod.up.railway.app/docs) |
-| **Mobile app** | Build/run the Flutter app against the deployed API (below). |
+| **Mobile app (Android APK)** | Download and install — see [Install the Android app](#install-the-android-app-android-apk) below. Or build/run the Flutter app against the deployed API. |
 | **Demo video** | <https://youtu.be/iMEG5E_Awnc> |
 
 The mobile app runs against the deployed API with no local backend:
@@ -29,6 +29,22 @@ flutter run --dart-define=API_BASE_URL=https://loop-api-prod.up.railway.app
 ```
 
 An Android emulator (with Google Play services, for push) or a physical device works — see [mobile/README.md](mobile/README.md#android-emulator).
+
+## Install the Android app (Android APK)
+
+The release APK is already configured to talk to the hosted API — no local backend or setup is needed. It targets **Android** (Android 6.0 / API 23 and newer).
+
+1. **Download** the APK to your Android phone from the latest release:
+   **[Loop release APK](https://github.com/josueahadi/loop/releases/latest)** → download the `app-release.apk` asset.
+   (If you download it on a computer, transfer the file to the phone.)
+2. **Allow install from this source.** Open the downloaded file; Android will ask to permit installs from your browser / file manager. Tap **Settings → allow from this source** (this is the standard prompt for any app installed outside the Play Store), then go back and continue.
+3. **Install**, then open **Loop**.
+4. **Grant permissions when asked** — location (so nearby matching works) and notifications (for job/proposal push).
+5. **Create an account** in the app (pick **Cargo owner** or **Driver**), or sign in. Everything runs against the live hosted backend.
+
+> To try the full owner ↔ driver loop on one phone, register one account, sign out, and register the other role — or use two devices. The admin side (verification approval, metrics) is the web console linked in [Try it](#try-it).
+
+To build the APK yourself instead, see [DEPLOYMENT.md §6](DEPLOYMENT.md#6-mobile-apk).
 
 ## Quick start (local development)
 
