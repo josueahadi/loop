@@ -301,7 +301,16 @@ The pilot DB is a self-managed container, so nothing backs it up automatically. 
 
 ## 12. CDN / custom domain (network reachability)
 
-**Priority: address before the defence.** The app is reachable on Wi-Fi and most networks but has been observed to time out on at least one Rwandan mobile carrier (MTN). This is a carrier-to-host routing problem, not a code or platform defect, and the fix is a configuration change.
+**Priority: address before the defence.** The app is reachable on Wi-Fi and most networks but has been observed to time out on at least one Rwandan mobile carrier (MTN). This is a carrier-to-host routing problem, **not a bug in Loop and not a fault in the app code** — it originates between the mobile carrier and the hosting provider's (Railway's) edge network — and the fix is a configuration change.
+
+> **When this was found.** Discovered during on-device testing in **early July 2026**, in the final stretch before the defence. It surfaced late because it only appears on specific mobile-data paths (the emulators, the desktop dev network, and Wi-Fi all reached the API normally), so nothing earlier exposed it. It is called out here and in the report so it is fixed, and understood, rather than mistaken for a demo-day app failure.
+
+> **This is a known Railway pattern, not unique to us.** The same symptom (a healthy Railway service that is unreachable from a particular mobile carrier while working elsewhere) is documented publicly, and Railway staff have confirmed on their own help forum that it originates on the carrier's side and recommended the Cloudflare-proxy fix:
+> - Railway Help Station, "Why server not reachable with mobile network?" — a Railway employee: "proxy your service through Cloudflare … which should get around the [carrier] connectivity issues"; the underlying problem is the carrier "blocking Railway," on the carrier's end, not Railway's infrastructure. <https://station.railway.com/questions/why-server-not-reachable-with-mobile-net-b1c32b80>
+> - "Railway URL Timeouts: Why a Healthy Server Can Still Be Unreachable" (DEV Community) — same class of problem (healthy server, mobile-carrier path fails), traced to a stale/blackholed edge IP, fixed by changing the resolved path (public DNS / Cloudflare). <https://dev.to/yasir_etc/railway-url-timeouts-why-a-healthy-server-can-still-be-unreachable-5cc3>
+> - Railway edge networking (anycast) reference: <https://docs.railway.com/networking/edge-networking>
+>
+> The reported carrier in those threads is Jio (India); the mechanism is the same as the MTN (Rwanda) case here.
 
 ### Diagnosis
 

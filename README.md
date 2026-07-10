@@ -62,6 +62,8 @@ The release APK is already configured to talk to the hosted API — no local bac
 
 > To try the full owner ↔ driver loop on one phone, register one account, sign out, and register the other role — or use two devices. The admin side (verification approval, metrics) is the web console linked in [Try it](#try-it).
 
+> **⚠️ Gotcha — if the app times out on mobile data:** on some Rwandan mobile networks (observed on MTN) the app can time out at login/registration while working fine on Wi-Fi. This is **not an app bug** — it is a routing problem between the mobile carrier and the host's (Railway's) edge IP, a [documented Railway pattern](https://station.railway.com/questions/why-server-not-reachable-with-mobile-net-b1c32b80) that Railway staff attribute to the carrier's network, not the app. **Workaround:** use Wi-Fi or a different carrier. **Durable fix:** front the API with a Cloudflare-proxied custom domain — the plan and diagnosis are in [DEPLOYMENT.md section 12](DEPLOYMENT.md#12-cdn--custom-domain-network-reachability). It was found late in testing because emulators, the dev network, and Wi-Fi all reach the API normally.
+
 To build the APK yourself instead, see [DEPLOYMENT.md section 6 (Mobile APK)](DEPLOYMENT.md#6-mobile-apk).
 
 ## Quick start (local development)
