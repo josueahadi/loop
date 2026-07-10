@@ -177,8 +177,29 @@ flutter build apk --release \
 ```
 
 - The Android `<queries>` block for `map_launcher` (Google/Waze deep links) is present in `mobile/android/app/src/main/AndroidManifest.xml` — confirm it is still there before release.
-- **Distribution:** share the APK directly, or upload to **Firebase App Distribution** for testers.
 - **Android build tooling:** requires Android Gradle Plugin **≥ 8.11.1** / Gradle **≥ 8.14.3** (pinned in the repo) because `firebase_messaging` pulls in AndroidX libs needing AGP 8.9.1+.
+
+### 6.1 Publishing the APK as a GitHub Release
+
+The APK is distributed as an asset on a **GitHub Release**, so the README's download link and QR code can point at a stable URL. Build against the production API (above), then:
+
+```bash
+# From the repo root, with the gh CLI authenticated.
+cp mobile/build/app/outputs/flutter-apk/app-release.apk /tmp/loop-<version>.apk
+
+# First release for a version — creates the tag and uploads the asset:
+gh release create v<version> /tmp/loop-<version>.apk \
+  --title "Loop v<version>" \
+  --notes "Android APK, pre-configured for the hosted API."
+
+# Updating the APK on an existing release (e.g. after a fix) — replaces the asset
+# in place, so the download link and QR keep working:
+gh release upload v<version> /tmp/loop-<version>.apk --clobber
+```
+
+- The README links to `https://github.com/<owner>/<repo>/releases/latest`, which always redirects to the newest release — so the link and the QR (`apk-download-qr.png`) do not change between releases.
+- After building, verify the asset actually embeds the production URL (`strings app-release.apk | grep <api-domain>`) so a stale localhost build is never published.
+- Alternatively, share the APK file directly or use **Firebase App Distribution** for a tester group.
 
 ---
 

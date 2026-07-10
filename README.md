@@ -24,6 +24,8 @@ The **API is the system of record** (PostgreSQL/PostGIS). The mobile app and adm
 - [Status](#status)
 - [Technical report](#technical-report)
 - [Roadmap (Future Works)](#roadmap-future-works)
+- [Contributing](#contributing)
+- [License](#license)
 
 ## Try it
 
@@ -112,14 +114,18 @@ The core flow, captured across both mobile apps and the admin console. More view
 | --- | --- |
 | **Driver verification upload** | **Admin verification queue** |
 | ![Driver verification upload](screenshots/01-mobile-driver-verification-upload.png) | ![Admin verification queue](screenshots/02-admin-admin-verification-queue.png) |
-| **Admin document review** | **Driver online** |
-| ![Admin document review](screenshots/03-admin-admin-document-review.png) | ![Driver online](screenshots/04-mobile-driver-online.png) |
-| **Owner creates a job** | **Cost estimate** |
-| ![Owner create job](screenshots/05-mobile-owner-create-job.png) | ![Cost estimate](screenshots/06-mobile-owner-cost-estimate.png) |
-| **Nearby drivers** | **Send proposal** |
-| ![Nearby drivers](screenshots/07-mobile-owner-nearby-drivers.png) | ![Send proposal](screenshots/08-mobile-owner-send-proposal.png) |
-| **Driver job request** | **In-app chat** |
-| ![Driver job request](screenshots/09-mobile-driver-job-request.png) | ![In-app chat](screenshots/10-mobile-both-chat.png) |
+| **Admin document review** | **Reject with a reason** |
+| ![Admin document review](screenshots/03-admin-admin-document-review.png) | ![Admin document review — reject with reason](screenshots/03-admin-admin-document-review-reject.png) |
+| **Driver online** | **Owner creates a job** |
+| ![Driver online](screenshots/04-mobile-driver-online.png) | ![Owner create job](screenshots/05-mobile-owner-create-job.png) |
+| **Cost estimate** | **Nearby drivers** |
+| ![Cost estimate](screenshots/06-mobile-owner-cost-estimate.png) | ![Nearby drivers](screenshots/07-mobile-owner-nearby-drivers.png) |
+| **Send proposal** | **Driver job request** |
+| ![Send proposal](screenshots/08-mobile-owner-send-proposal.png) | ![Driver job request](screenshots/09-mobile-driver-job-request.png) |
+| **In-app chat** | **Driver sees a rejected document** |
+| ![In-app chat](screenshots/10-mobile-both-chat.png) | ![Driver sees a rejected document](screenshots/11-mobile-driver-verification-rejected.png) |
+| **Rate the driver** | **Admin metrics dashboard** |
+| ![Rate the driver](screenshots/12-mobile-owner-rate-driver.png) | ![Admin metrics dashboard](screenshots/13-admin-admin-metrics.png) |
 
 ## Testing
 
@@ -158,3 +164,24 @@ Loop currently runs as a single **Railway** project (PostGIS DB + API + admin), 
 A product-side item is **admin user management**: today the single admin is seeded (no public admin signup, by design), and a later phase adds a super-admin who can create and manage other admin accounts from the admin console.
 
 See **[DEPLOYMENT.md section 11 (Future / production migration)](DEPLOYMENT.md#11-future--production-migration)** for the infrastructure detail. Other product/feature future work (payments, live driver tracking, an abstracted basemap, road routing) is tracked in [`docs/BUILD_SPEC.md`](docs/BUILD_SPEC.md).
+
+## Contributing
+
+`main` is protected and always deployable, so work happens on short-lived branches and lands through a pull request.
+
+1. **Branch** from `main`: `feat/<area>-<desc>`, `fix/<desc>`, or `chore/<desc>` (e.g. `feat/api-road-distance`).
+2. **Commit** in the conventional style — `feat(api): …`, `fix(mobile): …`, `docs: …`. Keep messages clean, with no AI-attribution or co-author trailers.
+3. **Test** the package you touched before opening the PR:
+   ```bash
+   cd api && npm test          # NestJS (Jest)
+   cd admin && npm test        # Next.js (Vitest)
+   cd mobile && flutter test   # Flutter
+   ```
+   Per-package setup is in each package's README; conventions live in [`docs/BUILD_SPEC.md` section 9](docs/BUILD_SPEC.md#9-project-structure--conventions-dry-feature-based).
+4. **Open a pull request** against `main`. A review is required before merge; keep the change scoped to the MVP feature set (check it against "What we are building" and "Out of scope" in the docs).
+
+Secrets never go in git — commit `.env.example`, never a real `.env` or a service-account key.
+
+## License
+
+Released under the [MIT License](LICENSE).
