@@ -79,6 +79,11 @@ The server-computed evaluation metrics: time-to-match, estimate-accepted-unchang
 
 ![Admin metrics dashboard](13-admin-admin-metrics.png)
 
+### 14. Driver ratings (portable reputation)
+The driver's My Ratings screen: the aggregate score and the reviews received from cargo owners.
+
+![Driver My Ratings](14-mobile-driver-my-ratings.jpeg)
+
 ## Onboarding & permissions
 
 ### Welcome

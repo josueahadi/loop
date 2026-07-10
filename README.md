@@ -126,6 +126,8 @@ The core flow, captured across both mobile apps and the admin console. More view
 | ![In-app chat](screenshots/10-mobile-both-chat.png) | ![Driver sees a rejected document](screenshots/11-mobile-driver-verification-rejected.png) |
 | **Rate the driver** | **Admin metrics dashboard** |
 | ![Rate the driver](screenshots/12-mobile-owner-rate-driver.png) | ![Admin metrics dashboard](screenshots/13-admin-admin-metrics.png) |
+| **Driver's ratings (reputation)** | |
+| ![Driver My Ratings](screenshots/14-mobile-driver-my-ratings.jpeg) | |
 
 ## Testing
 
@@ -151,7 +153,7 @@ All milestones **M1–M6** are built (milestone plan in [`docs/BUILD_SPEC.md` se
 
 ## Technical report
 
-The full write-up — how each proposal objective was met, a requirements-to-code traceability table, the analysis of results, discussion of the milestones, and recommendations for future work — is in **[docs/TECHNICAL_REPORT.md](docs/TECHNICAL_REPORT.md)**.
+The full write-up (how each proposal objective was met, a requirements-to-code traceability table, the analysis of results, discussion of the milestones, and recommendations for future work) is in **[docs/TECHNICAL_REPORT.md](docs/TECHNICAL_REPORT.md)**.
 
 ## Roadmap (Future Works)
 
