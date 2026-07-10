@@ -139,7 +139,7 @@ Rows marked with an automated test are covered by the unit or integration suites
 | Zero-distance job | pickup equals drop-off (price should be the base fare only) | Pass | | Covered by `pricing.service.spec` (base fare at zero distance). |
 | Vehicle-type variation | the estimate changes across `moto` / `pickup` / `van` / `small_truck` / `large_truck` | Pass | | Per-type `rate_per_km` from config; covered by the pricing tests. |
 | Size variation | the estimate scales with `small` / `medium` / `large` | Pass | | Size-multiplier scaling covered by `pricing.service.spec`. |
-| Location variation | different Kigali points change distance and nearby ordering (Remera, Kimironko, CBD, Nyabugogo) | | | |
+| Location variation | different Kigali points change distance and nearby ordering (Remera, Kimironko, 2000 Hotel, Downtown) | Pass | | Different pickup/drop-off points produced different distances and estimates, and changed the nearby-driver ordering. |
 | Driver with no vehicle | going online is blocked | | | |
 | Rejected document | driver sees the rejection and can re-upload; re-upload returns to pending | Pass | [shot](../screenshots/11-mobile-driver-verification-rejected.png) | Admin rejects with a reason; the driver sees it and can re-submit, which returns the record to pending. |
 | Already-matched job | a second proposal on a matched job is rejected | Pass | | Covered by `proposals.service.spec` (conflict when already matched). |
@@ -158,7 +158,7 @@ Rows marked with an automated test are covered by the unit or integration suites
 
 ### 4.5 Where the results fall short of the proposal
 
-Five gaps stand out.
+Six gaps stand out.
 
 First, and most importantly, **the quantitative user-study metrics have not yet been collected.** The third specific objective calls for time-to-match, driver-within-radius availability, in-app coordination share, share-at-suggested-price, and a pre/post trust measure, gathered from participating Kigali cargo owners and drivers. The platform is built and instrumented to support that study, but the study itself is the outstanding piece. Every objective that depends on running the platform is met; every objective that depends on running the platform *with participants and measuring them* is pending.
 
@@ -169,6 +169,8 @@ Third, **one internal convention is aspirational rather than realised.** The des
 Fourth, **the price estimate uses straight-line distance, not road distance.** The estimate is computed from the great-circle distance between pickup and drop-off, which under-states the true kilometres a driver actually travels on Kigali's road network, and by a variable amount depending on the route. Because the estimate is the owner's reference for setting the price, this is a limitation of a core feature rather than of a peripheral one. It was a deliberate cold-start choice: at launch there is no routing dependency to configure, meter, or pay for, and the owner always sets the final price so the estimate is a guide rather than a binding figure. Closing the gap is a contained change ([Section 6.3](#63-product-and-community-future-work)): the same formula would consume a road distance from a routing service in place of the great-circle term.
 
 Fifth, **push notification delivery is platform-constrained.** The push path is implemented end to end (the app registers a device token against the user, and the API sends through Firebase Cloud Messaging), but delivery depends on the platform. On iOS, remote push requires an APNs key that in turn requires a paid Apple Developer account, so iOS push is inert until that account is in place; the app runs normally without it. On Android, push works on a real device or an emulator image that includes Google Play services, and it depends on the user granting the notification permission. In-app notifications do not have this constraint: they are persisted server-side regardless of the push driver and are shown in the notification centre whether or not the device push arrives.
+
+Sixth, **the app can be unreachable from one Rwandan mobile network because of a carrier-to-host routing problem, not a defect in Loop.** During device testing, the app timed out at connection on MTN Rwanda mobile data while working normally on Wi-Fi and on other networks. Investigation showed the API itself was healthy (it returned HTTP 200 within about two seconds when reached through an external proxy that takes a different network path), but the single edge IP that the hosting provider's domain resolves to was not routable from that carrier — a peering or routing blackhole to that specific address, which no code change can fix. This matters for the evaluation because participants may be on mobile data. The durable remedy is to stop depending on that single provider edge IP by fronting the API with a custom domain behind a CDN (Cloudflare) whose edge the local carriers reach reliably; the CDN reaches the host from its own healthy path. This is a configuration change in keeping with the deployment posture (no code rewrite), and the step-by-step plan is in the deployment guide (Section 4.3 and DEPLOYMENT.md section 12).
 
 ---
 
@@ -200,6 +202,7 @@ The single highest-value next step is to run the participant study the third obj
 
 ### 6.2 Harden what exists
 
+- **Front the API with a custom domain behind a CDN, before the defence.** This is the most time-sensitive item, because it fixes the mobile-network reachability problem (Section 4.5) that can otherwise stop a participant on the affected carrier from using the app at all. The plan is a Cloudflare-proxied custom domain (steps in DEPLOYMENT.md section 12); it is a configuration change, not a rewrite.
 - **Broaden automated test coverage** to the domain services that currently rely on manual verification: jobs, matching, ratings, and messaging. Behavioural tests on the mobile client (not just render smoke tests) would follow.
 - **Generate the client types from the OpenAPI specification** so the single-contract intent is actually enforced and API-client drift becomes impossible rather than merely unlikely.
 - **Add offline tolerance** where it matters most for Rwandan conditions: cache the last-known matching view and queue outbound messages, given the mixed connectivity the literature documents.

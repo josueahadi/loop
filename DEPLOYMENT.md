@@ -19,6 +19,7 @@ Every step lists the tool, the exact command or Railway action, and the environm
 9. [Verification in the target environment](#9-verification-in-the-target-environment)
 10. [Redeploy / rollback](#10-redeploy--rollback)
 11. [Future / production migration](#11-future--production-migration)
+12. [CDN / custom domain (network reachability)](#12-cdn--custom-domain-network-reachability)
 
 ---
 
@@ -295,3 +296,43 @@ At the fully-managed end (only if the user base demands it), the ceiling is AWS 
 The pilot DB is a self-managed container, so nothing backs it up automatically. You don't need scheduled infrastructure for a pilot — just run a single **`pg_dump`** at the end of the pilot (or each pilot day) to a file on your machine. That protects the one irreplaceable thing: the results data your report depends on. Once on Supabase (move 1), backups + PITR are handled for you.
 
 > **Scope note:** this section is _operational_ future work only. Product/feature future work — payments, live driver tracking (Stretch S2), the abstracted basemap (Stretch S1), address search at scale, road routing — is tracked in `docs/BUILD_SPEC.md` (Out-of-scope + Stretch) and the report's Future Work chapter.
+
+---
+
+## 12. CDN / custom domain (network reachability)
+
+**Priority: address before the defence.** The app is reachable on Wi-Fi and most networks but has been observed to time out on at least one Rwandan mobile carrier (MTN). This is a carrier-to-host routing problem, not a code or platform defect, and the fix is a configuration change.
+
+### Diagnosis
+
+The symptom is a connection timeout in the app (the raw form of which is captured in `screenshots/raw-error-login-before-fix.jpeg`). The evidence isolates it to the network path, not the server:
+
+| Check | Result |
+| --- | --- |
+| API boots and listens on Railway | Healthy — all routes mapped |
+| API reached via an external proxy (different network path) | HTTP 200 in ~2s — genuinely up |
+| Direct to the Railway edge IP `:443` from the affected carrier | TCP timeout (SYN gets no reply) |
+| General internet from the same device (Google, `railway.app`) | Fine |
+| Same URL on Wi-Fi / another carrier | Works |
+| DNS (`1.1.1.1`, `8.8.8.8`, local) | All return the **same single** edge IP |
+
+Because the domain resolves to one provider edge IP and that IP is a routing blackhole from the carrier, there is no DNS-level way around it, and raising the client's `connectTimeout` would only make the app hang longer before the same failure. The durable fix is to stop depending on that single edge IP.
+
+### Fix: front the API with a custom domain behind Cloudflare
+
+Users reach Cloudflare's edge (which the local carriers peer with reliably); Cloudflare reaches Railway from its own healthy path. Cloudflare's free plan proxies WebSockets, so the Socket.IO messaging gateway keeps working. Nothing in the source changes — the URL lives entirely in build-time config and env vars.
+
+**Prerequisite:** a subdomain on a zone you manage in Cloudflare (e.g. `api.<yourdomain>`).
+
+1. **Add the custom domain to Railway** (returns a CNAME target):
+   ```bash
+   railway domain api.<yourdomain> --service api --port 8080
+   ```
+2. **Cloudflare DNS:** add a `CNAME` record `api` → the Railway CNAME target, **Proxy status: Proxied** (orange cloud — this is the point of the fix). Set **SSL/TLS mode: Full** (Railway serves valid TLS at its edge).
+3. **Re-point the clients** at the new URL (a domain change forces a rebuild of both):
+   - Mobile: `flutter build apk --release --dart-define=API_BASE_URL=https://api.<yourdomain>`, then re-publish the APK ([section 6.1](#61-publishing-the-apk-as-a-github-release)).
+   - Admin: set `NEXT_PUBLIC_API_BASE_URL=https://api.<yourdomain>` and redeploy.
+   - API: update `CORS_ORIGINS` if the admin origin changed, and update the URLs in the docs.
+4. **Verify on the affected carrier:** `curl https://api.<yourdomain>/health` returns `{"status":"ok"}` on mobile data, and the app logs in over that carrier.
+
+**Interim workaround** (no infra change): reach the app over Wi-Fi or a different carrier. This is enough to run a demo but does not fix the underlying reachability for participants on the affected network, which is why the Cloudflare fix should land before the defence.

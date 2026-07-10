@@ -204,4 +204,4 @@ api/src/
 
 ## Milestone status
 
-All milestones **M1–M6** are built: JWT auth, driver verification + admin review (M1); availability, PostGIS nearby-driver query, vehicle CRUD (M2); rule-based cost estimate + jobs create/post (M3); the `/geocode/*` OSM proxy (M3.5); proposals, messaging + push (M4); ratings (M5); and the Next.js admin dashboard (M6). See [`../docs/BUILD_SPEC.md` section 6 (Suggested build order)](../docs/BUILD_SPEC.md#6-suggested-build-order-maps-to-the-junaug-timeline) for the plan.
+All milestones **M1–M6** are built: JWT auth, driver verification + admin review (M1); availability, PostGIS nearby-driver query, vehicle CRUD (M2); rule-based cost estimate + jobs create/post (M3); the `/geocode/*` OSM proxy (M3.5); proposals, messaging + push (M4); ratings (M5); and the Next.js admin dashboard (M6). See [section 6 of `../docs/BUILD_SPEC.md`](../docs/BUILD_SPEC.md#6-suggested-build-order-maps-to-the-junaug-timeline) for the plan.

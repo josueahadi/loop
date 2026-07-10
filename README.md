@@ -141,7 +141,7 @@ cd mobile && flutter test # model / screen / widget tests
 
 ## Status
 
-All milestones **M1–M6** are built (milestone plan in [`docs/BUILD_SPEC.md` section 6 (Suggested build order)](docs/BUILD_SPEC.md#6-suggested-build-order-maps-to-the-junaug-timeline)):
+All milestones **M1–M6** are built (the milestone plan is [section 6 of `docs/BUILD_SPEC.md`](docs/BUILD_SPEC.md#6-suggested-build-order-maps-to-the-junaug-timeline)):
 
 - **M1 — Foundation:** monorepo, database schema for all core entities, NestJS-issued JWT auth (argon2, access + rotating refresh), driver verification + admin review.
 - **M2 — Matching:** availability + location capture, PostGIS nearby-driver query (approved **and** online, nearest first), `flutter_map`/OpenStreetMap map view + vehicle-type filter, vehicle CRUD.
@@ -153,7 +153,7 @@ All milestones **M1–M6** are built (milestone plan in [`docs/BUILD_SPEC.md` se
 
 ## Technical report
 
-The full write-up (how each proposal objective was met, a requirements-to-code traceability table, the analysis of results, discussion of the milestones, and recommendations for future work) is in **[docs/TECHNICAL_REPORT.md](docs/TECHNICAL_REPORT.md)**.
+The full write-up (how each proposal objective was met, a requirements-to-code traceability table, the analysis of results, discussion of the milestones, and future work notes) is in **[docs/TECHNICAL_REPORT.md](docs/TECHNICAL_REPORT.md)**.
 
 ## Roadmap (Future Works)
 
