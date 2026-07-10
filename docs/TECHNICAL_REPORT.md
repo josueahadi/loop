@@ -116,35 +116,35 @@ The full hosted-stack checklist, including the exact commands, is in the deploym
 
 **End-to-end product loop.** Each flow driven across a cargo-owner account and a driver account, plus the admin console, against the hosted API.
 
-| # | Flow | Inputs used | Result | Notes |
-| --- | --- | --- | --- | --- |
-| 1 | Register and log in (both roles) | new owner + new driver | Pass | Session survives app restart. |
-| 2 | Driver verification and admin review | 3 documents; approve one, reject one with a reason | Pass | Driver sees the decision in-app. |
-| 3 | Go online (gated on verification + vehicle) | try online before and after approval | Pass | Blocked until verified and a vehicle is added. |
-| 4 | Create a job and see the estimate | Remera → Kimironko, van, medium | Pass | Estimate shown; owner sets the final price. |
-| 5 | Nearby matching | owner near an online driver; wrong vehicle-type filter then right | Pass | Only verified, online drivers appear, nearest first. |
-| 6 | Send proposal, accept / decline | accept on one; a second pending proposal auto-declines | Pass | Other pending proposals auto-decline on accept. |
-| 7 | In-app messaging | message each way; check real-time arrival | Pass | Delivered in real time over the WebSocket. |
-| 8 | Navigation hand-off | open pickup + drop-off in the device maps app | Pass | Deep-links to the installed maps app. |
-| 9 | Complete and rate (two-way) | owner marks in-progress then completed; both rate | Pass | Averages update on both profiles. |
-| 10 | Admin directory + metrics | paginate/filter the tables; read the metrics dashboard | Pass | Server-computed metrics render. |
-| — | Push notification delivery (cross-cutting) | proposal / message / verification pushes | Fail (re-testing) | In-app notifications arrive; FCM push did not deliver on the test device. Under re-test with a fresh build; results to be updated. |
+| # | Flow | Inputs used | Result | Evidence | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 1 | Register and log in (both roles) | new owner + new driver | Pass | | Session survives app restart. |
+| 2 | Driver verification and admin review | 3 documents; approve one, reject one with a reason | Pass | [upload](../screenshots/01-mobile-driver-verification-upload.png), [queue](../screenshots/02-admin-admin-verification-queue.png), [review](../screenshots/03-admin-admin-document-review.png), [reject](../screenshots/03-admin-admin-document-review-reject.png) | Driver sees the decision in-app. |
+| 3 | Go online (gated on verification + vehicle) | try online before and after approval | Pass | [shot](../screenshots/04-mobile-driver-online.png) | Blocked until verified and a vehicle is added. |
+| 4 | Create a job and see the estimate | Remera → Kimironko, van, medium | Pass | [create](../screenshots/05-mobile-owner-create-job.png), [estimate](../screenshots/06-mobile-owner-cost-estimate.png) | Estimate shown; owner sets the final price. |
+| 5 | Nearby matching | owner near an online driver; wrong vehicle-type filter then right | Pass | [shot](../screenshots/07-mobile-owner-nearby-drivers.png) | Only verified, online drivers appear, nearest first. |
+| 6 | Send proposal, accept / decline | accept on one; a second pending proposal auto-declines | Pass | [propose](../screenshots/08-mobile-owner-send-proposal.png), [request](../screenshots/09-mobile-driver-job-request.png) | Other pending proposals auto-decline on accept. |
+| 7 | In-app messaging | message each way; check real-time arrival | Pass | [shot](../screenshots/10-mobile-both-chat.png) | Delivered in real time over the WebSocket. |
+| 8 | Navigation hand-off | open pickup + drop-off in the device maps app | Pass | | Deep-links to the installed maps app. |
+| 9 | Complete and rate (two-way) | owner marks in-progress then completed; both rate | Pass | [rate](../screenshots/12-mobile-owner-rate-driver.png), [ratings](../screenshots/14-mobile-driver-my-ratings.jpeg) | Averages update on both profiles. |
+| 10 | Admin directory + metrics | paginate/filter the tables; read the metrics dashboard | Pass | [metrics](../screenshots/13-admin-admin-metrics.png) | Server-computed metrics render. |
+| — | Push notification delivery (cross-cutting) | proposal / message / verification pushes | Fail (re-testing) | | In-app notifications arrive; FCM push did not deliver on the test device. Under re-test with a fresh build; results to be updated. |
 
 **Edge cases and varied inputs.** Abnormal or boundary inputs exercised beyond the happy path.
 
 Rows marked with an automated test are covered by the unit or integration suites; the remaining rows are left for the manual capture run.
 
-| Case | What was exercised | Result | Notes |
-| --- | --- | --- | --- |
-| Zero-distance job | pickup equals drop-off (price should be the base fare only) | Pass | Covered by `pricing.service.spec` (base fare at zero distance). |
-| Vehicle-type variation | the estimate changes across `moto` / `pickup` / `van` / `small_truck` / `large_truck` | Pass | Per-type `rate_per_km` from config; covered by the pricing tests. |
-| Size variation | the estimate scales with `small` / `medium` / `large` | Pass | Size-multiplier scaling covered by `pricing.service.spec`. |
-| Location variation | different Kigali points change distance and nearby ordering (Remera, Kimironko, CBD, Nyabugogo) | | |
-| Driver with no vehicle | going online is blocked | | |
-| Rejected document | driver sees the rejection and can re-upload; re-upload returns to pending | Pass | Admin rejects with a reason; the driver sees it and can re-submit, which returns the record to pending. |
-| Already-matched job | a second proposal on a matched job is rejected | Pass | Covered by `proposals.service.spec` (conflict when already matched). |
-| Busy driver | an assigned driver drops out of the nearby results until the job completes | Pass | Enforced in the matching query (`NOT EXISTS` on active accepted proposals). |
-| Dead session | an expired/invalid session recovers to login rather than stranding on an error | Pass | Session-death path routes to login instead of surfacing a raw 401. |
+| Case | What was exercised | Result | Evidence | Notes |
+| --- | --- | --- | --- | --- |
+| Zero-distance job | pickup equals drop-off (price should be the base fare only) | Pass | | Covered by `pricing.service.spec` (base fare at zero distance). |
+| Vehicle-type variation | the estimate changes across `moto` / `pickup` / `van` / `small_truck` / `large_truck` | Pass | | Per-type `rate_per_km` from config; covered by the pricing tests. |
+| Size variation | the estimate scales with `small` / `medium` / `large` | Pass | | Size-multiplier scaling covered by `pricing.service.spec`. |
+| Location variation | different Kigali points change distance and nearby ordering (Remera, Kimironko, CBD, Nyabugogo) | | | |
+| Driver with no vehicle | going online is blocked | | | |
+| Rejected document | driver sees the rejection and can re-upload; re-upload returns to pending | Pass | [shot](../screenshots/11-mobile-driver-verification-rejected.png) | Admin rejects with a reason; the driver sees it and can re-submit, which returns the record to pending. |
+| Already-matched job | a second proposal on a matched job is rejected | Pass | | Covered by `proposals.service.spec` (conflict when already matched). |
+| Busy driver | an assigned driver drops out of the nearby results until the job completes | Pass | | Enforced in the matching query (`NOT EXISTS` on active accepted proposals). |
+| Dead session | an expired/invalid session recovers to login rather than stranding on an error | Pass | | Session-death path routes to login instead of surfacing a raw 401. |
 
 **Environment and device coverage.** The same build exercised across hardware and software environments, per the constraints in the testing document.
 

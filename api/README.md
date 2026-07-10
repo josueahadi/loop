@@ -2,7 +2,7 @@
 
 REST API and **system of record** for Loop — a real-time geo-matching platform connecting cargo owners with vehicle drivers in Rwanda.
 
-NestJS + TypeORM over PostgreSQL/PostGIS. This service owns identity, verification, matching, pricing, jobs, proposals, messaging and reputation. The Flutter app (`../mobile`) and the future Next.js admin (`../admin`, M6) are clients of this API.
+NestJS + TypeORM over PostgreSQL/PostGIS. This service owns identity, verification, matching, pricing, jobs, proposals, messaging and reputation. The Flutter app (`../mobile`) and the Next.js admin (`../admin`) are clients of this API.
 
 ## Stack
 
@@ -85,9 +85,9 @@ All variables are validated on boot (`src/config/validation.ts`). See `.env.exam
 | `npm run migration:revert` | Roll back the last migration |
 | `npm run seed` | Seed admin + pricing/size config (idempotent) |
 
-## Endpoints (M1–M3)
+## Endpoints
 
-Full, always-current schema is at **`/docs`**. Summary of what's wired today (M1–M3); the `/geocode/*` proxy lands in M3.5, and proposals/messaging/ratings in M4–M5.
+The full, always-current schema is at **`/docs`** (OpenAPI/Swagger). The summary below covers every wired route across M1–M6.
 
 **Auth** (public unless noted)
 
@@ -99,40 +99,71 @@ Full, always-current schema is at **`/docs`**. Summary of what's wired today (M1
 **Users** (authed)
 
 - `GET /me` · `PATCH /me`
+- `PATCH /me/availability`: `{ status, lat, lng }` (driver online/offline + location, `geography(Point,4326)`)
+- `POST /me/photo`: profile photo (multipart → private Storage)
+- `POST /me/push-token`: register/clear this device's FCM token
 
 **Verification** (driver)
 
 - `POST /verification`: multipart upload (`documentType` = `licence|national_id|vehicle_reg` + `file`)
 - `GET /verification`: own records
+- `GET /verification/:id/document-url`: short-lived signed URL for one's own document
 
-**Admin** (`admin` role only — all `/admin/*` is role-guarded)
+**Vehicles** (driver)
 
-- `GET /admin/verifications?status=pending`
-- `PATCH /admin/verifications/:id`: `{ "status": "approved" | "rejected" }`
-
-**Availability & vehicles** (driver) — _M2_
-
-- `PATCH /me/availability`: `{ status, lat, lng }` (online/offline + location, `geography(Point,4326)`)
 - `GET /vehicles` · `POST /vehicles` · `PATCH /vehicles/:id` · `DELETE /vehicles/:id`
-- `POST /me/photo`: profile photo (multipart → private Storage)
 
-**Matching** (cargo owner) — _M2_
+**Matching** (cargo owner)
 
 - `GET /drivers/nearby?lat=&lng=&vehicle_type=&radius=`: approved **and** online drivers within radius, nearest first (PostGIS `ST_DWithin`/`ST_Distance`)
 
-**Pricing** — _M3_
+**Pricing**
 
 - `POST /pricing/estimate`: `{ pickup, drop_off, vehicle_type, size, weight }` → `{ estimated_price, distance_km }` (rule-based; config-driven; integer RWF)
 
-**Jobs** (cargo owner) — _M3_
+**Jobs** (cargo owner)
 
 - `POST /jobs` · `GET /jobs` (own) · `GET /jobs/:id` · `PATCH /jobs/:id` (status transitions)
 - Persists both `estimated_price` and the owner-set `price`; status-transition timestamps stamped on `PATCH`.
 
-**Geocoding** (OpenStreetMap proxy) — _M3.5, pending_
+**Proposals**
+
+- `POST /jobs/:jobId/proposals`: owner sends a proposal at the posted price
+- `GET /jobs/:jobId/proposals`: proposals on a job · `GET /proposals` (driver: incoming)
+- `PATCH /proposals/:id`: accept/decline (accepting auto-declines the job's other pending proposals)
+
+**Messaging** (opens on proposal acceptance)
+
+- `GET /jobs/:jobId/messages` · `POST /jobs/:jobId/messages`
+- `GET /messages/unread`: unread counts by job
+- Real-time delivery over a NestJS WebSocket gateway (Socket.IO), with Postgres as the source of truth
+
+**Ratings**
+
+- `POST /jobs/:jobId/ratings`: two-way rating after completion
+- `GET /users/:id/ratings`: a user's received ratings + aggregate
+
+**Notifications**
+
+- `GET /notifications` · `GET /notifications/unread-count`
+- `PATCH /notifications/read-all` · `PATCH /notifications/:id/read`
+
+**Geocoding** (OpenStreetMap proxy)
 
 - `GET /geocode/search?q=&limit=` → `[{ label, lat, lng }]` (Photon, Kigali-biased)
 - `GET /geocode/reverse?lat=&lng=` → `{ label }` (Nominatim)
+
+**Admin** (`admin` role only — all `/admin/*` is role-guarded)
+
+- `GET /admin/metrics`: server-computed evaluation metrics (dashboard renders these)
+- `GET /admin/verifications` · `PATCH /admin/verifications/:id`: `{ "status": "approved" | "rejected", "note"? }`
+- `GET /admin/verifications/:id/document-url`: signed URL to view a submitted document
+- `GET /admin/drivers` · `GET /admin/users` · `GET /admin/users/:id`
+- `GET /admin/jobs` · `GET /admin/jobs/:id` · `GET /admin/audit`
+
+**Health**
+
+- `GET /health` → `{ "status": "ok" }`
 
 ### Quick smoke test
 
@@ -154,10 +185,11 @@ api/src/
 ├── database/               # data-source, migrations/, seeds/
 └── modules/
     ├── auth/   users/  verification/  admin/
-    ├── mail/   storage/                      # SendGrid + Firebase, each with a dev stub
-    ├── vehicles/ matching/ pricing/ jobs/    # wired (M2–M3)
-    ├── geocode/                              # OSM search/reverse proxy (M3.5)
-    └── proposals/ messaging/ ratings/        # entities seeded in M1; endpoints land M4–M5
+    ├── mail/   storage/  push/               # SendGrid + Firebase Storage + FCM, each with a dev stub
+    ├── vehicles/ matching/ pricing/ jobs/    # availability, PostGIS matching, pricing, jobs
+    ├── geocode/                              # OSM search/reverse proxy
+    ├── proposals/ messaging/ ratings/        # transaction loop + reputation
+    └── notifications/ health/                # in-app notification centre + healthcheck
 ```
 
 ## Conventions
