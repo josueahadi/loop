@@ -42,6 +42,10 @@
 	<string>This app uses local network access for Flutter development tools and debugging.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Loop uses your location to show nearby available drivers and to set your position when you go online.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Loop uses the camera to photograph your verification documents and profile picture.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Loop needs access to your photos to upload verification documents and your profile picture.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

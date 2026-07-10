@@ -105,13 +105,23 @@ mixin ImagePickerMixin {
     Function(File)? onImageSelected,
   }) async {
     try {
-      // Request camera permission
-      final cameraPermission = await Permission.camera.request();
-      if (cameraPermission.isDenied) {
+      final status = await Permission.camera.request();
+      // Only block when the OS will not show the prompt again — otherwise let
+      // the picker proceed (a first-time grant reports as granted here).
+      if (status.isPermanentlyDenied || status.isRestricted) {
+        if (context.mounted) {
+          _showPermissionSettingsPrompt(
+            context,
+            'Camera access is turned off. Enable it in Settings to take photos.',
+          );
+        }
+        return;
+      }
+      if (!status.isGranted) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Camera permission is required to take photos'),
+              content: Text('Camera permission is needed to take a photo.'),
             ),
           );
         }
@@ -132,7 +142,7 @@ mixin ImagePickerMixin {
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Error taking photo: $e')));
+        ).showSnackBar(const SnackBar(content: Text('Could not take a photo.')));
       }
     }
   }
@@ -142,19 +152,11 @@ mixin ImagePickerMixin {
     Function(File)? onImageSelected,
   }) async {
     try {
-      // Request photo permission
-      final photoPermission = await Permission.photos.request();
-      if (photoPermission.isDenied) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Photo access permission is required'),
-            ),
-          );
-        }
-        return;
-      }
-
+      // The gallery goes through the OS photo picker, which needs no runtime
+      // permission on modern Android (13+) or iOS. Requesting Permission.photos
+      // up front was blocking the flow on devices where it reports "denied"
+      // even though the picker itself would have worked. Just open the picker;
+      // if the OS still denies access it surfaces as an error below.
       final XFile? image = await _picker.pickImage(
         source: ImageSource.gallery,
         maxWidth: 1920,
@@ -167,11 +169,23 @@ mixin ImagePickerMixin {
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error selecting image: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open your photos.')),
+        );
       }
     }
+  }
+
+  void _showPermissionSettingsPrompt(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        action: SnackBarAction(
+          label: 'Settings',
+          onPressed: openAppSettings,
+        ),
+      ),
+    );
   }
 
   Future<void> pickDocumentFromFiles(
