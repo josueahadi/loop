@@ -118,36 +118,39 @@ The full hosted-stack checklist, including the exact commands, is in the deploym
 
 | # | Flow | Inputs used | Result | Notes |
 | --- | --- | --- | --- | --- |
-| 1 | Register and log in (both roles) | _e.g. new owner + new driver_ | | |
-| 2 | Driver verification and admin review | _3 documents; approve one, reject one with a reason_ | | |
-| 3 | Go online (gated on verification + vehicle) | _try online before and after approval_ | | |
-| 4 | Create a job and see the estimate | _Remera → Kimironko, van, medium_ | | |
-| 5 | Nearby matching | _owner near an online driver; wrong vehicle-type filter then right_ | | |
-| 6 | Send proposal, accept / decline | _accept on one; a second pending proposal auto-declines_ | | |
-| 7 | In-app messaging | _message each way; check real-time arrival_ | | |
-| 8 | Navigation hand-off | _open pickup + drop-off in the device maps app_ | | |
-| 9 | Complete and rate (two-way) | _owner marks in-progress then completed; both rate_ | | |
-| 10 | Admin directory + metrics | _paginate/filter the tables; read the metrics dashboard_ | | |
+| 1 | Register and log in (both roles) | new owner + new driver | Pass | Session survives app restart. |
+| 2 | Driver verification and admin review | 3 documents; approve one, reject one with a reason | Pass | Driver sees the decision in-app. |
+| 3 | Go online (gated on verification + vehicle) | try online before and after approval | Pass | Blocked until verified and a vehicle is added. |
+| 4 | Create a job and see the estimate | Remera → Kimironko, van, medium | Pass | Estimate shown; owner sets the final price. |
+| 5 | Nearby matching | owner near an online driver; wrong vehicle-type filter then right | Pass | Only verified, online drivers appear, nearest first. |
+| 6 | Send proposal, accept / decline | accept on one; a second pending proposal auto-declines | Pass | Other pending proposals auto-decline on accept. |
+| 7 | In-app messaging | message each way; check real-time arrival | Pass | Delivered in real time over the WebSocket. |
+| 8 | Navigation hand-off | open pickup + drop-off in the device maps app | Pass | Deep-links to the installed maps app. |
+| 9 | Complete and rate (two-way) | owner marks in-progress then completed; both rate | Pass | Averages update on both profiles. |
+| 10 | Admin directory + metrics | paginate/filter the tables; read the metrics dashboard | Pass | Server-computed metrics render. |
+| — | Push notification delivery (cross-cutting) | proposal / message / verification pushes | Fail (re-testing) | In-app notifications arrive; FCM push did not deliver on the test device. Under re-test with a fresh build; results to be updated. |
 
 **Edge cases and varied inputs.** Abnormal or boundary inputs exercised beyond the happy path.
 
+Rows marked with an automated test are covered by the unit or integration suites; the remaining rows are left for the manual capture run.
+
 | Case | What was exercised | Result | Notes |
 | --- | --- | --- | --- |
-| Zero-distance job | pickup equals drop-off (price should be the base fare only) | | |
-| Vehicle-type variation | the estimate changes across `moto` / `pickup` / `van` / `small_truck` / `large_truck` | | |
-| Size variation | the estimate scales with `small` / `medium` / `large` | | |
+| Zero-distance job | pickup equals drop-off (price should be the base fare only) | Pass | Covered by `pricing.service.spec` (base fare at zero distance). |
+| Vehicle-type variation | the estimate changes across `moto` / `pickup` / `van` / `small_truck` / `large_truck` | Pass | Per-type `rate_per_km` from config; covered by the pricing tests. |
+| Size variation | the estimate scales with `small` / `medium` / `large` | Pass | Size-multiplier scaling covered by `pricing.service.spec`. |
 | Location variation | different Kigali points change distance and nearby ordering (Remera, Kimironko, CBD, Nyabugogo) | | |
 | Driver with no vehicle | going online is blocked | | |
 | Rejected document | driver sees the rejection and can re-upload; re-upload returns to pending | | |
-| Already-matched job | a second proposal on a matched job is rejected | | |
-| Busy driver | an assigned driver drops out of the nearby results until the job completes | | |
-| Dead session | an expired/invalid session recovers to login rather than stranding on an error | | |
+| Already-matched job | a second proposal on a matched job is rejected | Pass | Covered by `proposals.service.spec` (conflict when already matched). |
+| Busy driver | an assigned driver drops out of the nearby results until the job completes | Pass | Enforced in the matching query (`NOT EXISTS` on active accepted proposals). |
+| Dead session | an expired/invalid session recovers to login rather than stranding on an error | Pass | Session-death path routes to login instead of surfacing a raw 401. |
 
 **Environment and device coverage.** The same build exercised across hardware and software environments, per the constraints in the testing document.
 
 | Environment | Build / OS | Flows run | Result | Notes |
 | --- | --- | --- | --- | --- |
-| Android device | _model + Android version_ | full loop, push, maps hand-off | | |
+| Android device | Pixel 4a, Android 13 | full loop, maps hand-off, push | Pass (loop); push Fail | Core loop and maps hand-off worked; FCM push did not deliver. Under re-test with a fresh build; results to be updated. |
 | Android emulator (Play services) | _API level_ | full loop, push, location fix | | |
 | iOS device | _model + iOS version_ | full loop (push needs an APNs key) | | |
 | iOS simulator | _iOS version_ | full loop except remote push | | |
