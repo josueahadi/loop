@@ -1,4 +1,4 @@
-# Loop — Testing
+# Loop: Testing
 
 How Loop is tested: the automated suites in each package, the strategies behind
 them, the manual end-to-end matrix, and the device/environment constraints that
@@ -15,7 +15,7 @@ testing is layered by what each tier owns:
 | **Widget** | mobile | Individual screens/widgets render and accept input (login, signup, onboarding, cards, search bar). |
 | **Integration (live API)** | api | Endpoints exercised against a running API + real PostGIS during development — the pricing/geo queries and the full auth → verify → match → propose → accept → chat → complete → rate loop. |
 | **Manual end-to-end** | all | The cross-app product loop driven by hand across two accounts (owner + driver) plus admin — see the matrix below. |
-| **Deployment verification** | api, admin | A checklist run against the **hosted** stack after each deploy — see [DEPLOYMENT.md §9](DEPLOYMENT.md#9-verification-in-the-target-environment). |
+| **Deployment verification** | api, admin | A checklist run against the **hosted** stack after each deploy — see [DEPLOYMENT.md section 9 (Verification in the target environment)](DEPLOYMENT.md#9-verification-in-the-target-environment). |
 
 The automated suites deliberately target the **custom logic** — the rule-based
 pricing algorithm, the match/proposal safety guards, and the auth security
@@ -40,13 +40,13 @@ cd mobile && flutter test
 ### What's covered
 
 **API (`api/src/**/*.spec.ts`)**
-- `pricing.service.spec.ts` — the formula `base_fare + (rate_per_km × distance_km) × size_factor`: base-fare-only at zero distance, size-multiplier scaling, whole-RWF rounding (zero-decimal currency), and the "no config" / "no multiplier" error paths.
-- `proposals.service.spec.ts` — accept/decline guards: wrong-driver rejection, missing proposal, conflict when the job is already matched, conflict on re-responding with a different status, idempotent re-decline, decline-notifies-owner, and accept-runs-in-a-transaction (which auto-declines the other pending proposals).
-- `auth.service.spec.ts` — rejects unknown email / wrong password, issues tokens on success, audits **admin** logins (not regular users), forces `cargo_owner` when someone tries to self-register as admin, and never stores a plaintext password (argon2 hash).
+- `pricing.service.spec.ts`: the formula `base_fare + (rate_per_km × distance_km) × size_factor`: base-fare-only at zero distance, size-multiplier scaling, whole-RWF rounding (zero-decimal currency), and the "no config" / "no multiplier" error paths.
+- `proposals.service.spec.ts`: accept/decline guards: wrong-driver rejection, missing proposal, conflict when the job is already matched, conflict on re-responding with a different status, idempotent re-decline, decline-notifies-owner, and accept-runs-in-a-transaction (which auto-declines the other pending proposals).
+- `auth.service.spec.ts`: rejects unknown email / wrong password, issues tokens on success, audits **admin** logins (not regular users), forces `cargo_owner` when someone tries to self-register as admin, and never stores a plaintext password (argon2 hash).
 
 **Admin (`admin/src/**/*.test.ts`)**
-- `pagination.test.ts` — `directoryQuery` always sends page/limit and only adds trimmed, non-empty search/filter.
-- `format.test.ts` — the metrics formatters render values correctly and show **"No data yet"** for null (never a fabricated `0%` / `0`).
+- `pagination.test.ts`: `directoryQuery` always sends page/limit and only adds trimmed, non-empty search/filter.
+- `format.test.ts`: the metrics formatters render values correctly and show **"No data yet"** for null (never a fabricated `0%` / `0`).
 
 **Mobile (`mobile/test/`)**
 - Model tests (JSON round-trip), screen tests (login/signup/onboarding render + inputs), and widget tests (stats card, vehicle card, search bar).
@@ -96,6 +96,6 @@ are in [mobile/README.md](mobile/README.md#android-emulator).
 ## Post-deploy verification
 
 After deploying, the hosted stack is checked with the runnable checklist in
-[DEPLOYMENT.md §9](DEPLOYMENT.md#9-verification-in-the-target-environment) — API
+[DEPLOYMENT.md section 9 (Verification in the target environment)](DEPLOYMENT.md#9-verification-in-the-target-environment) — API
 health, auth round-trip, document signed-URLs, email, and the interactive
 product loop driven from the admin + mobile against the live API.

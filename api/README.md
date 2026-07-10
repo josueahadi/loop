@@ -91,7 +91,7 @@ Full, always-current schema is at **`/docs`**. Summary of what's wired today (M1
 
 **Auth** (public unless noted)
 
-- `POST /auth/register` — cargo_owner | driver only (no admin self-signup)
+- `POST /auth/register`: cargo_owner | driver only (no admin self-signup)
 - `POST /auth/login`, `POST /auth/refresh`, `POST /auth/logout`
 - `POST /auth/password-reset/request` · `POST /auth/password-reset/confirm`
 - `POST /auth/email/verify/request` (authed) · `POST /auth/email/verify/confirm`
@@ -102,27 +102,27 @@ Full, always-current schema is at **`/docs`**. Summary of what's wired today (M1
 
 **Verification** (driver)
 
-- `POST /verification` — multipart upload (`documentType` = `licence|national_id|vehicle_reg` + `file`)
-- `GET /verification` — own records
+- `POST /verification`: multipart upload (`documentType` = `licence|national_id|vehicle_reg` + `file`)
+- `GET /verification`: own records
 
 **Admin** (`admin` role only — all `/admin/*` is role-guarded)
 
 - `GET /admin/verifications?status=pending`
-- `PATCH /admin/verifications/:id` — `{ "status": "approved" | "rejected" }`
+- `PATCH /admin/verifications/:id`: `{ "status": "approved" | "rejected" }`
 
 **Availability & vehicles** (driver) — _M2_
 
-- `PATCH /me/availability` — `{ status, lat, lng }` (online/offline + location, `geography(Point,4326)`)
+- `PATCH /me/availability`: `{ status, lat, lng }` (online/offline + location, `geography(Point,4326)`)
 - `GET /vehicles` · `POST /vehicles` · `PATCH /vehicles/:id` · `DELETE /vehicles/:id`
-- `POST /me/photo` — profile photo (multipart → private Storage)
+- `POST /me/photo`: profile photo (multipart → private Storage)
 
 **Matching** (cargo owner) — _M2_
 
-- `GET /drivers/nearby?lat=&lng=&vehicle_type=&radius=` — approved **and** online drivers within radius, nearest first (PostGIS `ST_DWithin`/`ST_Distance`)
+- `GET /drivers/nearby?lat=&lng=&vehicle_type=&radius=`: approved **and** online drivers within radius, nearest first (PostGIS `ST_DWithin`/`ST_Distance`)
 
 **Pricing** — _M3_
 
-- `POST /pricing/estimate` — `{ pickup, drop_off, vehicle_type, size, weight }` → `{ estimated_price, distance_km }` (rule-based; config-driven; integer RWF)
+- `POST /pricing/estimate`: `{ pickup, drop_off, vehicle_type, size, weight }` → `{ estimated_price, distance_km }` (rule-based; config-driven; integer RWF)
 
 **Jobs** (cargo owner) — _M3_
 
@@ -172,4 +172,4 @@ api/src/
 
 ## Milestone status
 
-Built through **M3**: schema for all 8 entities (+ pricing/token tables), JWT auth, driver verification + admin review (M1); availability, PostGIS nearby-driver query, vehicle CRUD (M2); rule-based cost estimate + jobs create/post (M3). **Next:** the `/geocode/*` OSM proxy (M3.5), then proposals/messaging + push (M4), ratings (M5), and the Next.js admin dashboard (M6). See `../docs/BUILD_SPEC.md` §6 for the plan.
+All milestones **M1–M6** are built: JWT auth, driver verification + admin review (M1); availability, PostGIS nearby-driver query, vehicle CRUD (M2); rule-based cost estimate + jobs create/post (M3); the `/geocode/*` OSM proxy (M3.5); proposals, messaging + push (M4); ratings (M5); and the Next.js admin dashboard (M6). See [`../docs/BUILD_SPEC.md` section 6 (Suggested build order)](../docs/BUILD_SPEC.md#6-suggested-build-order-maps-to-the-junaug-timeline) for the plan.

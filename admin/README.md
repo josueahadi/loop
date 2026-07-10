@@ -28,7 +28,9 @@ npm run dev
 
 Full deploy details are in `../DEPLOYMENT.md`.
 
-## Structure (feature-based, per BUILD_SPEC §9)
+## Structure (feature-based)
+
+Follows the conventions in [`../docs/BUILD_SPEC.md` section 9 (Project structure & conventions)](../docs/BUILD_SPEC.md#9-project-structure--conventions-dry-feature-based).
 
 ```
 src/
@@ -49,7 +51,7 @@ src/
 - The API's `RolesGuard` is the real authorization boundary. The client-side `AdminGate` only prevents the shell from flashing and redirects unauthenticated / non-admin visitors to `/login`.
 - On a `401`, the API client refreshes once (`POST /auth/refresh`) and retries; if refresh fails, tokens are cleared and the user is bounced to `/login`.
 
-## Honesty rules
+## Data-integrity rules
 
 - The dashboard renders exactly what the API returns. A `null` rate is shown as **"No data yet"**, never `0%` or a placeholder number.
 - Every KPI shows its underlying `n` / denominator so **small samples are visible** (e.g. `1 / 20 drivers`), not smoothed away.
@@ -69,7 +71,7 @@ Requires the NestJS API running and a seeded admin account (`ADMIN_EMAIL` / `ADM
 
 ## Scripts
 
-- `npm run dev` — dev server (Turbopack)
-- `npm run build` — production build (runs the TypeScript check)
-- `npm run start` — serve the production build
-- `npm run lint` — ESLint
+- `npm run dev`: dev server (Turbopack)
+- `npm run build`: production build (runs the TypeScript check)
+- `npm run start`: serve the production build
+- `npm run lint`: ESLint

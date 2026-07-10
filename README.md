@@ -12,11 +12,24 @@ loop/
 
 The **API is the system of record** (PostgreSQL/PostGIS). The mobile app and admin are clients of it.
 
+## Contents
+
+- [Try it](#try-it)
+- [Install the Android app (Android APK)](#install-the-android-app-android-apk)
+- [Quick start (local development)](#quick-start-local-development)
+- [Deployment](#deployment)
+- [Walkthrough video](#walkthrough-video)
+- [Screenshots](#screenshots)
+- [Testing](#testing)
+- [Status](#status)
+- [Technical report](#technical-report)
+- [Roadmap (Future Works)](#roadmap-future-works)
+
 ## Try it
 
 | | Link |
 | --- | --- |
-| **Admin (web)** | <https://loop-admin-prod.up.railway.app> — sign in with the demo admin `admin@loop.rw` / `Admin@2026` (There is no public admin signup. Also this is a temporary throwaway account) |
+| **Admin (web)** | <https://loop-admin-prod.up.railway.app> — sign in with the demo admin `admin@loop.rw` / `Admin@2026`, a throwaway account seeded for evaluation since there is no public admin signup at the moment. |
 | **API** | <https://loop-api-prod.up.railway.app> · Swagger at [`/docs`](https://loop-api-prod.up.railway.app/docs) |
 | **Mobile app (Android APK)** | Download and install — see [Install the Android app](#install-the-android-app-android-apk) below. Or build/run the Flutter app against the deployed API. |
 | **Demo video** | <https://youtu.be/iMEG5E_Awnc> |
@@ -40,14 +53,14 @@ The release APK is already configured to talk to the hosted API — no local bac
    <img src="apk-download-qr.png" alt="QR code — Loop APK download" width="180" />
 
    (If you download it on a computer, transfer the file to the phone.)
-2. **Allow install from this source.** Open the downloaded file; Android will ask to permit installs from your browser / file manager. Tap **Settings → allow from this source** (this is the standard prompt for any app installed outside the Play Store), then go back and continue.
-3. **Install**, then open **Loop**.
+2. **Allow install from this source.** Open the downloaded file. Android will ask to permit installs from your browser or file manager: tap **Settings → allow from this source** (the standard prompt for any app installed outside the Play Store), then go back and continue.
+3. **Install.** If a **"App blocked"** or **"Unsafe app blocked"** message appears (Play Protect scanning an app it doesn't recognise), do **not** tap *OK* or *Got it* — that cancels the install. Instead tap **More details** (or the small expander), then **Install anyway**. Open **Loop**.
 4. **Grant permissions when asked** — location (so nearby matching works) and notifications (for job/proposal push).
 5. **Create an account** in the app (pick **Cargo owner** or **Driver**), or sign in. Everything runs against the live hosted backend.
 
 > To try the full owner ↔ driver loop on one phone, register one account, sign out, and register the other role — or use two devices. The admin side (verification approval, metrics) is the web console linked in [Try it](#try-it).
 
-To build the APK yourself instead, see [DEPLOYMENT.md §6](DEPLOYMENT.md#6-mobile-apk).
+To build the APK yourself instead, see [DEPLOYMENT.md section 6 (Mobile APK)](DEPLOYMENT.md#6-mobile-apk).
 
 ## Quick start (local development)
 
@@ -79,9 +92,9 @@ flutter run --dart-define=API_BASE_URL=http://localhost:3000
 #   Deployed API (no local backend): use https://loop-api-prod.up.railway.app
 ```
 
-To run the mobile app against the **deployed** backend, just point `API_BASE_URL` at the hosted API — see [`mobile/README.md`](mobile/README.md#run) and, for the release APK, [DEPLOYMENT.md §6](DEPLOYMENT.md#6-mobile-apk).
+To run the mobile app against the **deployed** backend, just point `API_BASE_URL` at the hosted API — see [`mobile/README.md`](mobile/README.md#run) and, for the release APK, [DEPLOYMENT.md section 6 (Mobile APK)](DEPLOYMENT.md#6-mobile-apk).
 
-The seeded admin credentials come from `ADMIN_EMAIL` / `ADMIN_PASSWORD` in `api/.env` (defaults: `admin@loop.rw` / `change-me-admin`). The seed also provisions a fixed **demo admin** — `admin@loop.rw` / `Admin@2026` — so the deployed admin console can be signed into for evaluation without a public admin signup (`DEMO_ADMIN_EMAIL` / `DEMO_ADMIN_PASSWORD` override it; it's a throwaway login, rotate or remove after). Backend details and the full endpoint list are in [`api/README.md`](api/README.md); the admin app is documented in [`admin/README.md`](admin/README.md).
+The seeded admin credentials come from `ADMIN_EMAIL` / `ADMIN_PASSWORD` in `api/.env` (defaults: `admin@loop.rw` / `change-me-admin`). The seed also provisions a fixed **demo admin** — `admin@loop.rw` / `Admin@2026` — so the deployed admin console can be signed into for evaluation without a public admin signup (`DEMO_ADMIN_EMAIL` / `DEMO_ADMIN_PASSWORD` override it). It is a throwaway evaluation login and will be archived (rotated or removed) once the defence is complete. Backend details and the full endpoint list are in [`api/README.md`](api/README.md); the admin app is documented in [`admin/README.md`](admin/README.md).
 
 ## Deployment
 
@@ -89,11 +102,24 @@ Loop deploys to **Railway** as one project with three services (PostGIS DB, API,
 
 ## Walkthrough video
 
-📹 **Walkthrough video:** _TODO — add link._ It walks through the core loop: driver verification, posting a job with a cost estimate, nearby matching, sending/accepting a proposal, in-app messaging, completing + rating, and the admin metrics dashboard.
+📹 **[Watch the walkthrough (5 min)](https://youtu.be/iMEG5E_Awnc)** — the core loop end to end: driver verification, posting a job with a cost estimate, nearby matching, sending and accepting a proposal, in-app messaging, completing and rating, and the admin metrics dashboard.
 
 ## Screenshots
 
-See [`screenshots/`](screenshots/) for captures of the core flows (owner + driver mobile, admin verification queue, metrics dashboard).
+The core flow, captured across both mobile apps and the admin console. More views (welcome, permissions) are in [`screenshots/`](screenshots/).
+
+| | |
+| --- | --- |
+| **Driver verification upload** | **Admin verification queue** |
+| ![Driver verification upload](screenshots/01-mobile-driver-verification-upload.png) | ![Admin verification queue](screenshots/02-admin-admin-verification-queue.png) |
+| **Admin document review** | **Driver online** |
+| ![Admin document review](screenshots/03-admin-admin-document-review.png) | ![Driver online](screenshots/04-mobile-driver-online.png) |
+| **Owner creates a job** | **Cost estimate** |
+| ![Owner create job](screenshots/05-mobile-owner-create-job.png) | ![Cost estimate](screenshots/06-mobile-owner-cost-estimate.png) |
+| **Nearby drivers** | **Send proposal** |
+| ![Nearby drivers](screenshots/07-mobile-owner-nearby-drivers.png) | ![Send proposal](screenshots/08-mobile-owner-send-proposal.png) |
+| **Driver job request** | **In-app chat** |
+| ![Driver job request](screenshots/09-mobile-driver-job-request.png) | ![In-app chat](screenshots/10-mobile-both-chat.png) |
 
 ## Testing
 
@@ -107,7 +133,7 @@ cd mobile && flutter test # model / screen / widget tests
 
 ## Status
 
-All milestones **M1–M6** are built (milestone plan in `docs/BUILD_SPEC.md` §6):
+All milestones **M1–M6** are built (milestone plan in [`docs/BUILD_SPEC.md` section 6 (Suggested build order)](docs/BUILD_SPEC.md#6-suggested-build-order-maps-to-the-junaug-timeline)):
 
 - **M1 — Foundation:** monorepo, database schema for all core entities, NestJS-issued JWT auth (argon2, access + rotating refresh), driver verification + admin review.
 - **M2 — Matching:** availability + location capture, PostGIS nearby-driver query (approved **and** online, nearest first), `flutter_map`/OpenStreetMap map view + vehicle-type filter, vehicle CRUD.
@@ -117,6 +143,10 @@ All milestones **M1–M6** are built (milestone plan in `docs/BUILD_SPEC.md` §6
 - **M5 — Trust:** two-way ratings + portable reputation.
 - **M6 — Admin:** Next.js verification queue + server-computed metrics dashboard + read-only drivers/users/jobs directory.
 
+## Technical report
+
+The full write-up — how each proposal objective was met, a requirements-to-code traceability table, the analysis of results, discussion of the milestones, and recommendations for future work — is in **[docs/TECHNICAL_REPORT.md](docs/TECHNICAL_REPORT.md)**.
+
 ## Roadmap (Future Works)
 
 Loop currently runs as a single **Railway** project (PostGIS DB + API + admin), chosen for pilot simplicity. The architecture is deliberately portable — Dockerised services, a standard `DATABASE_URL`, and an env-driven `DB_SSL` flag — so the planned production moves below are each a **configuration change, not a rewrite**:
@@ -125,4 +155,6 @@ Loop currently runs as a single **Railway** project (PostGIS DB + API + admin), 
 - **Admin → Vercel:** Next.js-native hosting with per-branch preview deployments.
 - **API → Fly.io (Johannesburg region):** lower latency to users in Rwanda than EU-region hosting.
 
-See **[DEPLOYMENT.md §11 (Future / production migration)](DEPLOYMENT.md#11-future--production-migration)** for the detail. Product/feature future work (payments, live driver tracking, an abstracted basemap, road routing) is separate — it's tracked in [`docs/BUILD_SPEC.md`](docs/BUILD_SPEC.md).
+A product-side item is **admin user management**: today the single admin is seeded (no public admin signup, by design), and a later phase adds a super-admin who can create and manage other admin accounts from the admin console.
+
+See **[DEPLOYMENT.md section 11 (Future / production migration)](DEPLOYMENT.md#11-future--production-migration)** for the infrastructure detail. Other product/feature future work (payments, live driver tracking, an abstracted basemap, road routing) is tracked in [`docs/BUILD_SPEC.md`](docs/BUILD_SPEC.md).

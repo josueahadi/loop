@@ -35,6 +35,7 @@ mobile/.pub/
 # ---- Not committing these yet (per maintainer) ----
 /docs/*
 !/docs/BUILD_SPEC.md
+!/docs/TECHNICAL_REPORT.md
 /CLAUDE.md
 
 # ---- OS ----

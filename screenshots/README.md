@@ -2,10 +2,10 @@
 
 App captures of the core flows, referenced from the root [README](../README.md).
 
-**Naming:** the numbered core-loop captures follow `NN-surface-role-subject.png`
-— a two-digit order number, the surface (`mobile` / `admin`), the role
-(`owner` / `driver` / `admin` / `both`), and a short kebab-case subject
-(e.g. `06-mobile-owner-cost-estimate.png`). Platform-specific onboarding and
+**Naming:** the numbered core-loop captures follow `NN-surface-role-subject.png`,
+where `NN` is a two-digit order number, the surface is `mobile` or `admin`, the
+role is `owner` / `driver` / `admin` / `both`, and the subject is a short
+kebab-case phrase (e.g. `06-mobile-owner-cost-estimate.png`). Platform-specific onboarding and
 permission captures are prefixed by platform instead (`android-…`, `iphone-…`).
 
 ## Core loop
