@@ -16,7 +16,7 @@ The **API is the system of record** (PostgreSQL/PostGIS). The mobile app and adm
 
 | | Link |
 | --- | --- |
-| **Admin (web)** | <https://loop-admin-prod.up.railway.app> — sign in with the demo admin `admin@loop.rw` / `Admin@2026` (there is no public admin signup) |
+| **Admin (web)** | <https://loop-admin-prod.up.railway.app> — sign in with the demo admin `admin@loop.rw` / `Admin@2026` (There is no public admin signup. Also this is a temporary throwaway account) |
 | **API** | <https://loop-api-prod.up.railway.app> · Swagger at [`/docs`](https://loop-api-prod.up.railway.app/docs) |
 | **Mobile app (Android APK)** | Download and install — see [Install the Android app](#install-the-android-app-android-apk) below. Or build/run the Flutter app against the deployed API. |
 | **Demo video** | <https://youtu.be/iMEG5E_Awnc> |
@@ -35,7 +35,10 @@ An Android emulator (with Google Play services, for push) or a physical device w
 The release APK is already configured to talk to the hosted API — no local backend or setup is needed. It targets **Android** (Android 6.0 / API 23 and newer).
 
 1. **Download** the APK to your Android phone from the latest release:
-   **[Loop release APK](https://github.com/josueahadi/loop/releases/latest)** → download the `app-release.apk` asset.
+   **[Loop release APK](https://github.com/josueahadi/loop/releases/latest)** → download the `loop-v1.0.0.apk` asset. Or scan this QR code with the phone's camera:
+
+   <img src="apk-download-qr.png" alt="QR code — Loop APK download" width="180" />
+
    (If you download it on a computer, transfer the file to the phone.)
 2. **Allow install from this source.** Open the downloaded file; Android will ask to permit installs from your browser / file manager. Tap **Settings → allow from this source** (this is the standard prompt for any app installed outside the Play Store), then go back and continue.
 3. **Install**, then open **Loop**.
