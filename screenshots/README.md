@@ -64,6 +64,21 @@ In-app chat opens between owner and driver once the proposal is accepted.
 
 ![In-app chat](10-mobile-both-chat.png)
 
+### 11. Driver sees a rejected document
+The driver's verification screen shows a rejected document with the admin's reason and a "Replace Document" action; re-uploading returns the record to pending.
+
+![Driver sees a rejected document](11-mobile-driver-verification-rejected.png)
+
+### 12. Rate the driver
+After a completed job, the owner rates the driver (and the driver rates the owner), feeding each profile's reputation.
+
+![Rate the driver](12-mobile-owner-rate-driver.png)
+
+### 13. Admin metrics dashboard
+The server-computed evaluation metrics: time-to-match, estimate-accepted-unchanged, in-app coordination, verification completion, match rate, and proposal acceptance.
+
+![Admin metrics dashboard](13-admin-admin-metrics.png)
+
 ## Onboarding & permissions
 
 ### Welcome

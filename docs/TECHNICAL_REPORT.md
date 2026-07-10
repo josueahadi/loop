@@ -141,7 +141,7 @@ Rows marked with an automated test are covered by the unit or integration suites
 | Size variation | the estimate scales with `small` / `medium` / `large` | Pass | Size-multiplier scaling covered by `pricing.service.spec`. |
 | Location variation | different Kigali points change distance and nearby ordering (Remera, Kimironko, CBD, Nyabugogo) | | |
 | Driver with no vehicle | going online is blocked | | |
-| Rejected document | driver sees the rejection and can re-upload; re-upload returns to pending | | |
+| Rejected document | driver sees the rejection and can re-upload; re-upload returns to pending | Pass | Admin rejects with a reason; the driver sees it and can re-submit, which returns the record to pending. |
 | Already-matched job | a second proposal on a matched job is rejected | Pass | Covered by `proposals.service.spec` (conflict when already matched). |
 | Busy driver | an assigned driver drops out of the nearby results until the job completes | Pass | Enforced in the matching query (`NOT EXISTS` on active accepted proposals). |
 | Dead session | an expired/invalid session recovers to login rather than stranding on an error | Pass | Session-death path routes to login instead of surfacing a raw 401. |
@@ -150,10 +150,10 @@ Rows marked with an automated test are covered by the unit or integration suites
 
 | Environment | Build / OS | Flows run | Result | Notes |
 | --- | --- | --- | --- | --- |
-| Android device | Pixel 4a, Android 13 | full loop, maps hand-off, push | Pass (loop); push Fail | Core loop and maps hand-off worked; FCM push did not deliver. Under re-test with a fresh build; results to be updated. |
-| Android emulator (Play services) | _API level_ | full loop, push, location fix | | |
-| iOS device | _model + iOS version_ | full loop (push needs an APNs key) | | |
-| iOS simulator | _iOS version_ | full loop except remote push | | |
+| Android device | Pixel 4a, Android 13 | full loop, maps hand-off, push | Pass (loop); push Fail | An older device, and the physical Android handset available for testing. Core loop and maps hand-off worked; FCM push did not deliver. Under re-test with a fresh build; results to be updated. |
+| Android emulator | Pixel 6a AVD | availability / go-online flow | Pass | Going online (verification and vehicle gating, availability toggle) verified. |
+| iOS simulator | iPhone 16, iOS 18.4 | full loop except remote push | Pass | Simulators cannot receive remote push; the rest of the loop ran. |
+| iOS device | iPhone 16 Pro, iOS 16 | full loop (remote push needs a paid APNs key) | Pass | Core loop ran; remote push is inert without a paid Apple Developer APNs key. Older iPhone models are still to be tested. |
 | Admin (web) | _browser_ | verification queue, directories, metrics | | |
 
 ### 4.5 Where the results fall short of the proposal
