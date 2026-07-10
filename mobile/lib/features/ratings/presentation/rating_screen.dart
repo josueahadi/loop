@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/errors/error_messages.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 
 import '../../../constants.dart';
@@ -51,7 +52,7 @@ class _RatingScreenState extends State<RatingScreen> {
       if (!mounted) return;
       Navigator.pop(context, true);
     } catch (e) {
-      final msg = e.toString().replaceFirst('Exception: ', '');
+      final msg = friendlyErrorMessage(e);
       if (mounted) {
         // Already rated (409) is a terminal, expected outcome — treat as done.
         final alreadyRated = msg.toLowerCase().contains('already rated');

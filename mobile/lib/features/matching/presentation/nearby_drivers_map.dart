@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import '../../../core/errors/error_messages.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
@@ -126,7 +127,7 @@ class _NearbyDriversMapState extends State<NearbyDriversMap> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = e.toString().replaceFirst('Exception: ', '');
+        _error = friendlyErrorMessage(e);
         _loading = false;
       });
     }
@@ -179,7 +180,7 @@ class _NearbyDriversMapState extends State<NearbyDriversMap> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e.toString().replaceFirst('Exception: ', '')),
+            content: Text(friendlyErrorMessage(e)),
             backgroundColor: Colors.red,
           ),
         );

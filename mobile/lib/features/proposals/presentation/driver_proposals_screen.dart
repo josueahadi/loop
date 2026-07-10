@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/errors/error_messages.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../constants.dart';
@@ -48,7 +49,7 @@ class _DriverProposalsScreenState extends State<DriverProposalsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e.toString().replaceFirst('Exception: ', '')),
+            content: Text(friendlyErrorMessage(e)),
             backgroundColor: Colors.red,
           ),
         );

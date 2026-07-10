@@ -35,9 +35,13 @@ class PushMessaging {
       final messaging = FirebaseMessaging.instance;
 
       // iOS/Android 13+ ask for permission; on older Android this is a no-op.
-      await messaging.requestPermission();
+      final settings = await messaging.requestPermission();
+      debugPrint(
+        'PushMessaging: permission = ${settings.authorizationStatus}',
+      );
 
       final token = await messaging.getToken();
+      debugPrint('PushMessaging: token = ${token == null ? 'null' : 'obtained'}');
       if (token != null) {
         await _auth.registerPushToken(token);
       }

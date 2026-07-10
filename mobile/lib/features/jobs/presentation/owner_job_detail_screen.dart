@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/errors/error_messages.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -101,7 +102,7 @@ class _OwnerJobDetailScreenState extends State<OwnerJobDetailScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e.toString().replaceFirst('Exception: ', '')),
+            content: Text(friendlyErrorMessage(e)),
             backgroundColor: Colors.red,
           ),
         );
@@ -150,7 +151,7 @@ class _OwnerJobDetailScreenState extends State<OwnerJobDetailScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e.toString().replaceFirst('Exception: ', '')),
+            content: Text(friendlyErrorMessage(e)),
             backgroundColor: Colors.red,
           ),
         );

@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import '../core/enums/app_enums.dart';
+import '../core/errors/error_messages.dart';
 import '../core/location/location_service.dart';
 import '../core/models/user_model.dart';
 import '../core/repositories/verification_repository.dart';
@@ -51,7 +52,7 @@ class AuthProvider with ChangeNotifier {
       _user = await _authService.getCurrentUserData();
       _syncPush();
     } catch (e) {
-      _error = e.toString();
+      _error = friendlyErrorMessage(e);
     }
     _notify();
   }
@@ -270,5 +271,5 @@ class AuthProvider with ChangeNotifier {
     super.dispose();
   }
 
-  String _clean(Object e) => e.toString().replaceFirst('Exception: ', '');
+  String _clean(Object e) => friendlyErrorMessage(e);
 }

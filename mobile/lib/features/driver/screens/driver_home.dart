@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/errors/error_messages.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/enums/app_enums.dart';
@@ -231,7 +232,7 @@ class _DriverHomeState extends State<DriverHome> with WidgetsBindingObserver {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(
-                                  e.toString().replaceFirst('Exception: ', ''),
+                                  friendlyErrorMessage(e),
                                 ),
                                 backgroundColor: Colors.red,
                               ),
@@ -1098,7 +1099,7 @@ class _ProposalCardState extends State<_ProposalCard> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e.toString().replaceFirst('Exception: ', '')),
+            content: Text(friendlyErrorMessage(e)),
             backgroundColor: Colors.red,
           ),
         );

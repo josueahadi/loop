@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import '../core/errors/error_messages.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_dragmarker/flutter_map_dragmarker.dart';
 import 'package:latlong2/latlong.dart';
@@ -144,7 +145,7 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
       if (!mounted) return;
       _setActivePin(LatLng(pos.latitude, pos.longitude), move: true);
     } catch (e) {
-      _snack(e.toString().replaceFirst('Exception: ', ''));
+      _snack(friendlyErrorMessage(e));
     }
   }
 
@@ -194,7 +195,7 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
         _priceController.text = est.estimatedPrice.toString();
       });
     } catch (e) {
-      _snack(e.toString().replaceFirst('Exception: ', ''));
+      _snack(friendlyErrorMessage(e));
     } finally {
       if (mounted) setState(() => _estimating = false);
     }
@@ -231,7 +232,7 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
       _snack('Job posted', ok: true);
       Navigator.pop(context, true);
     } catch (e) {
-      _snack(e.toString().replaceFirst('Exception: ', ''));
+      _snack(friendlyErrorMessage(e));
     } finally {
       if (mounted) setState(() => _posting = false);
     }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../core/errors/error_messages.dart';
 
 import '../core/enums/app_enums.dart';
 import '../core/models/vehicle.dart';
@@ -57,7 +58,7 @@ class _VehicleDetailsScreenState extends State<VehicleDetailsScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = e.toString().replaceFirst('Exception: ', '');
+        _error = friendlyErrorMessage(e);
         _loading = false;
       });
     }
@@ -112,7 +113,7 @@ class _VehicleDetailsScreenState extends State<VehicleDetailsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e.toString().replaceFirst('Exception: ', '')),
+            content: Text(friendlyErrorMessage(e)),
             backgroundColor: Colors.red,
           ),
         );
@@ -149,7 +150,7 @@ class _VehicleDetailsScreenState extends State<VehicleDetailsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e.toString().replaceFirst('Exception: ', '')),
+            content: Text(friendlyErrorMessage(e)),
             backgroundColor: Colors.red,
           ),
         );

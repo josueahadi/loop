@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/errors/error_messages.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
@@ -48,7 +49,7 @@ class _DriverLocationScreenState extends State<DriverLocationScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = e.toString().replaceFirst('Exception: ', '');
+        _error = friendlyErrorMessage(e);
         _loading = false;
       });
     }
