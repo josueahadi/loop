@@ -11,6 +11,7 @@ import '../../notifications/presentation/notification_bell.dart';
 import '../../notifications/presentation/notifications_screen.dart';
 import '../../../providers/notification_provider.dart';
 import '../../../providers/auth_provider.dart';
+import '../../../mixins/logout_mixin.dart';
 import '../../../features/profile/providers/profile_provider.dart';
 import '../../../screens/create_job_screen.dart';
 import '../../../screens/cargo_owner_profile_edit_screen.dart';
@@ -417,7 +418,7 @@ class _MyJobsTabState extends State<_MyJobsTab> {
   }
 }
 
-class _ProfileTab extends StatelessWidget {
+class _ProfileTab extends StatelessWidget with LogoutMixin {
   const _ProfileTab();
 
   @override
@@ -558,7 +559,7 @@ class _ProfileTab extends StatelessWidget {
                   icon: Icons.logout,
                   title: 'Logout',
                   isDestructive: true,
-                  onTap: () => _confirmLogout(context, authProvider),
+                  onTap: () => showLogoutConfirmation(context),
                 ),
               ],
             ),
@@ -568,35 +569,6 @@ class _ProfileTab extends StatelessWidget {
     );
   }
 
-  Future<void> _confirmLogout(
-    BuildContext context,
-    AuthProvider authProvider,
-  ) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Log out?'),
-        content: const Text('You can sign back in anytime.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Log out'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true) return;
-
-    await authProvider.signOut();
-    if (context.mounted) {
-      Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
-    }
-  }
 }
 
 // Owner's job card — API Job model. Opens the API-backed OwnerJobDetailScreen.

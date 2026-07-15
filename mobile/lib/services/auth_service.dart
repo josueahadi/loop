@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:dio/dio.dart';
 
@@ -82,21 +83,39 @@ class AuthService {
     }
   }
 
+  /// Local-first: the device session is gone the moment the tokens are cleared.
+  /// The server-side revoke is fired afterwards and deliberately NOT awaited —
+  /// on a dead or slow network it would otherwise block the UI for the full
+  /// connect timeout before a single token was cleared.
   Future<void> signOut() async {
     final refresh = await _tokens.refreshToken;
-    if (refresh != null) {
-      try {
-        await _dio.post(
-          '/auth/logout',
-          data: {'refreshToken': refresh},
-          options: Options(extra: {'skipAuth': true}),
-        );
-      } catch (_) {
-        // best-effort server-side revoke; always clear locally below
-      }
-    }
     await _tokens.clear();
+    if (refresh != null) {
+      unawaited(_revokeRefreshToken(refresh));
+    }
   }
+
+  // Best-effort server-side revoke. Runs detached from logout with a timeout far
+  // shorter than the client's default so a hung socket can't outlive the session
+  // it belongs to. A failure here only means the refresh token lives out its own
+  // expiry server-side — the device is already signed out either way.
+  Future<void> _revokeRefreshToken(String refresh) async {
+    try {
+      await _dio.post(
+        '/auth/logout',
+        data: {'refreshToken': refresh},
+        options: Options(
+          extra: {'skipAuth': true},
+          sendTimeout: _revokeTimeout,
+          receiveTimeout: _revokeTimeout,
+        ),
+      );
+    } catch (_) {
+      // Swallowed by design — see above.
+    }
+  }
+
+  static const _revokeTimeout = Duration(seconds: 5);
 
   Future<void> sendPasswordResetEmail(String email) async {
     try {

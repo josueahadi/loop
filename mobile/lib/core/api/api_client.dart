@@ -66,6 +66,14 @@ class ApiClient {
           );
 
           if (isAuthError && !alreadyRetried && !isRefreshCall) {
+            // Fail fast when there is no refresh token: this is the normal
+            // post-logout state (in-flight requests 401 after the store is
+            // cleared), and attempting a refresh would only fire a doomed call
+            // and re-trigger the session-died re-route on an already-signed-out
+            // app.
+            if (await _tokens.refreshToken == null) {
+              return handler.next(error);
+            }
             final refreshed = await _tryRefresh();
             if (refreshed) {
               final opts = error.requestOptions;
