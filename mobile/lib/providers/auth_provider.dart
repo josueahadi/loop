@@ -102,16 +102,28 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
+  /// Local-first sign-out: everything that makes this device signed out happens
+  /// synchronously here, and no network call is awaited. Sign-out is not an
+  /// operation the user can meaningfully retry or cancel, so it must not be able
+  /// to fail, hang, or surface an error — a dead network used to block it for the
+  /// full connect timeout behind a modal spinner.
+  ///
+  /// Never sets the loading flag: there is nothing to wait for, and leaving it
+  /// set is what stranded the UI.
   Future<void> signOut() async {
+    _clearError();
+    // Detached, and ordered before the tokens are cleared — /me/push-token is an
+    // authenticated endpoint.
+    _push.stop();
+    _user = null;
+    notifyListeners();
+    // Clearing the secure store is local I/O (fast), but guarded anyway: if the
+    // keystore were to throw, the in-memory session is already gone and the app
+    // is already routing to login.
     try {
-      _setLoading(true);
-      await _push.stop();
       await _authService.signOut();
-      _user = null;
-    } catch (e) {
-      _setError(_clean(e));
-    } finally {
-      _setLoading(false);
+    } catch (_) {
+      // Nothing actionable — the user is signed out regardless.
     }
   }
 

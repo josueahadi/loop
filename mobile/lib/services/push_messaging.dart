@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 
@@ -61,14 +63,25 @@ class PushMessaging {
   }
 
   /// Clear the server-side token so a signed-out device stops receiving pushes.
-  Future<void> stop() async {
+  ///
+  /// Returns immediately. Both steps are network calls — `deleteToken()` in
+  /// particular can block for a long time on Android when connectivity is bad —
+  /// and logout must never wait on either. Failing to clear the token only means
+  /// the device may receive a stray push until the token rotates; that is not
+  /// worth hanging the sign-out on.
+  void stop() {
     _started = false;
+    unawaited(_clearToken());
+  }
+
+  Future<void> _clearToken() async {
+    // Tell the API to forget the token first: /me/push-token is authenticated,
+    // so it has to go out before the caller clears the JWT.
+    await _auth.registerPushToken('');
     try {
       await FirebaseMessaging.instance.deleteToken();
     } catch (_) {
-      // ignore
+      // ignore — best-effort
     }
-    // Tell the API to forget the token (empty string clears it server-side).
-    await _auth.registerPushToken('');
   }
 }

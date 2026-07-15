@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../core/repositories/user_repository.dart';
+import '../mixins/logout_mixin.dart';
 import '../providers/auth_provider.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -10,7 +11,7 @@ class SettingsScreen extends StatefulWidget {
   State<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
+class _SettingsScreenState extends State<SettingsScreen> with LogoutMixin {
   final UserRepository _userRepository = ApiUserRepository();
 
   bool _isLoading = false;
@@ -390,45 +391,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               subtitle: 'Sign out of your account',
               iconColor: Colors.red,
               textColor: Colors.red,
-              onTap: () {
-                showDialog(
-                  context: context,
-                  builder: (BuildContext context) {
-                    return AlertDialog(
-                      title: const Text('Sign Out'),
-                      content: const Text('Are you sure you want to sign out?'),
-                      actions: [
-                        TextButton(
-                          onPressed: () {
-                            Navigator.of(context).pop();
-                          },
-                          child: const Text('Cancel'),
-                        ),
-                        TextButton(
-                          onPressed: () async {
-                            Navigator.of(context).pop();
-                            final authProvider = Provider.of<AuthProvider>(
-                              context,
-                              listen: false,
-                            );
-                            await authProvider.signOut();
-                            if (context.mounted) {
-                              Navigator.of(context).pushNamedAndRemoveUntil(
-                                '/login',
-                                (route) => false,
-                              );
-                            }
-                          },
-                          child: const Text(
-                            'Sign Out',
-                            style: TextStyle(color: Colors.red),
-                          ),
-                        ),
-                      ],
-                    );
-                  },
-                );
-              },
+              onTap: () => showLogoutConfirmation(context),
             ),
 
             const SizedBox(height: 16),

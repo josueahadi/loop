@@ -6,6 +6,7 @@ import '../../../core/enums/app_enums.dart';
 import '../../../core/models/proposal.dart';
 import '../../../core/navigation/open_in_maps.dart';
 import '../../../providers/auth_provider.dart';
+import '../../../mixins/logout_mixin.dart';
 import '../../../core/location/enable_location_prompt.dart';
 import '../../../core/location/location_service.dart';
 import '../../../core/repositories/proposal_repository.dart';
@@ -724,7 +725,7 @@ class _ProposalList extends StatelessWidget {
   }
 }
 
-class _ProfileTab extends StatelessWidget {
+class _ProfileTab extends StatelessWidget with LogoutMixin {
   const _ProfileTab();
 
   @override
@@ -970,7 +971,7 @@ class _ProfileTab extends StatelessWidget {
                   icon: Icons.logout,
                   title: 'Logout',
                   isDestructive: true,
-                  onTap: () => _showLogoutDialog(context),
+                  onTap: () => showLogoutConfirmation(context),
                 ),
               ],
             ),
@@ -980,82 +981,6 @@ class _ProfileTab extends StatelessWidget {
     );
   }
 
-  void _showLogoutDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Logout'),
-          content: const Text('Are you sure you want to log out?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                Navigator.of(context).pop();
-                await _performLogout(context);
-              },
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-              child: const Text('Logout'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Future<void> _performLogout(BuildContext context) async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final profileProvider = Provider.of<ProfileProvider>(
-      context,
-      listen: false,
-    );
-
-    // Show loading indicator
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return const AlertDialog(
-          content: Row(
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(width: 16),
-              Text('Logging out...'),
-            ],
-          ),
-        );
-      },
-    );
-
-    try {
-      // Perform logout
-      await authProvider.signOut();
-
-      // Clear profile data
-      profileProvider.logout();
-
-      // Navigate to login screen and clear navigation stack
-      if (context.mounted) {
-        Navigator.of(
-          context,
-        ).pushNamedAndRemoveUntil('/login', (route) => false);
-      }
-    } catch (e) {
-      // Hide loading dialog and show error
-      if (context.mounted) {
-        Navigator.of(context).pop(); // Hide loading dialog
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Logout failed: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
 }
 
 // A driver's proposal card: shows the job, accept/decline while 'sent', and

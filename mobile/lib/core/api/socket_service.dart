@@ -46,9 +46,18 @@ class SocketService {
   void join(String jobId) => _socket?.emit('join', {'jobId': jobId});
   void leave(String jobId) => _socket?.emit('leave', {'jobId': jobId});
 
-  void dispose() {
+  /// Drop the connection but keep this service usable — [connect] can be called
+  /// again on the next login. Used on sign-out: the handshake JWT is about to be
+  /// revoked, so the socket must not outlive the session (it would otherwise keep
+  /// reconnecting with a dead token). Unlike [dispose] this leaves the message
+  /// stream open, since the singleton and its listeners survive the sign-out.
+  void disconnect() {
     _socket?.dispose();
     _socket = null;
+  }
+
+  void dispose() {
+    disconnect();
     _controller.close();
   }
 }
