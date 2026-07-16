@@ -1,21 +1,38 @@
-MIT License
+Copyright (c) 2026 Habib Josue Ahadi. All rights reserved.
 
-Copyright (c) 2026 Habib Josue Ahadi
+This software and its associated source code, documentation, designs, and other
+materials (the "Software") are the proprietary and confidential intellectual
+property of Habib Josue Ahadi (the "Author"). The Software is made available in
+this repository for reference, evaluation, and academic assessment only.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+No license, right, or permission is granted, whether express, implied, by
+estoppel, or otherwise, except as explicitly stated below. All rights not
+expressly granted are reserved by the Author.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+PERMITTED
+- Viewing and reading the Software for the purposes of academic evaluation,
+  assessment, portfolio review, and personal study.
+
+NOT PERMITTED without the prior written permission of the Author
+- Copying, reproducing, or redistributing the Software, in whole or in part.
+- Modifying, adapting, translating, or creating derivative works from the
+  Software.
+- Using the Software, in whole or in part, in any product or service, whether
+  commercial or non-commercial.
+- Selling, sublicensing, renting, leasing, or otherwise transferring the
+  Software or any rights in it.
+- Removing or altering this notice or any copyright, attribution, or proprietary
+  markings.
+
+Third-party components (for example, open-source libraries and dependencies)
+included or referenced by the Software remain governed by their own respective
+licenses; this notice does not apply to them.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+AUTHOR OR COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+For permissions beyond the scope of this notice, contact the Author.

@@ -188,4 +188,8 @@ Secrets never go in git — commit `.env.example`, never a real `.env` or a serv
 
 ## License
 
-Released under the [MIT License](LICENSE).
+Proprietary — © 2026 Habib Josue Ahadi, all rights reserved. The source is
+available in this repository for reference and academic evaluation only; it may
+not be copied, modified, redistributed, or used without prior written
+permission. See [LICENSE](LICENSE). Third-party dependencies remain under their
+own licenses.
