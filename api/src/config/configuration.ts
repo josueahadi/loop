@@ -55,6 +55,17 @@ export interface AppConfig {
     biasLng: number;
     bbox: string; // "minLon,minLat,maxLon,maxLat"
   };
+  routing: {
+    // OSRM base URL. Defaults to the public demo server, which is rate-limited
+    // and carries no uptime guarantee — point this at a self-hosted Rwanda
+    // extract for production (a config change, not a rewrite).
+    baseUrl: string;
+    // Descriptive UA, same courtesy as the geocode proxy.
+    userAgent: string;
+    // Give up quickly: pricing falls back to great-circle rather than making the
+    // owner wait on a slow third party.
+    timeoutMs: number;
+  };
 }
 
 export default (): AppConfig => ({
@@ -104,10 +115,15 @@ export default (): AppConfig => ({
       process.env.GEOCODE_REVERSE_URL ??
       'https://nominatim.openstreetmap.org/reverse',
     userAgent:
-      process.env.GEOCODE_USER_AGENT ?? 'LoopApp/0.1 (support@loop.rw)',
+      process.env.GEOCODE_USER_AGENT ?? 'LoopApp/0.1 (ahadihjosue@gmail.com)',
     biasLat: parseFloat(process.env.GEOCODE_BIAS_LAT ?? '-1.9441'),
     biasLng: parseFloat(process.env.GEOCODE_BIAS_LNG ?? '30.0619'),
     // Greater Kigali bounding box.
     bbox: process.env.GEOCODE_BBOX ?? '29.9,-2.10,30.30,-1.80',
+  },
+  routing: {
+    baseUrl: process.env.ROUTING_OSRM_URL ?? 'https://router.project-osrm.org',
+    userAgent: process.env.ROUTING_USER_AGENT ?? 'LoopApp/0.1 (ahadihjosue@gmail.com)',
+    timeoutMs: parseInt(process.env.ROUTING_TIMEOUT_MS ?? '6000', 10),
   },
 });

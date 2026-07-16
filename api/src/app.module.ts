@@ -20,6 +20,7 @@ import { PricingModule } from './modules/pricing/pricing.module';
 import { ProposalsModule } from './modules/proposals/proposals.module';
 import { PushModule } from './modules/push/push.module';
 import { RatingsModule } from './modules/ratings/ratings.module';
+import { RoutingModule } from './modules/routing/routing.module';
 import { StorageModule } from './modules/storage/storage.module';
 import { UsersModule } from './modules/users/users.module';
 import { VehiclesModule } from './modules/vehicles/vehicles.module';
@@ -62,6 +63,7 @@ import { VerificationModule } from './modules/verification/verification.module';
     MessagingModule,
     RatingsModule,
     GeocodeModule,
+    RoutingModule,
     AdminModule,
   ],
   providers: [
