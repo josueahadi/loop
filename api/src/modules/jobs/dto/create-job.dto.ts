@@ -2,7 +2,9 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   IsEnum,
+  IsIn,
   IsInt,
+  IsNumber,
   IsOptional,
   IsString,
   MaxLength,
@@ -79,4 +81,27 @@ export class CreateJobDto {
   @IsInt()
   @Min(0)
   price: number;
+
+  // Route inputs from /pricing/estimate, echoed back so the JOB records the
+  // distance/duration/source the estimate was actually built on (instrumentation
+  // for a future learned pricing model). Optional/nullable — a client that skips
+  // the estimate still posts a valid job.
+  @ApiPropertyOptional({ description: 'Distance used for the estimate, km' })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  distanceKm?: number;
+
+  @ApiPropertyOptional({
+    description: 'Duration used for the estimate, minutes',
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  durationMin?: number;
+
+  @ApiPropertyOptional({ enum: ['osrm', 'great_circle'] })
+  @IsOptional()
+  @IsIn(['osrm', 'great_circle'])
+  distanceSource?: string;
 }

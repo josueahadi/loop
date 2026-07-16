@@ -73,6 +73,30 @@ export class Job {
   @Column({ type: 'integer', nullable: true })
   price: number | null;
 
+  // Route inputs actually used for the estimate (M7). Persisted as instrumentation
+  // for a future learned pricing model — they can't be reconstructed later.
+  // numeric columns come back as strings from pg; parsed at the read boundary.
+  @Column({
+    name: 'distance_km',
+    type: 'numeric',
+    precision: 7,
+    scale: 2,
+    nullable: true,
+  })
+  distanceKm: string | null;
+
+  @Column({
+    name: 'duration_min',
+    type: 'numeric',
+    precision: 7,
+    scale: 1,
+    nullable: true,
+  })
+  durationMin: string | null;
+
+  @Column({ name: 'distance_source', type: 'varchar', nullable: true })
+  distanceSource: string | null;
+
   @Column({ name: 'req_vehicle_type', type: 'enum', enum: VehicleType })
   reqVehicleType: VehicleType;
 

@@ -12,6 +12,7 @@ import '../core/location/location_service.dart';
 import '../core/repositories/geocode_repository.dart';
 import '../core/repositories/job_repository.dart';
 import '../core/repositories/pricing_repository.dart';
+import '../core/repositories/routing_repository.dart';
 
 /// Owner create-job flow (M3/M3.5): set pickup + drop-off by place/landmark
 /// search, current location, or dropping/dragging a pin; pins carry a
@@ -58,6 +59,12 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
   bool _estimating = false;
   bool _posting = false;
 
+  // Road route drawn between the pins once an estimate is fetched. Empty until
+  // then, or when only the great-circle fallback is available (we keep the
+  // straight line in that case).
+  final _routing = RoutingRepository();
+  List<LatLng> _routePolyline = const [];
+
   @override
   void initState() {
     super.initState();
@@ -101,6 +108,7 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
         _dropOffLabel = label;
       }
       _estimate = null; // pins changed → estimate stale
+      _routePolyline = const [];
     });
     if (move) _mapController.move(point, 15);
     if (label == null) _reverseActivePin(point, _settingPickup);
@@ -135,6 +143,7 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
         _dropOffLabel = null;
       }
       _estimate = null;
+      _routePolyline = const [];
     });
     _reverseActivePin(point, isPickup);
   }
@@ -189,9 +198,19 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
         size: _size,
         weightKg: double.tryParse(_weightController.text.trim()),
       );
+      // Fetch the road geometry to draw (best-effort — a failure here just
+      // leaves the straight line; the estimate already succeeded).
+      List<LatLng> poly = const [];
+      try {
+        final r = await _routing.route(_pickup!, _dropOff!);
+        poly = r.polyline;
+      } catch (_) {
+        // keep the straight line
+      }
       if (!mounted) return;
       setState(() {
         _estimate = est;
+        _routePolyline = poly;
         _priceController.text = est.estimatedPrice.toString();
       });
     } catch (e) {
@@ -284,12 +303,16 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
               urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
               userAgentPackageName: 'rw.loop.app',
             ),
+            // Prefer the OSRM road geometry; fall back to a straight line
+            // between the pins until a route is fetched (or on OSRM fallback).
             if (_pickup != null && _dropOff != null)
               PolylineLayer(
                 polylines: [
                   Polyline(
-                    points: [_pickup!, _dropOff!],
-                    strokeWidth: 3,
+                    points: _routePolyline.isNotEmpty
+                        ? _routePolyline
+                        : [_pickup!, _dropOff!],
+                    strokeWidth: _routePolyline.isNotEmpty ? 4 : 3,
                     color: primaryGreen,
                   ),
                 ],
@@ -528,7 +551,9 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
                   ),
                 ),
                 Text(
-                  'Distance: ${_estimate!.distanceKm.toStringAsFixed(1)} km',
+                  _estimate!.durationMin != null
+                      ? 'Distance: ${_estimate!.distanceKm.toStringAsFixed(1)} km  ·  ~${_estimate!.durationMin!.round()} min by road'
+                      : 'Distance: ${_estimate!.distanceKm.toStringAsFixed(1)} km (straight-line)',
                   style: const TextStyle(color: textGray, fontSize: 12),
                 ),
                 const SizedBox(height: 6),

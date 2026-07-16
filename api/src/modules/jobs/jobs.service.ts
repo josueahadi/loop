@@ -55,11 +55,12 @@ export class JobsService {
          (owner_id, pickup_label, pickup_notes, pickup_location,
           drop_off_label, drop_off_notes, drop_off_location,
           cargo_type, size, weight_kg, estimated_price, price,
+          distance_km, duration_min, distance_source,
           req_vehicle_type, status, posted_at)
        VALUES
          ($1, $2, $3, ST_SetSRID(ST_MakePoint($5, $4), 4326)::geography,
           $6, $7, ST_SetSRID(ST_MakePoint($9, $8), 4326)::geography,
-          $10, $11, $12, $13, $14, $15, 'posted', now())
+          $10, $11, $12, $13, $14, $15, $16, $17, $18, 'posted', now())
        RETURNING id`,
       [
         ownerId,
@@ -76,6 +77,9 @@ export class JobsService {
         dto.weightKg ?? null,
         dto.estimatedPrice,
         dto.price,
+        dto.distanceKm ?? null,
+        dto.durationMin ?? null,
+        dto.distanceSource ?? null,
         dto.reqVehicleType,
       ],
     );

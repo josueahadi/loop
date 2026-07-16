@@ -4,9 +4,10 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../constants.dart';
 import '../../../core/enums/app_enums.dart';
 import '../../../core/models/proposal.dart';
-import '../../../core/navigation/open_in_maps.dart';
 import '../../../core/theme/ui_kit.dart';
 import '../../chat/presentation/job_chat_screen.dart';
+import '../../navigation/navigation_screen.dart';
+import 'package:latlong2/latlong.dart';
 
 /// Full job detail for a driver's proposal — the driver equivalent of the
 /// owner's job-detail screen. Shows the load profile, both addresses, the
@@ -15,6 +16,17 @@ import '../../chat/presentation/job_chat_screen.dart';
 class DriverJobDetailScreen extends StatelessWidget {
   final Proposal proposal;
   const DriverJobDetailScreen({super.key, required this.proposal});
+
+  // Open in-app turn-by-turn navigation to a stop. "Open in Maps" stays available
+  // inside that screen as the "Use another app" fallback.
+  void _navigate(BuildContext context, LatLng destination, String label) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) =>
+            NavigationScreen(destination: destination, destinationLabel: label),
+      ),
+    );
+  }
 
   String _displayStatus(Proposal p) {
     if (p.status == 'accepted') {
@@ -173,17 +185,23 @@ class DriverJobDetailScreen extends StatelessWidget {
                         icon: const Icon(Icons.call, size: 18),
                         label: const Text('Call'),
                       ),
-                      OutlinedButton.icon(
-                        onPressed: () =>
-                            OpenInMaps.directions(context, job.pickup),
-                        icon: const Icon(Icons.navigation_outlined, size: 18),
-                        label: const Text('To pickup'),
+                      FilledButton.icon(
+                        onPressed: () => _navigate(
+                          context,
+                          job.pickup,
+                          job.pickupLabel ?? 'Pickup',
+                        ),
+                        icon: const Icon(Icons.navigation, size: 18),
+                        label: const Text('Pickup'),
                       ),
-                      OutlinedButton.icon(
-                        onPressed: () =>
-                            OpenInMaps.directions(context, job.dropOff),
-                        icon: const Icon(Icons.flag_outlined, size: 18),
-                        label: const Text('To drop-off'),
+                      FilledButton.icon(
+                        onPressed: () => _navigate(
+                          context,
+                          job.dropOff,
+                          job.dropOffLabel ?? 'Drop-off',
+                        ),
+                        icon: const Icon(Icons.flag, size: 18),
+                        label: const Text('Drop-off'),
                       ),
                     ],
                   ),

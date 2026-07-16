@@ -44,4 +44,8 @@ export const validationSchema = Joi.object({
   GEOCODE_BIAS_LAT: Joi.number().optional(),
   GEOCODE_BIAS_LNG: Joi.number().optional(),
   GEOCODE_BBOX: Joi.string().optional(),
+
+  ROUTING_OSRM_URL: Joi.string().uri().optional(),
+  ROUTING_USER_AGENT: Joi.string().optional(),
+  ROUTING_TIMEOUT_MS: Joi.number().optional(),
 });

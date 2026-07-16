@@ -24,17 +24,38 @@ Engineering distillation of the proposal for implementation. The REST resources,
 6. **Cost estimate:** an estimated cost computed from route, vehicle type, and size/weight; the owner reviews it, then sets the price (UI label: Estimated cost ~X RWF).
 7. **Job posting (owner):** pickup and drop-off are set by place/landmark search, current location, or dropping/dragging a pin (OSM geocoder: Photon search plus Nominatim reverse, no Google); a pin can carry a reverse-geocoded label and a free-text note. The owner then posts the price plus the load profile (size, weight, type, pickup, drop-off, required vehicle type).
 8. **Proposals:** the owner selects a driver and sends a proposal at the posted price; the driver accepts or declines.
-9. **Messaging & contact:** an in-app thread opens on acceptance (real-time via a NestJS WebSocket gateway with a polling fallback, messages stored in Postgres), alongside a `tel:` call button and an "Open in Maps" navigation hand-off that launches the driver's own Google Maps, Apple Maps, or Waze through a `geo:`/Maps-URL deep link (no in-app routing, no Maps SDK, no API key, no Google Maps TOS obligation). Contact details (phone) are revealed only after a proposal is accepted, never browsable beforehand.
+9. **Messaging & contact:** an in-app thread opens on acceptance (real-time via a NestJS WebSocket gateway with a polling fallback, messages stored in Postgres), alongside a `tel:` call button. Contact details (phone) are revealed only after a proposal is accepted, never browsable beforehand.
+12. **Navigation (driver, post-acceptance):** in-app turn-by-turn over OSRM + `flutter_map` — route polyline, follow-me camera, voice guidance, off-route rerouting (see [section 1 → Routing & in-app navigation](#routing--in-app-navigation-m7--in-scope)). An "Open in Maps" deep link to the driver's own Google Maps / Apple Maps / Waze remains as a secondary preference and as the fallback when OSRM is unreachable. No Maps SDK, no API key, no Google Maps TOS obligation.
 10. **Two-way ratings:** both parties rate after completion; the aggregate is shown on the profile.
 11. **Admin (separate Next.js app):** a verification review queue (approve/reject) and a metrics dashboard surfacing the evaluation metrics are the must-haves; read-only lists of users and jobs for oversight are a nice-to-have.
 
 ### Out of scope: payments (future work only)
 Payments are fully out of scope. Loop never processes, holds, or records payment: no MoMo/USSD dial shortcut, no card/PSP integration, no escrow. Parties settle payment offline, out of band. The MoMo USSD flow and card payments are cited in future work only.
 
-### Future work: routing
-Two routing capabilities are future work, at very different scales:
-- **Road-distance for the estimate (contained).** The estimate uses the great-circle distance (see [section 5](#5-pricing-logic)), which under-states real road kilometres. Swapping in a road distance from a routing service (self-hosted OSRM/GraphHopper, or a commercial directions API) is a backend-only change: only the source of `distance_km` changes, the formula and stored fields do not. The trade-off is the added dependency — a self-hosted engine keeps the "no key, no Google" stance but is one more service to run.
-- **In-app turn-by-turn (large, stays out).** True in-app navigation needs a navigation SDK (voice guidance, off-route re-routing, GPS map-matching), which is heavy on the client and typically proprietary and metered. The "Open in Maps" deep-link hand-off already gives the driver full turn-by-turn in their own maps app at no cost, so this stays out of scope.
+### Routing & in-app navigation (M7 — in scope)
+**Scope revision (supervisor-directed).** Road routing and in-app turn-by-turn were previously
+future work, on the reasoning that navigation needs a proprietary, metered SDK. **OSRM removes that
+objection**: it is OpenStreetMap-native, needs no API key, is licence-compatible with the OSM
+basemap already in use, and is self-hostable. Both are now in scope and delivered in **M7**.
+
+- **Road distance & duration for the estimate.** `distance_km` comes from OSRM road routing rather
+  than the great-circle line, and the route's `duration_min` becomes a *priced* input — see
+  [section 5](#5-pricing-logic). The great-circle (PostGIS) result stays as the **fallback** when
+  OSRM is unreachable, flagged via `distance_source` so an estimate is never blocked on a third
+  party.
+- **In-app turn-by-turn (driver, post-acceptance).** A full-screen `flutter_map` navigation screen:
+  route polyline, follow-me camera on the live GPS stream, an instruction banner with a live
+  distance countdown, remaining distance/ETA, off-route detection with a single guarded reroute,
+  and English voice guidance (`flutter_tts`). The screen keeps the device awake (`wakelock_plus`)
+  and releases the location stream and the wakelock on arrival, on exit, and on job
+  completion/cancel.
+- **"Open in Maps" is demoted to a secondary fallback.** The `geo:`/Maps-URL deep link to Google
+  Maps / Apple Maps / Waze remains, as a driver-preference "Use another app" option and as the
+  graceful degradation path when OSRM is unreachable. This mirrors Uber's model — built-in
+  navigation with a third-party hand-off — rather than replacing one with the other.
+- **Provider stance is unchanged:** no Google, no Mapbox SDK, no API key. OSRM's base URL is
+  configuration, so the public demo server can be swapped for a self-hosted Rwanda extract as a
+  config change, not a rewrite.
 
 ### Stretch: post-core polish (optional, not MVP-done)
 These are perception and UX upgrades that ride on infrastructure the MVP already has. They belong after the core loop (M4) and trust (M5) are done.
@@ -57,7 +78,7 @@ Types are indicative and map to the repo's ORM/migrations. IDs are UUIDs unless 
 
 The taxonomy is presented as a dropdown with a short capacity/example hint under each option, not a free-text field, and with no "Other" option: every vehicle must map to a rate-able, filterable bucket, or matching (the filter), pricing (`rate_per_km` per type), and the results-chapter analysis all break. A vehicle that seems not to fit is handled by widening a bucket's definition (for example, `large_truck` as anything heavier than a light truck) rather than adding "Other". Specialised rigs (tankers, flatbed trailers, refrigerated units) are out of MVP scope and are a clean future-work line. The five buckets are validated against real Kigali demand before M3 seeds `rate_per_km`, since the enum is canonical across four places and changing it later is a coordinated migration.
 
-**JOB:** `job_id` (PK), `owner_id` (FK→USER), `pickup`, `drop_off` (PostGIS geography points), `pickup_label`, `drop_off_label` (nullable, reverse-geocoded display text), `pickup_notes`, `drop_off_notes` (nullable free text, e.g. "blue gate, 2nd house"), `cargo_type`, `size`, `weight`, `estimated_price`, `price`, `req_vehicle_type`, `status` [draft | posted | matched | in_progress | completed | cancelled], `created_at`, plus status-transition timestamps `posted_at`, `matched_at`, `accepted_at`, `in_progress_at`, `completed_at`, `cancelled_at` (columns on JOB, with no separate event table).
+**JOB:** `job_id` (PK), `owner_id` (FK→USER), `pickup`, `drop_off` (PostGIS geography points), `pickup_label`, `drop_off_label` (nullable, reverse-geocoded display text), `pickup_notes`, `drop_off_notes` (nullable free text, e.g. "blue gate, 2nd house"), `cargo_type`, `size`, `weight`, `estimated_price`, `price`, `req_vehicle_type`, `status` [draft | posted | matched | in_progress | completed | cancelled], `created_at`, plus status-transition timestamps `posted_at`, `matched_at`, `accepted_at`, `in_progress_at`, `completed_at`, `cancelled_at` (columns on JOB, with no separate event table). **Pricing inputs actually used (M7, nullable):** `distance_km`, `duration_min`, `distance_source` [osrm | great_circle] — persisted because they are the features a future learned pricing model would train on and cannot be reconstructed later.
 
 **PROPOSAL:** `proposal_id` (PK), `job_id` (FK→JOB), `driver_id` (FK→USER), `status` [sent | accepted | declined], `created_at`.
 
@@ -76,7 +97,8 @@ Relationships: USER 1–N VEHICLE; USER(owner) 1–N JOB; JOB 1–N PROPOSAL; US
 - **Availability:** `PATCH /me/availability` `{ status, lat, lng }`.
 - **Matching:** `GET /drivers/nearby?lat=&lng=&vehicle_type=` returns available, approved drivers ordered by distance.
 - **Pricing:** `POST /pricing/estimate` `{ pickup, drop_off, vehicle_type, size, weight }` returns `{ estimated_price, distance_km }`.
-- **Geocoding (OSM proxy):** `GET /geocode/search?q=&limit=` returns place/landmark suggestions `[{ label, lat, lng }]` (Photon, biased to Kigali); `GET /geocode/reverse?lat=&lng=` returns `{ label }` (Nominatim). It is a thin proxy so the provider is swappable and OSM's usage policy (custom User-Agent, attribution, ~1 req/s) is enforced server-side; results are OSM-licensed (with "© OpenStreetMap contributors" shown). There is no routing endpoint: navigation is handed off client-side to the driver's maps app.
+- **Geocoding (OSM proxy):** `GET /geocode/search?q=&limit=` returns place/landmark suggestions `[{ label, lat, lng }]` (Photon, biased to Kigali); `GET /geocode/reverse?lat=&lng=` returns `{ label }` (Nominatim). It is a thin proxy so the provider is swappable and OSM's usage policy (custom User-Agent, attribution, ~1 req/s) is enforced server-side; results are OSM-licensed (with "© OpenStreetMap contributors" shown).
+- **Routing (OSRM proxy, M7):** `GET /routing/route?from_lat=&from_lng=&to_lat=&to_lng=&steps=` returns `{ distance_km, duration_min, polyline, distance_source, instructions? }`. With `steps=true` it also returns ordered turn instructions `[{ text, maneuver_type, modifier, street, distance_m, duration_s, lat, lng }]`, with the human-readable `text` composed **server-side** so every client phrases a maneuver identically. It mirrors the geocode proxy: authenticated, provider swappable via config (public OSRM demo server by default; a self-hosted Rwanda extract is a base-URL change), descriptive User-Agent, and raw provider payloads never leaked. If OSRM fails it falls back to the PostGIS great-circle distance with `duration_min: null` and `distance_source: "great_circle"`, so pricing still works.
 - **Jobs:** `POST /jobs`, `GET /jobs` (own), `GET /jobs/:id`, `PATCH /jobs/:id` (status transitions).
 - **Proposals:** `POST /jobs/:id/proposals` (owner to driver), `GET /proposals` (driver: incoming), `PATCH /proposals/:id` (accept/decline).
 - **Messages:** `GET /jobs/:id/messages`, `POST /jobs/:id/messages`; real-time delivery over a NestJS WebSocket gateway (Socket.IO), with Postgres as the source of truth.
@@ -92,19 +114,54 @@ Relationships: USER 1–N VEHICLE; USER(owner) 1–N JOB; JOB 1–N PROPOSAL; US
 6. Owner: home map (nearby drivers plus vehicle-type filter)
 7. Owner: create job (set pickup/drop-off via search box, current-location, and pin, with reverse-geocoded labels and notes; enter details; see estimated cost; adjust price; post)
 8. Owner: select driver and send proposal
-9. Job / proposal detail (status timeline; "Open in Maps" to navigate to pickup/drop-off)
-10. Chat thread
-11. Rating screen
-12. Admin: verification queue (a separate Next.js app, not part of the mobile app)
-13. Admin: metrics dashboard, with KPI cards and charts for the evaluation metrics
+9. Job / proposal detail (status timeline; route polyline with road distance + duration; driver gets "Navigate to pickup" / "Navigate to drop-off")
+10. Navigation (driver, post-acceptance only): full-screen turn-by-turn — polyline, follow-me camera, instruction banner + countdown, remaining distance/ETA, voice, and a secondary "Use another app" hand-off
+11. Chat thread
+12. Rating screen
+13. Admin: verification queue (a separate Next.js app, not part of the mobile app)
+14. Admin: metrics dashboard, with KPI cards and charts for the evaluation metrics
 
 Every Figma frame maps to one of these; any Figma screen outside the MVP is deferred.
 
-## 5. Pricing logic
-`estimated_price = base_fare + ( rate_per_km(vehicle_type) × distance_km ) × size_factor`
-- `distance_km`: the great-circle distance computed in PostGIS between pickup and drop-off (`ST_Distance` on `geography` points), with no routing API. A routing-based distance can be added later. Turn-by-turn navigation is not computed in-app either; the driver's external maps app handles it (see [section 6](#6-suggested-build-order-maps-to-the-junaug-timeline), M4).
-- `base_fare`, `rate_per_km(vehicle_type)`, `size_factor`: configuration (a table or JSON), seeded from field research and editable without a redeploy.
-- Returned by `POST /pricing/estimate`; the owner can override it before posting. Both `estimated_price` and the final `price` are stored on the JOB so estimate-acceptance can be measured.
+## 5. Pricing logic (v2 — distance *and* time, M7)
+
+```
+estimated_price = max( min_fare(vt),
+                       base_fare(vt)
+                       + rate_per_km(vt)  × distance_km
+                       + rate_per_min(vt) × duration_min ) × size_factor
+```
+
+Still **rule-based, not ML** — the platform has no transaction history at launch (cold start).
+
+- `distance_km` / `duration_min`: the **road** distance and driving duration from `GET /routing/route`
+  (OSRM). **Fallback:** if OSRM is unreachable the PostGIS great-circle distance is used, the
+  duration is `null`, and the **time term is omitted** — the response carries `distance_source`
+  (`osrm` | `great_circle`) so the degradation is visible rather than silent. An estimate must never
+  fail because a third-party router is down.
+- `min_fare(vt)`: a floor, so a very short trip still pays for the trip being made at all. It sits
+  **inside** the `max()`, so `size_factor` scales the floor too — a bulky short job costs more than a
+  small short one.
+- `base_fare`, `rate_per_km`, `rate_per_min`, `min_fare` are per-vehicle-type rows in
+  `pricing_config`; `size_factor` is a `size_multipliers` row. All are **configuration, editable
+  without a redeploy** — never hard-coded. The M7 seeds are **placeholders pending field research**
+  and are flagged as such in the migration.
+- **RWF is zero-decimal:** every amount is an **integer whole franc**. Rounding to whole RWF happens
+  once, at the end.
+- Returned by `POST /pricing/estimate`; the owner reviews it and sets the final price — the estimate
+  is a **reference, never binding**. Both `estimated_price` and the final `price` are stored on the
+  JOB so estimate-acceptance can be measured.
+- The `distance_km`, `duration_min`, and `distance_source` actually used are **persisted on the JOB**.
+  This is deliberate instrumentation: they are the features a future learned pricing model would
+  train on, and they cannot be reconstructed after the fact (road networks and traffic change).
+
+### Deferred: surge / dynamic pricing
+Demand-responsive pricing is **explicitly out of scope**, on two grounds. Practically, it needs a
+live supply/demand signal that a cold-start platform does not have — there is no density of
+concurrent jobs to infer scarcity from, so any multiplier would be invented, not measured.
+Principally, it **conflicts with the transparency thesis**: Loop's pitch is that the owner sees one
+predictable, owner-set price. A multiplier that moves the number for reasons the owner cannot see is
+the opposite of that. It is a clean future-work line once real transaction density exists.
 
 ## 6. Suggested build order (maps to the Jun–Aug timeline)
 - **M1, Foundation:** repo reconciliation (a clean copy of the existing Flutter app into `mobile/`, then `git init` the monorepo), DB schema plus migrations (including the JOB status-transition timestamps and both `estimated_price` and `price`, so metrics data accumulates from day one), NestJS-issued JWT auth (register/login/refresh/password-reset/email-verification, `JwtAuthGuard` plus `RolesGuard`, SendGrid email with a console-log stub until the sender is verified), role-based profiles, a seeded admin account, and driver verification plus admin approval. Out-of-scope business-credential fields and the payment widget are removed from the existing app.
@@ -114,6 +171,7 @@ Every Figma frame maps to one of these; any Figma screen outside the MVP is defe
 - **M4, Transaction loop:** first-class proposals (send/accept/decline, no negotiation), in-app messaging (Postgres plus a NestJS WebSocket gateway, with a polling fallback), a `tel:` call button with the counterparty's phone revealed only after a proposal is accepted, and FCM push for a new proposal, an accept/decline, and a new message. The "Open in Maps" hand-off is reused on the driver's job/proposal detail so the driver can navigate to pickup/drop-off post-acceptance.
 - **M5, Trust:** two-way ratings plus reputation aggregation on profiles.
 - **M6, Evaluation:** the Next.js metrics dashboard over `GET /admin/metrics` (data already accumulating since M1), polish, and the Kigali user test.
+- **M7, Routing + pricing v2 + in-app navigation (scope revision — see [section 1](#routing--in-app-navigation-m7--in-scope)):** a `routing` OSRM proxy module mirroring `geocode` (`GET /routing/route`, great-circle fallback); **pricing v2** (`min_fare` + `rate_per_min` migration, road distance *and* duration priced, the used distance/duration/source persisted on the JOB); owner-side route context (the real road polyline plus road distance and duration on create-job and job detail, replacing the straight line when a route is available); and the driver's **NavigationScreen** — full-screen `flutter_map` turn-by-turn with follow-me camera, an instruction banner with a live countdown, remaining distance/ETA, guarded off-route rerouting, `flutter_tts` voice guidance, and `wakelock_plus`, with "Open in Maps" kept as the secondary option and the OSRM-unreachable fallback.
 
 **Stretch (after M4–M5 are green; optional demo polish):**
 - **S1, Minimal basemap:** `flutter_map` points at a muted OSM-based tile source (CartoDB Positron or a light style) with clean custom markers (a blue "you" dot, green vehicle pins). It is small and high-impact; raster-only, with no vector tiles, no SDK, and no key beyond a basemap provider's free tier (respecting its terms and attribution). It is safe to do independently at any point.
@@ -164,6 +222,7 @@ mobile/lib/
 │   └── utils/                # formatters, validators
 ├── features/                 # one folder per feature
 │   ├── auth/  onboarding/  matching/  jobs/  proposals/  messaging/  ratings/  profile/
+│   ├── navigation/           # M7: driver turn-by-turn (NavigationScreen + route follower)
 │   └── <feature>/{data, presentation}     # add domain/ only if a feature truly needs it
 └── shared/models/            # API models (prefer generating from OpenAPI, see below)
 ```
@@ -181,7 +240,7 @@ api/src/
 ├── config/                   # env config + validation
 ├── database/                 # data source, migrations, seeds (seed the admin here)
 └── modules/
-    ├── auth/  users/  verification/  vehicles/  matching/  pricing/
+    ├── auth/  users/  verification/  vehicles/  matching/  pricing/  geocode/  routing/
     ├── jobs/  proposals/  messaging/  ratings/  admin/
     └── <feature>/{<feature>.module.ts, .controller.ts, .service.ts, entities/, dto/}
 ```

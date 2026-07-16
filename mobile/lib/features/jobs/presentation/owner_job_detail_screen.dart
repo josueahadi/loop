@@ -11,6 +11,7 @@ import '../../../core/models/proposal.dart';
 import '../../../core/navigation/open_in_maps.dart';
 import '../../../core/repositories/job_repository.dart';
 import '../../../core/repositories/message_repository.dart';
+import '../../../core/repositories/routing_repository.dart';
 import '../../../core/repositories/proposal_repository.dart';
 import '../../chat/presentation/job_chat_screen.dart';
 import '../../matching/presentation/nearby_drivers_map.dart';
@@ -32,11 +33,16 @@ class _OwnerJobDetailScreenState extends State<OwnerJobDetailScreen> {
   final _jobs = JobRepository();
   final _proposals = ProposalRepository();
   final _messages = MessageRepository();
+  final _routing = RoutingRepository();
   late Job _job = widget.job;
   Proposal? _accepted;
   bool _ownerRated = false;
   bool _busy = false;
   int _unread = 0;
+  // Road geometry pickup→drop-off; empty until fetched or on OSRM fallback (then
+  // the straight line is kept). Distance/duration shown come from the persisted
+  // JOB fields, so they never re-hit OSRM.
+  List<LatLng> _routePolyline = const [];
 
   static const _assignedStatuses = {'matched', 'in_progress', 'completed'};
 
@@ -45,6 +51,20 @@ class _OwnerJobDetailScreenState extends State<OwnerJobDetailScreen> {
     super.initState();
     _loadAccepted();
     _loadUnread();
+    _loadRoute();
+  }
+
+  // Best-effort road geometry for the map; a failure just leaves the straight
+  // line. The priced distance/duration come from the JOB, not this call.
+  Future<void> _loadRoute() async {
+    try {
+      final r = await _routing.route(_job.pickup, _job.dropOff);
+      if (mounted && r.polyline.isNotEmpty) {
+        setState(() => _routePolyline = r.polyline);
+      }
+    } catch (_) {
+      // keep the straight line
+    }
   }
 
   Future<void> _loadUnread() async {
@@ -268,8 +288,10 @@ class _OwnerJobDetailScreenState extends State<OwnerJobDetailScreen> {
         PolylineLayer(
           polylines: [
             Polyline(
-              points: [j.pickup, j.dropOff],
-              strokeWidth: 3,
+              points: _routePolyline.isNotEmpty
+                  ? _routePolyline
+                  : [j.pickup, j.dropOff],
+              strokeWidth: _routePolyline.isNotEmpty ? 4 : 3,
               color: primaryGreen,
             ),
           ],
