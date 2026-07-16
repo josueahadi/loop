@@ -192,7 +192,7 @@ class DriverJobDetailScreen extends StatelessWidget {
                           job.pickupLabel ?? 'Pickup',
                         ),
                         icon: const Icon(Icons.navigation, size: 18),
-                        label: const Text('Navigate to pickup'),
+                        label: const Text('Pickup'),
                       ),
                       FilledButton.icon(
                         onPressed: () => _navigate(
@@ -201,7 +201,7 @@ class DriverJobDetailScreen extends StatelessWidget {
                           job.dropOffLabel ?? 'Drop-off',
                         ),
                         icon: const Icon(Icons.flag, size: 18),
-                        label: const Text('Navigate to drop-off'),
+                        label: const Text('Drop-off'),
                       ),
                     ],
                   ),

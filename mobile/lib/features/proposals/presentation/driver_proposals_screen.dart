@@ -5,7 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../constants.dart';
 import '../../../core/enums/app_enums.dart';
 import '../../../core/models/proposal.dart';
-import '../../../core/navigation/open_in_maps.dart';
+import '../../driver/widgets/driver_job_actions.dart';
 import '../../../core/repositories/proposal_repository.dart';
 import '../../chat/presentation/job_chat_screen.dart';
 import '../../ratings/presentation/rating_screen.dart';
@@ -189,43 +189,20 @@ class _DriverProposalsScreenState extends State<DriverProposalsScreen> {
         ),
         Text(c.phone, style: const TextStyle(color: textGray)),
         const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          children: [
-            OutlinedButton.icon(
-              onPressed: () => _call(c.phone),
-              icon: const Icon(Icons.call, size: 18),
-              label: const Text('Call'),
+        DriverJobActions(
+          pickup: job.pickup,
+          pickupLabel: job.pickupLabel,
+          ownerPhone: c.phone,
+          isCompleted: job.status == 'completed',
+          alreadyRated: _rated.contains(p.jobId),
+          onChat: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => JobChatScreen(jobId: p.jobId, contact: c),
             ),
-            OutlinedButton.icon(
-              onPressed: () => OpenInMaps.directions(
-                context,
-                job.pickup,
-                label: job.pickupLabel ?? 'Pickup',
-              ),
-              icon: const Icon(Icons.directions, size: 18),
-              label: const Text('Navigate'),
-            ),
-            ElevatedButton.icon(
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => JobChatScreen(jobId: p.jobId, contact: c),
-                ),
-              ),
-              icon: const Icon(Icons.chat, size: 18),
-              label: const Text('Chat'),
-            ),
-            // Rate the owner once the job is completed.
-            if (job.status == 'completed')
-              _rated.contains(p.jobId)
-                  ? const Chip(label: Text('Rated ✓'))
-                  : OutlinedButton.icon(
-                      onPressed: () => _rate(p.jobId, c.name),
-                      icon: const Icon(Icons.star_border, size: 18),
-                      label: const Text('Rate owner'),
-                    ),
-          ],
+          ),
+          onCall: () => _call(c.phone),
+          onRate: () => _rate(p.jobId, c.name),
         ),
       ],
     );

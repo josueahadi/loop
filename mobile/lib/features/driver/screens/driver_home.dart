@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/enums/app_enums.dart';
 import '../../../core/models/proposal.dart';
-import '../../../core/navigation/open_in_maps.dart';
+import '../widgets/driver_job_actions.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../mixins/logout_mixin.dart';
 import '../../../core/location/enable_location_prompt.dart';
@@ -1186,53 +1186,28 @@ class _ProposalCardState extends State<_ProposalCard> {
                 ),
                 Text(p.contact!.phone, style: const TextStyle(color: textGray)),
                 const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: primaryGreen,
-                        foregroundColor: Colors.white,
+                DriverJobActions(
+                  pickup: job.pickup,
+                  pickupLabel: job.pickupLabel,
+                  ownerPhone: p.contact!.phone,
+                  unreadCount: _unread,
+                  isCompleted: job.status == 'completed',
+                  alreadyRated: _rated,
+                  onChat: () async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => JobChatScreen(
+                          jobId: p.jobId,
+                          contact: p.contact!,
+                        ),
                       ),
-                      onPressed: () async {
-                        await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => JobChatScreen(
-                              jobId: p.jobId,
-                              contact: p.contact!,
-                            ),
-                          ),
-                        );
-                        // Opening the chat marks it read server-side; refresh.
-                        _loadUnread();
-                      },
-                      icon: const Icon(Icons.chat, size: 18),
-                      label: Text(_unread > 0 ? 'Chat ($_unread)' : 'Chat'),
-                    ),
-                    OutlinedButton.icon(
-                      onPressed: () => _call(p.contact!.phone),
-                      icon: const Icon(Icons.call, size: 18),
-                      label: const Text('Call'),
-                    ),
-                    OutlinedButton.icon(
-                      onPressed: () =>
-                          OpenInMaps.directions(context, job.pickup),
-                      icon: const Icon(Icons.navigation_outlined, size: 18),
-                      label: const Text('Pickup'),
-                    ),
-                    // Rate the owner once the job is completed.
-                    if (job.status == 'completed')
-                      _rated
-                          ? const Chip(label: Text('Rated ✓'))
-                          : OutlinedButton.icon(
-                              onPressed: () =>
-                                  _rateOwner(p.jobId, p.contact!.name),
-                              icon: const Icon(Icons.star_border, size: 18),
-                              label: const Text('Rate owner'),
-                            ),
-                  ],
+                    );
+                    // Opening the chat marks it read server-side; refresh.
+                    _loadUnread();
+                  },
+                  onCall: () => _call(p.contact!.phone),
+                  onRate: () => _rateOwner(p.jobId, p.contact!.name),
                 ),
               ],
             ],
