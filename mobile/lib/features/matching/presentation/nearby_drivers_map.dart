@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import '../../../core/config/basemap.dart';
+import '../../../core/config/map_markers.dart';
 import '../../../core/errors/error_messages.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
@@ -302,16 +304,12 @@ class _NearbyDriversMapState extends State<NearbyDriversMap> {
                         initialZoom: 13,
                       ),
                       children: [
-                        TileLayer(
-                          urlTemplate:
-                              'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                          userAgentPackageName: 'rw.loop.app',
-                        ),
+                        Basemap.tileLayer(context),
                         MarkerLayer(markers: _markers()),
                         RichAttributionWidget(
                           alignment: AttributionAlignment.bottomLeft,
                           attributions: [
-                            TextSourceAttribution('OpenStreetMap contributors'),
+                            TextSourceAttribution(Basemap.attribution),
                           ],
                         ),
                       ],
@@ -335,30 +333,11 @@ class _NearbyDriversMapState extends State<NearbyDriversMap> {
   List<Marker> _markers() {
     final markers = <Marker>[];
     if (_center != null) {
-      markers.add(
-        Marker(
-          point: _center!,
-          width: 40,
-          height: 40,
-          child: const Icon(Icons.my_location, color: Colors.blue, size: 32),
-        ),
-      );
+      markers.add(MapMarkers.youDot(_center!));
     }
     for (final d in _drivers) {
       markers.add(
-        Marker(
-          point: LatLng(d.lat, d.lng),
-          width: 44,
-          height: 44,
-          child: GestureDetector(
-            onTap: () => _showDriver(d),
-            child: const Icon(
-              Icons.local_shipping,
-              color: primaryGreen,
-              size: 36,
-            ),
-          ),
-        ),
+        MapMarkers.vehiclePin(LatLng(d.lat, d.lng), onTap: () => _showDriver(d)),
       );
     }
     return markers;

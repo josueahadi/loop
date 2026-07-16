@@ -9,6 +9,8 @@ import 'package:latlong2/latlong.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../../constants.dart';
+import '../../core/config/basemap.dart';
+import '../../core/config/map_markers.dart';
 import '../../core/navigation/open_in_maps.dart';
 import '../../core/repositories/routing_repository.dart';
 import 'route_follower.dart';
@@ -42,6 +44,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
   RouteFollower? _follower;
   RouteResult? _route;
   LatLng? _current;
+  double? _heading;
   FollowState? _state;
 
   bool _loading = true;
@@ -58,7 +61,10 @@ class _NavigationScreenState extends State<NavigationScreen> {
   RouteSplit? _split;
 
   static const double _navZoom = 16.5;
-  static const Color _traveledGrey = Color(0x999AA0A6);
+  // Darker/more opaque than the spec's #9AA0A6@60% — that faint grey vanished
+  // against the light CartoDB Positron tiles. This mid-grey reads as a clearly
+  // dimmed "already driven" path on the muted basemap.
+  static const Color _traveledGrey = Color(0xCC70757A);
   bool _arrived = false;
 
   // Announce each instruction once when it becomes current, and again ~100 m out.
@@ -148,6 +154,8 @@ class _NavigationScreenState extends State<NavigationScreen> {
   Future<void> _onPosition(Position pos) async {
     final here = LatLng(pos.latitude, pos.longitude);
     _current = here;
+    // heading is -1 when the device can't determine it (e.g. stationary).
+    if (pos.heading >= 0) _heading = pos.heading;
     final follower = _follower;
     if (follower == null || _arrived) {
       if (mounted) setState(() {});
@@ -162,7 +170,11 @@ class _NavigationScreenState extends State<NavigationScreen> {
     _handleOffRoute(here, state);
     _maybeArrive(state);
 
-    if (_mapReady && _followMe) _mapController.move(here, _navZoom);
+    // Follow the driver at whatever zoom the user has pinched to (preserve it),
+    // not a forced level — so pinch-zoom sticks while follow-me stays on.
+    if (_mapReady && _followMe) {
+      _mapController.move(here, _mapController.camera.zoom);
+    }
     if (mounted) setState(() {});
   }
 
@@ -280,11 +292,17 @@ class _NavigationScreenState extends State<NavigationScreen> {
                 if (_current != null) _mapController.move(_current!, _navZoom);
               },
               onPositionChanged: (camera, hasGesture) {
-                // A user gesture that moves the camera turns off auto-follow (so
-                // the driver can look around); the recenter button turns it back
-                // on. Programmatic follow-me moves have hasGesture == false.
-                if (hasGesture && _followMe) {
-                  setState(() => _followMe = false);
+                // Only a pan (drag that moves the centre away from the driver)
+                // turns off auto-follow; a pinch-zoom keeps the driver centred, so
+                // follow-me survives. Distinguish by whether the new centre is
+                // still near the driver.
+                if (hasGesture && _followMe && _current != null) {
+                  final drift = const Distance().as(
+                    LengthUnit.Meter,
+                    camera.center,
+                    _current!,
+                  );
+                  if (drift > 50) setState(() => _followMe = false);
                 }
                 if (camera.rotation != _mapRotation) {
                   setState(() => _mapRotation = camera.rotation);
@@ -292,10 +310,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
               },
             ),
             children: [
-              TileLayer(
-                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                userAgentPackageName: 'rw.loop.app',
-              ),
+              Basemap.tileLayer(context),
               PolylineLayer(
                 polylines: [
                   if (_split != null && _split!.traveled.length >= 2)
@@ -313,19 +328,9 @@ class _NavigationScreenState extends State<NavigationScreen> {
               ),
               MarkerLayer(
                 markers: [
-                  Marker(
-                    point: widget.destination,
-                    child: const Icon(Icons.flag, color: Colors.red, size: 34),
-                  ),
+                  MapMarkers.dropOffPin(widget.destination),
                   if (_current != null)
-                    Marker(
-                      point: _current!,
-                      child: const Icon(
-                        Icons.navigation,
-                        color: Colors.blue,
-                        size: 34,
-                      ),
-                    ),
+                    MapMarkers.youDot(_current!, headingDeg: _heading),
                 ],
               ),
             ],
@@ -458,9 +463,9 @@ class _NavigationScreenState extends State<NavigationScreen> {
         color: Colors.white70,
         borderRadius: BorderRadius.circular(4),
       ),
-      child: const Text(
-        '© OpenStreetMap contributors',
-        style: TextStyle(fontSize: 10, color: Colors.black87),
+      child: Text(
+        Basemap.attribution,
+        style: const TextStyle(fontSize: 10, color: Colors.black87),
       ),
     );
   }
