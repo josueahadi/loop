@@ -46,6 +46,9 @@ class _NavigationScreenState extends State<NavigationScreen> {
   bool _loading = true;
   String? _error;
   bool _muted = false;
+  // flutter_map throws if MapController.move is called before the map's first
+  // render. The GPS stream can fire first, so gate camera moves on this.
+  bool _mapReady = false;
   bool _arrived = false;
 
   // Announce each instruction once when it becomes current, and again ~100 m out.
@@ -148,8 +151,9 @@ class _NavigationScreenState extends State<NavigationScreen> {
     _maybeArrive(state);
 
     // Follow-me: recentre on the driver. North-up (a bearing-rotated camera is a
-    // possible enhancement; kept north-up for predictable behaviour).
-    _mapController.move(here, 16.5);
+    // possible enhancement; kept north-up for predictable behaviour). Guarded:
+    // the map must have rendered once before the controller can move.
+    if (_mapReady) _mapController.move(here, 16.5);
     if (mounted) setState(() {});
   }
 
@@ -262,6 +266,10 @@ class _NavigationScreenState extends State<NavigationScreen> {
             options: MapOptions(
               initialCenter: _current ?? widget.destination,
               initialZoom: 16.5,
+              onMapReady: () {
+                _mapReady = true;
+                if (_current != null) _mapController.move(_current!, 16.5);
+              },
             ),
             children: [
               TileLayer(
@@ -304,20 +312,29 @@ class _NavigationScreenState extends State<NavigationScreen> {
           ),
 
           // Top instruction banner.
-          SafeArea(
-            child: Column(
-              children: [
-                if (instr != null) _instructionBanner(instr, state),
-                if (_rerouting) _reroutingChip(),
-                if (_posSub == null && !_arrived) _gpsLostChip(),
-              ],
+          Align(
+            alignment: Alignment.topCenter,
+            child: SafeArea(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (instr != null) _instructionBanner(instr, state),
+                  if (_rerouting) _reroutingChip(),
+                  if (_posSub == null && !_arrived) _gpsLostChip(),
+                ],
+              ),
             ),
           ),
 
           // Bottom footer: remaining distance + ETA + controls.
           Align(
             alignment: Alignment.bottomCenter,
-            child: SafeArea(child: _footer(state)),
+            child: SafeArea(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [_footer(state)],
+              ),
+            ),
           ),
 
           if (_arrived) _arrivedOverlay(),
@@ -414,9 +431,11 @@ class _NavigationScreenState extends State<NavigationScreen> {
         boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 8)],
       ),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Expanded(
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
