@@ -24,6 +24,13 @@ export class PricingConfig {
   @Column({ name: 'rate_per_km', type: 'integer' })
   ratePerKm: number;
 
+  // v2 (M7): time term and a floor. RWF integers.
+  @Column({ name: 'rate_per_min', type: 'integer', default: 0 })
+  ratePerMin: number;
+
+  @Column({ name: 'min_fare', type: 'integer', default: 0 })
+  minFare: number;
+
   @UpdateDateColumn({ name: 'updated_at', type: 'timestamptz' })
   updatedAt: Date;
 }

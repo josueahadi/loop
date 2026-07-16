@@ -55,6 +55,21 @@ export class EstimateResponseDto {
   @ApiProperty({ description: 'Estimated cost in whole RWF' })
   estimated_price: number;
 
-  @ApiProperty({ description: 'Great-circle distance in km' })
+  @ApiProperty({
+    description: 'Road distance in km (great-circle on fallback)',
+  })
   distance_km: number;
+
+  @ApiProperty({
+    nullable: true,
+    description:
+      'Driving duration in minutes; null on the great-circle fallback',
+  })
+  duration_min: number | null;
+
+  @ApiProperty({
+    enum: ['osrm', 'great_circle'],
+    description: 'Where distance_km/duration_min came from',
+  })
+  distance_source: string;
 }

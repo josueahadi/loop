@@ -93,13 +93,38 @@ async function seed() {
   const pricing = ds.getRepository(PricingConfig);
   const placeholderFares: Record<
     VehicleType,
-    { baseFare: number; ratePerKm: number }
+    { baseFare: number; ratePerKm: number; ratePerMin: number; minFare: number }
   > = {
-    [VehicleType.MOTO]: { baseFare: 500, ratePerKm: 300 },
-    [VehicleType.PICKUP]: { baseFare: 1000, ratePerKm: 600 },
-    [VehicleType.VAN]: { baseFare: 1500, ratePerKm: 800 },
-    [VehicleType.SMALL_TRUCK]: { baseFare: 2000, ratePerKm: 1200 },
-    [VehicleType.LARGE_TRUCK]: { baseFare: 3000, ratePerKm: 2000 },
+    [VehicleType.MOTO]: {
+      baseFare: 500,
+      ratePerKm: 300,
+      ratePerMin: 30,
+      minFare: 800,
+    },
+    [VehicleType.PICKUP]: {
+      baseFare: 1000,
+      ratePerKm: 600,
+      ratePerMin: 60,
+      minFare: 1500,
+    },
+    [VehicleType.VAN]: {
+      baseFare: 1500,
+      ratePerKm: 800,
+      ratePerMin: 80,
+      minFare: 2000,
+    },
+    [VehicleType.SMALL_TRUCK]: {
+      baseFare: 2000,
+      ratePerKm: 1200,
+      ratePerMin: 120,
+      minFare: 3000,
+    },
+    [VehicleType.LARGE_TRUCK]: {
+      baseFare: 3000,
+      ratePerKm: 2000,
+      ratePerMin: 200,
+      minFare: 5000,
+    },
   };
   for (const [vehicleType, vals] of Object.entries(placeholderFares)) {
     await pricing.upsert({ vehicleType: vehicleType as VehicleType, ...vals }, [

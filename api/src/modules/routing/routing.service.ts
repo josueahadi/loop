@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { PricingService } from '../pricing/pricing.service';
+import { InjectDataSource } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
 import {
   DistanceSource,
   RouteInstructionDto,
@@ -46,8 +47,22 @@ export class RoutingService {
 
   constructor(
     private readonly config: ConfigService,
-    private readonly pricing: PricingService,
+    @InjectDataSource() private readonly dataSource: DataSource,
   ) {}
+
+  // Great-circle distance in km between two points (PostGIS geography). Shared by
+  // the fallback here and by pricing; kept as the one place geospatial distance
+  // maths lives (never reimplemented in app code).
+  async greatCircleKm(a: LatLng, b: LatLng): Promise<number> {
+    const [{ meters }] = (await this.dataSource.query(
+      `SELECT ST_Distance(
+                ST_SetSRID(ST_MakePoint($2, $1), 4326)::geography,
+                ST_SetSRID(ST_MakePoint($4, $3), 4326)::geography
+              ) AS meters`,
+      [a.lat, a.lng, b.lat, b.lng],
+    )) as [{ meters: string }];
+    return Number(meters) / 1000;
+  }
 
   async route(
     from: LatLng,
@@ -115,7 +130,7 @@ export class RoutingService {
     from: LatLng,
     to: LatLng,
   ): Promise<RouteResponseDto> {
-    const distanceKm = await this.pricing.distanceKm(from, to);
+    const distanceKm = await this.greatCircleKm(from, to);
     return {
       distance_km: this.round(distanceKm, 2),
       duration_min: null,
