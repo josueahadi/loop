@@ -88,6 +88,15 @@ void main() {
     expect(s.offRouteM, greaterThan(40));
   });
 
+  test('advances by along-route progress even when GPS jumps past a maneuver', () {
+    // Coarse fixes: jump straight from the start to near the end, never within
+    // 20 m of the midpoint maneuver. Progress-based advancement must still move
+    // the step forward (proximity-only advancement would get stuck on step 0).
+    final f = RouteFollower(_straightRoute());
+    final s = f.update(const LatLng(-1.95, 30.019)); // ~90% along, one big jump
+    expect(s.stepIndex, greaterThanOrEqualTo(1));
+  });
+
   test('does not advance past the final arrival step', () {
     final f = RouteFollower(_straightRoute());
     // Drive to the end and beyond.

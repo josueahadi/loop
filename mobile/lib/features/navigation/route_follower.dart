@@ -38,6 +38,10 @@ class FollowState {
 class RouteFollower {
   RouteFollower(this._route) {
     _cumFromEnd = _buildCumulativeFromEnd(_route.polyline);
+    _totalM = _cumFromEnd.isNotEmpty ? _cumFromEnd.first : 0;
+    _maneuverProgressM = _route.instructions
+        .map((i) => _totalM - _remainingDistanceM(_snapToRoute(i.point)))
+        .toList();
   }
 
   final RouteResult _route;
@@ -46,11 +50,18 @@ class RouteFollower {
   // Cumulative along-route distance from each polyline vertex to the destination
   // (metres), so remaining distance is a lookup + a partial segment.
   late final List<double> _cumFromEnd;
+  late final double _totalM;
+
+  // Along-route distance-from-start (metres) of each instruction's maneuver
+  // point, so we can advance by how far the driver has actually progressed —
+  // robust to coarse GPS that jumps past a maneuver without ever being near it.
+  late final List<double> _maneuverProgressM;
 
   int _stepIndex = 0;
   int get stepIndex => _stepIndex;
 
-  // When within this distance of the current maneuver point, advance the step.
+  // Also advance when within this distance of the upcoming maneuver point (the
+  // smooth-driving case, before progress crosses it).
   static const double _advanceRadiusM = 20;
 
   List<RouteInstruction> get instructions => _route.instructions;
@@ -68,20 +79,21 @@ class RouteFollower {
 
   /// Update against a new position; returns the derived state.
   FollowState update(LatLng pos) {
-    // In OSRM, each step's maneuver point is where that step BEGINS. So the step
-    // we're "on" is the one whose maneuver is next; we advance when we reach the
-    // NEXT step's maneuver point. This also stops the depart step (whose point is
-    // the origin) from being skipped on the very first fix. Only moves forward,
-    // and never past the final (arrival) step.
-    final upcoming = nextInstruction?.point;
-    if (upcoming != null && !isFinished) {
-      final toUpcoming = _distance.as(LengthUnit.Meter, pos, upcoming);
-      if (toUpcoming <= _advanceRadiusM) {
-        _stepIndex++;
-      }
+    final snap = _snapToRoute(pos);
+    final progressM = _totalM - _remainingDistanceM(snap);
+
+    // In OSRM, each step's maneuver point is where that step BEGINS, so the step
+    // we're "on" is the one whose maneuver is next. Advance while the driver's
+    // along-route progress has passed the NEXT maneuver — this is robust to
+    // coarse GPS that jumps past a maneuver without ever being within 20 m of it,
+    // and it never skips the depart step (whose progress is ~0). Only moves
+    // forward, never past the final (arrival) step. A small tolerance absorbs
+    // snap jitter.
+    while (!isFinished &&
+        progressM >= _maneuverProgressM[_stepIndex + 1] - _advanceRadiusM) {
+      _stepIndex++;
     }
 
-    final snap = _snapToRoute(pos);
     final toManeuverNow = currentInstruction != null
         ? _distance.as(LengthUnit.Meter, pos, currentInstruction!.point)
         : 0.0;
