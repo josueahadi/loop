@@ -59,6 +59,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
   bool _followMe = true;
   double _mapRotation = 0;
   RouteSplit? _split;
+  BasemapStyle _style = Basemap.defaultStyle;
 
   static const double _navZoom = 16.5;
   // Darker/more opaque than the spec's #9AA0A6@60% — that faint grey vanished
@@ -310,7 +311,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
               },
             ),
             children: [
-              Basemap.tileLayer(context),
+              Basemap.tileLayer(context, _style),
               PolylineLayer(
                 polylines: [
                   if (_split != null && _split!.traveled.length >= 2)
@@ -343,6 +344,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   if (instr != null) _instructionBanner(instr, state),
+                  _originDestinationCard(),
                   if (_rerouting) _reroutingChip(),
                   if (_posSub == null && !_arrived) _gpsLostChip(),
                 ],
@@ -386,16 +388,17 @@ class _NavigationScreenState extends State<NavigationScreen> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (_mapRotation.abs() > 0.5)
-          _controlButton(
-            heroTag: 'nav_compass',
-            tooltip: 'Face north',
-            child: Transform.rotate(
-              angle: -_mapRotation * math.pi / 180,
-              child: const Icon(Icons.navigation, color: Colors.red),
-            ),
-            onPressed: _resetNorth,
+        _controlButton(
+          heroTag: 'nav_compass',
+          tooltip: 'Face north',
+          // Always visible. The needle rotates with the map so it always points
+          // to true north; tap to snap the map back to north-up.
+          child: Transform.rotate(
+            angle: -_mapRotation * math.pi / 180,
+            child: const Icon(Icons.explore, color: Colors.red),
           ),
+          onPressed: _resetNorth,
+        ),
         if (!_followMe)
           _controlButton(
             heroTag: 'nav_recenter',
@@ -414,6 +417,18 @@ class _NavigationScreenState extends State<NavigationScreen> {
           tooltip: 'Zoom out',
           child: const Icon(Icons.remove),
           onPressed: () => _zoomBy(-1),
+        ),
+        _controlButton(
+          heroTag: 'nav_style',
+          tooltip: _style == BasemapStyle.simple
+              ? 'Detailed map'
+              : 'Simple map',
+          child: const Icon(Icons.layers),
+          onPressed: () => setState(
+            () => _style = _style == BasemapStyle.simple
+                ? BasemapStyle.detailed
+                : BasemapStyle.simple,
+          ),
         ),
       ],
     );
@@ -453,6 +468,48 @@ class _NavigationScreenState extends State<NavigationScreen> {
     if (_mapReady && _current != null) {
       _mapController.move(_current!, _navZoom);
     }
+  }
+
+  Widget _originDestinationCard() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 6)],
+      ),
+      child: Row(
+        children: [
+          Column(
+            children: [
+              const Icon(Icons.circle, color: Colors.blue, size: 12),
+              Container(width: 2, height: 14, color: Colors.grey.shade300),
+              const Icon(Icons.location_on, color: Colors.red, size: 16),
+            ],
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Your location',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  widget.destinationLabel,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: textGray),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _attribution() {
