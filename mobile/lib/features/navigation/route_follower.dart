@@ -30,6 +30,12 @@ class FollowState {
   });
 }
 
+class RouteSplit {
+  final List<LatLng> traveled;
+  final List<LatLng> remaining;
+  const RouteSplit({required this.traveled, required this.remaining});
+}
+
 /// On-device route matching: snaps a live GPS position to the fetched polyline,
 /// advances the current step, and measures how far off-route the driver is.
 /// Pure geometry (no I/O) so it can be unit-tested and run per-GPS-tick without a
@@ -112,6 +118,24 @@ class RouteFollower {
       remainingDurationS: remDurS,
       offRouteM: snap.perpendicularM,
     );
+  }
+
+  /// Split the route polyline at [pos]'s projection: the traveled part (behind)
+  /// and the remaining part (ahead), for de-emphasising the road already driven.
+  RouteSplit split(LatLng pos) {
+    final pts = _route.polyline;
+    if (pts.length < 2) {
+      return RouteSplit(traveled: const [], remaining: pts);
+    }
+    final snap = _snapToRoute(pos);
+    final projected = _lerp(
+      pts[snap.segmentIndex],
+      pts[snap.segmentIndex + 1],
+      snap.t,
+    );
+    final traveled = [...pts.sublist(0, snap.segmentIndex + 1), projected];
+    final remaining = [projected, ...pts.sublist(snap.segmentIndex + 1)];
+    return RouteSplit(traveled: traveled, remaining: remaining);
   }
 
   // --- geometry ---

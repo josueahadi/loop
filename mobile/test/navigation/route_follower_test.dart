@@ -97,6 +97,30 @@ void main() {
     expect(s.stepIndex, greaterThanOrEqualTo(1));
   });
 
+  test('split() divides the route into traveled + remaining at the position', () {
+    final f = RouteFollower(_straightRoute());
+    // ~halfway along the straight route.
+    final s = f.split(const LatLng(-1.95, 30.01));
+    // Both parts are non-empty and share the projected point at the seam.
+    expect(s.traveled, isNotEmpty);
+    expect(s.remaining, isNotEmpty);
+    expect(s.traveled.last.longitude, closeTo(s.remaining.first.longitude, 1e-9));
+    expect(s.traveled.last.latitude, closeTo(s.remaining.first.latitude, 1e-9));
+    // Traveled ends near the midpoint; remaining ends at the destination.
+    expect(s.traveled.last.longitude, closeTo(30.01, 1e-3));
+    expect(s.remaining.last.longitude, closeTo(30.02, 1e-9));
+  });
+
+  test('split() near the start leaves almost the whole route remaining', () {
+    final f = RouteFollower(_straightRoute());
+    final s = f.split(const LatLng(-1.95, 30.0));
+    final d = const Distance();
+    final travelledM = s.traveled.length < 2
+        ? 0.0
+        : d.as(LengthUnit.Meter, s.traveled.first, s.traveled.last);
+    expect(travelledM, lessThan(50));
+  });
+
   test('does not advance past the final arrival step', () {
     final f = RouteFollower(_straightRoute());
     // Drive to the end and beyond.

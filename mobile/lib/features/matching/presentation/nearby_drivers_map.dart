@@ -309,6 +309,7 @@ class _NearbyDriversMapState extends State<NearbyDriversMap> {
                         ),
                         MarkerLayer(markers: _markers()),
                         RichAttributionWidget(
+                          alignment: AttributionAlignment.bottomLeft,
                           attributions: [
                             TextSourceAttribution('OpenStreetMap contributors'),
                           ],
