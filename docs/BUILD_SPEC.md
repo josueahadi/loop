@@ -50,12 +50,17 @@ basemap already in use, and is self-hostable. Both are now in scope and delivere
   and releases the location stream and the wakelock on arrival, on exit, and on job
   completion/cancel.
 - **"Open in Maps" is demoted to a secondary fallback.** The `geo:`/Maps-URL deep link to Google
-  Maps / Apple Maps / Waze remains, as a driver-preference "Use another app" option and as the
+  Maps / Apple Maps / Waze remains, as a driver-preference "Open in Maps" option and as the
   graceful degradation path when OSRM is unreachable. This mirrors Uber's model — built-in
   navigation with a third-party hand-off — rather than replacing one with the other.
 - **Provider stance is unchanged:** no Google, no Mapbox SDK, no API key. OSRM's base URL is
   configuration, so the public demo server can be swapped for a self-hosted Rwanda extract as a
   config change, not a rewrite.
+- **Alternate route options in the NavigationScreen — deferred.** OSRM supports alternatives
+  (`alternatives=true`), but the UX to let a driver switch routes safely — per-alternative labels on
+  the map, comparable time/distance, and consistent voice/instruction state across a swap — is a
+  navigation-product concern outside Loop's core (matching, transparent pricing, trust). The driver
+  can tap "Open in Maps" for route judgment when needed.
 
 ### Stretch: post-core polish (optional, not MVP-done)
 These are perception and UX upgrades that ride on infrastructure the MVP already has. They belong after the core loop (M4) and trust (M5) are done.

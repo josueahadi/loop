@@ -346,6 +346,7 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
               ],
             ),
             RichAttributionWidget(
+              alignment: AttributionAlignment.bottomLeft,
               attributions: [
                 TextSourceAttribution('OpenStreetMap contributors'),
               ],

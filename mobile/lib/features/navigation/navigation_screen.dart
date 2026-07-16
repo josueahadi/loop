@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -49,6 +50,15 @@ class _NavigationScreenState extends State<NavigationScreen> {
   // flutter_map throws if MapController.move is called before the map's first
   // render. The GPS stream can fire first, so gate camera moves on this.
   bool _mapReady = false;
+
+  // Panning the map turns off follow-me so the driver can look around; the
+  // recenter button turns it back on.
+  bool _followMe = true;
+  double _mapRotation = 0;
+  RouteSplit? _split;
+
+  static const double _navZoom = 16.5;
+  static const Color _traveledGrey = Color(0x999AA0A6);
   bool _arrived = false;
 
   // Announce each instruction once when it becomes current, and again ~100 m out.
@@ -115,6 +125,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
     _follower = route.instructions.isNotEmpty ? RouteFollower(route) : null;
     _spokenStep = -1;
     _spokenApproach = false;
+    _split = RouteSplit(traveled: const [], remaining: route.polyline);
   }
 
   void _listenPosition() {
@@ -145,15 +156,13 @@ class _NavigationScreenState extends State<NavigationScreen> {
 
     final state = follower.update(here);
     _state = state;
+    _split = follower.split(here);
 
     _maybeSpeak(follower, state);
     _handleOffRoute(here, state);
     _maybeArrive(state);
 
-    // Follow-me: recentre on the driver. North-up (a bearing-rotated camera is a
-    // possible enhancement; kept north-up for predictable behaviour). Guarded:
-    // the map must have rendered once before the controller can move.
-    if (_mapReady) _mapController.move(here, 16.5);
+    if (_mapReady && _followMe) _mapController.move(here, _navZoom);
     if (mounted) setState(() {});
   }
 
@@ -265,10 +274,21 @@ class _NavigationScreenState extends State<NavigationScreen> {
             mapController: _mapController,
             options: MapOptions(
               initialCenter: _current ?? widget.destination,
-              initialZoom: 16.5,
+              initialZoom: _navZoom,
               onMapReady: () {
                 _mapReady = true;
-                if (_current != null) _mapController.move(_current!, 16.5);
+                if (_current != null) _mapController.move(_current!, _navZoom);
+              },
+              onPositionChanged: (camera, hasGesture) {
+                // A user gesture that moves the camera turns off auto-follow (so
+                // the driver can look around); the recenter button turns it back
+                // on. Programmatic follow-me moves have hasGesture == false.
+                if (hasGesture && _followMe) {
+                  setState(() => _followMe = false);
+                }
+                if (camera.rotation != _mapRotation) {
+                  setState(() => _mapRotation = camera.rotation);
+                }
               },
             ),
             children: [
@@ -276,16 +296,21 @@ class _NavigationScreenState extends State<NavigationScreen> {
                 urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                 userAgentPackageName: 'rw.loop.app',
               ),
-              if (route.polyline.isNotEmpty)
-                PolylineLayer(
-                  polylines: [
+              PolylineLayer(
+                polylines: [
+                  if (_split != null && _split!.traveled.length >= 2)
                     Polyline(
-                      points: route.polyline,
-                      strokeWidth: 6,
-                      color: primaryGreen,
+                      points: _split!.traveled,
+                      strokeWidth: 4,
+                      color: _traveledGrey,
                     ),
-                  ],
-                ),
+                  Polyline(
+                    points: _split?.remaining ?? route.polyline,
+                    strokeWidth: 6,
+                    color: primaryGreen,
+                  ),
+                ],
+              ),
               MarkerLayer(
                 markers: [
                   Marker(
@@ -303,15 +328,9 @@ class _NavigationScreenState extends State<NavigationScreen> {
                     ),
                 ],
               ),
-              const RichAttributionWidget(
-                attributions: [
-                  TextSourceAttribution('OpenStreetMap contributors'),
-                ],
-              ),
             ],
           ),
 
-          // Top instruction banner.
           Align(
             alignment: Alignment.topCenter,
             child: SafeArea(
@@ -326,19 +345,122 @@ class _NavigationScreenState extends State<NavigationScreen> {
             ),
           ),
 
-          // Bottom footer: remaining distance + ETA + controls.
+          Align(
+            alignment: Alignment.centerRight,
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: _mapControls(),
+              ),
+            ),
+          ),
+
+          // Attribution sits above the footer so it is never occluded (required
+          // by OSM's terms).
           Align(
             alignment: Alignment.bottomCenter,
             child: SafeArea(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                children: [_footer(state)],
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  _attribution(),
+                  _footer(state),
+                ],
               ),
             ),
           ),
 
           if (_arrived) _arrivedOverlay(),
         ],
+      ),
+    );
+  }
+
+  Widget _mapControls() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (_mapRotation.abs() > 0.5)
+          _controlButton(
+            heroTag: 'nav_compass',
+            tooltip: 'Face north',
+            child: Transform.rotate(
+              angle: -_mapRotation * math.pi / 180,
+              child: const Icon(Icons.navigation, color: Colors.red),
+            ),
+            onPressed: _resetNorth,
+          ),
+        if (!_followMe)
+          _controlButton(
+            heroTag: 'nav_recenter',
+            tooltip: 'Recenter',
+            child: const Icon(Icons.my_location),
+            onPressed: _recenter,
+          ),
+        _controlButton(
+          heroTag: 'nav_zoom_in',
+          tooltip: 'Zoom in',
+          child: const Icon(Icons.add),
+          onPressed: () => _zoomBy(1),
+        ),
+        _controlButton(
+          heroTag: 'nav_zoom_out',
+          tooltip: 'Zoom out',
+          child: const Icon(Icons.remove),
+          onPressed: () => _zoomBy(-1),
+        ),
+      ],
+    );
+  }
+
+  Widget _controlButton({
+    required String heroTag,
+    required String tooltip,
+    required Widget child,
+    required VoidCallback onPressed,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: FloatingActionButton.small(
+        heroTag: heroTag,
+        tooltip: tooltip,
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black87,
+        onPressed: onPressed,
+        child: child,
+      ),
+    );
+  }
+
+  void _zoomBy(double delta) {
+    if (!_mapReady) return;
+    final cam = _mapController.camera;
+    _mapController.move(cam.center, (cam.zoom + delta).clamp(3.0, 19.0));
+  }
+
+  void _resetNorth() {
+    if (_mapReady) _mapController.rotate(0);
+  }
+
+  void _recenter() {
+    setState(() => _followMe = true);
+    if (_mapReady && _current != null) {
+      _mapController.move(_current!, _navZoom);
+    }
+  }
+
+  Widget _attribution() {
+    return Container(
+      margin: const EdgeInsets.only(right: 12, bottom: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: Colors.white70,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: const Text(
+        '© OpenStreetMap contributors',
+        style: TextStyle(fontSize: 10, color: Colors.black87),
       ),
     );
   }
@@ -466,7 +588,8 @@ class _NavigationScreenState extends State<NavigationScreen> {
               label: widget.destinationLabel,
             ),
             icon: const Icon(Icons.open_in_new, size: 18),
-            label: const Text('Use another app'),
+            // Matches the M3.5 hand-off button's wording elsewhere in the app.
+            label: const Text('Open in Maps'),
           ),
         ],
       ),
