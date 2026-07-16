@@ -85,9 +85,9 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
                   child: _buildQuickActionCard(
                     icon: Icons.email,
                     title: 'Email Us',
-                    subtitle: 'support@loop.rw',
+                    subtitle: 'ahadihjosue@gmail.com',
                     onTap: () {
-                      _showContactDialog('Email', 'support@loop.rw');
+                      _showContactDialog('Email', 'ahadihjosue@gmail.com');
                     },
                   ),
                 ),
