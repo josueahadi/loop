@@ -11,6 +11,8 @@ import '../../../core/models/proposal.dart';
 import '../../../core/navigation/open_in_maps.dart';
 import '../../../core/repositories/job_repository.dart';
 import '../../../core/repositories/message_repository.dart';
+import '../../../core/config/basemap.dart';
+import '../../../core/config/map_markers.dart';
 import '../../../core/repositories/routing_repository.dart';
 import '../../../core/repositories/proposal_repository.dart';
 import '../../chat/presentation/job_chat_screen.dart';
@@ -281,10 +283,7 @@ class _OwnerJobDetailScreenState extends State<OwnerJobDetailScreen> {
     return FlutterMap(
       options: MapOptions(initialCenter: mid, initialZoom: 12),
       children: [
-        TileLayer(
-          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-          userAgentPackageName: 'rw.loop.app',
-        ),
+        Basemap.tileLayer(context),
         PolylineLayer(
           polylines: [
             Polyline(
@@ -298,18 +297,13 @@ class _OwnerJobDetailScreenState extends State<OwnerJobDetailScreen> {
         ),
         MarkerLayer(
           markers: [
-            Marker(
-              point: j.pickup,
-              child: const Icon(Icons.trip_origin, color: primaryGreen),
-            ),
-            Marker(
-              point: j.dropOff,
-              child: const Icon(Icons.place, color: Colors.red, size: 32),
-            ),
+            MapMarkers.pickupPin(j.pickup),
+            MapMarkers.dropOffPin(j.dropOff),
           ],
         ),
         RichAttributionWidget(
-          attributions: [TextSourceAttribution('OpenStreetMap contributors')],
+          alignment: AttributionAlignment.bottomLeft,
+          attributions: [TextSourceAttribution(Basemap.attribution)],
         ),
       ],
     );

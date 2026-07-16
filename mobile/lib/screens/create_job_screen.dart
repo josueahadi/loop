@@ -12,6 +12,7 @@ import '../core/location/location_service.dart';
 import '../core/repositories/geocode_repository.dart';
 import '../core/repositories/job_repository.dart';
 import '../core/repositories/pricing_repository.dart';
+import '../core/config/basemap.dart';
 import '../core/repositories/routing_repository.dart';
 
 /// Owner create-job flow (M3/M3.5): set pickup + drop-off by place/landmark
@@ -299,10 +300,7 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
             onTap: (_, point) => _onMapTap(point),
           ),
           children: [
-            TileLayer(
-              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-              userAgentPackageName: 'rw.loop.app',
-            ),
+            Basemap.tileLayer(context),
             // Prefer the OSRM road geometry; fall back to a straight line
             // between the pins until a route is fetched (or on OSRM fallback).
             if (_pickup != null && _dropOff != null)
@@ -327,11 +325,8 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
                     key: const ValueKey('pickup'),
                     point: _pickup!,
                     size: const Size(40, 40),
-                    builder: (_, _, _) => const Icon(
-                      Icons.trip_origin,
-                      color: primaryGreen,
-                      size: 32,
-                    ),
+                    builder: (_, _, _) =>
+                        const Icon(Icons.flag, color: primaryGreen, size: 34),
                     onDragEnd: (_, point) => _onPinDragEnd(point, true),
                   ),
                 if (_dropOff != null)
@@ -340,16 +335,14 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
                     point: _dropOff!,
                     size: const Size(40, 40),
                     builder: (_, _, _) =>
-                        const Icon(Icons.place, color: Colors.red, size: 36),
+                        const Icon(Icons.flag, color: Colors.red, size: 34),
                     onDragEnd: (_, point) => _onPinDragEnd(point, false),
                   ),
               ],
             ),
             RichAttributionWidget(
               alignment: AttributionAlignment.bottomLeft,
-              attributions: [
-                TextSourceAttribution('OpenStreetMap contributors'),
-              ],
+              attributions: [TextSourceAttribution(Basemap.attribution)],
             ),
           ],
         ),

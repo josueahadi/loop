@@ -62,6 +62,29 @@ basemap already in use, and is self-hostable. Both are now in scope and delivere
   navigation-product concern outside Loop's core (matching, transparent pricing, trust). The driver
   can tap "Open in Maps" for route judgment when needed.
 
+  **What it would actually take:**
+  - *Alternatives geometry (cheap, no new dependency):* our own OSRM proxy already returns them;
+    add `alternatives=true` to the `/routing/route` call and render each as a selectable polyline.
+    This is a UX build, not an infrastructure one. It does **not** give traffic-aware routing.
+  - *Traffic-aware routing (the expensive part):* OSRM's public/self-hosted engine is
+    **free-flow only** — it has no live traffic, so its "fastest" route ignores congestion. Real
+    traffic-aware alternatives (the reason a driver wants to switch routes) require a provider with a
+    live traffic feed. Realistic options and indicative costs:
+    - **Google Directions API** — traffic via `departure_time`/`traffic_model`; ~**$5 per 1,000**
+      requests (Routes API "Advanced"), billed per route call. A monthly free credit exists but is
+      easily exhausted at fleet scale. Pulls us into Google Maps Platform terms and an API key —
+      counter to the current "no Google, no key" stance.
+    - **Mapbox Directions** — traffic profile; ~**$2 per 1,000** requests above a free tier. Adds a
+      Mapbox key + SDK/terms.
+    - **HERE / TomTom** — comparable traffic routing, similar per-request pricing, free dev tiers.
+    - **Self-hosted OSRM + a traffic feed** — keeps the "no third-party key" stance but requires
+      sourcing a live traffic dataset for Rwanda (scarce/expensive) and re-contracting OSRM speeds
+      from it; high operational cost for little payoff at current scale.
+  - *Cost shape:* traffic routing is **per-request metered**, so cost scales with active navigation
+    sessions, not a flat fee — it grows exactly as the platform succeeds. At pilot volume the
+    Google/Mapbox free tiers likely suffice; at scale it becomes a real line item and an external
+    dependency on the very thing (Google) the app deliberately avoids.
+
 ### Stretch: post-core polish (optional, not MVP-done)
 These are perception and UX upgrades that ride on infrastructure the MVP already has. They belong after the core loop (M4) and trust (M5) are done.
 - **Live driver position (owner map).** After a proposal is accepted, the owner watches the assigned driver's marker move toward the pickup, over the existing M4 WebSocket gateway. It is scoped tightly: only post-acceptance, only for the active job, stopping at completion, and it shows the live dot plus a straight-line distance ("driver ~800 m away") rather than a road ETA (which would need routing, kept out of scope).
