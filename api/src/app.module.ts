@@ -16,6 +16,7 @@ import { MailModule } from './modules/mail/mail.module';
 import { MatchingModule } from './modules/matching/matching.module';
 import { MessagingModule } from './modules/messaging/messaging.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { PaymentsModule } from './modules/payments/payments.module';
 import { PricingModule } from './modules/pricing/pricing.module';
 import { ProposalsModule } from './modules/proposals/proposals.module';
 import { PushModule } from './modules/push/push.module';
@@ -62,6 +63,7 @@ import { VerificationModule } from './modules/verification/verification.module';
     ProposalsModule,
     MessagingModule,
     RatingsModule,
+    PaymentsModule,
     GeocodeModule,
     RoutingModule,
     AdminModule,
