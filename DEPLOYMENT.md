@@ -161,8 +161,23 @@ Do this once the three services are up and smoke-tested ([section 9](#9-verifica
 1. **SendGrid**: `MAIL_DRIVER=sendgrid`, `SENDGRID_API_KEY=<key>`, `SENDGRID_FROM=<verified sender>`. Verify the sender/domain in SendGrid first, or mail silently fails.
 2. **Firebase Storage**: `STORAGE_DRIVER=firebase`, `FIREBASE_SERVICE_ACCOUNT_JSON=<full service-account JSON, inline>`, `FIREBASE_STORAGE_BUCKET=<your-bucket>`. Paste the service-account JSON **exactly as downloaded** — its `private_key` newlines are already `\n`-escaped inside the JSON, and the app `JSON.parse`s the value as-is (no manual re-escaping). This also **activates the M6 admin document signed-URLs** (the admin can then view uploaded documents) and the private-bucket uploads. Keep the bucket **private**.
 3. **FCM**: `PUSH_DRIVER=fcm` (uses the same Firebase credentials above). Full push setup — client config + platform status — is in [section 7](#7-push-notifications-fcm).
+4. **Payments (Flutterwave)**: see the subsection below.
 
 Redeploy the api. Re-run the [section 9](#9-verification-in-the-target-environment) checks that depend on these (document view, email).
+
+### 5.1 Payments (Flutterwave)
+
+Loop is **pass-through**: it never holds funds, escrows, or takes commission — it initiates a checkout and records the provider's webhook-confirmed outcome. The provider sits behind `PAYMENT_DRIVER`, so the whole flow demos on `stub` (no credentials) before any real integration.
+
+1. **Get test keys.** Create a Flutterwave account, switch the dashboard to **Test mode**, and copy the **Public**, **Secret**, and **Encryption** keys (Settings → API Keys). Flutterwave (not Stripe) because Stripe has no Rwanda-merchant support; Flutterwave settles **RWF card + MTN Mobile Money** natively.
+2. **Set the env vars** on the api service (all secret except the redirect):
+   - `PAYMENT_DRIVER=flutterwave`
+   - `FLUTTERWAVE_PUBLIC_KEY`, `FLUTTERWAVE_SECRET_KEY`, `FLUTTERWAVE_ENCRYPTION_KEY`
+   - `FLUTTERWAVE_WEBHOOK_HASH` — a secret string you choose; set the **same** value in the dashboard (step 3).
+   - `PAYMENT_REDIRECT_URL=loop://payment-callback` (the app deep link).
+3. **Register the webhook.** In the dashboard → Settings → Webhooks, set the URL to `https://<api>.up.railway.app/payments/webhook` and the **Secret hash** to the same value as `FLUTTERWAVE_WEBHOOK_HASH`. The API verifies this hash on **every** call and rejects mismatches — the webhook is the single source of truth for payment status, never the client redirect.
+4. **Enable Mobile Money later — no code change.** Card is on by default. To let local users pay by **MTN Mobile Money**, enable that payment method in the dashboard (Settings → Payment methods). It is the **same integration**, so this is a dashboard toggle, not a provider migration.
+5. **Smoke test (sandbox).** Complete a job, tap **Pay driver** in the app, and pay with a [Flutterwave test card](https://developer.flutterwave.com/docs/test-cards). Confirm: the payment row goes `pending` → the webhook flips it `successful` → the status chip reads **Paid ✓** on both the owner and driver. Fire the same webhook twice and confirm the row stays consistent (idempotent — no double flip).
 
 ---
 
