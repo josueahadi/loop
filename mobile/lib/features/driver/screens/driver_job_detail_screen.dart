@@ -7,6 +7,7 @@ import '../../../core/models/proposal.dart';
 import '../../../core/theme/ui_kit.dart';
 import '../../chat/presentation/job_chat_screen.dart';
 import '../../navigation/navigation_screen.dart';
+import '../../payments/payment_section.dart';
 import 'package:latlong2/latlong.dart';
 
 /// Full job detail for a driver's proposal — the driver equivalent of the
@@ -205,6 +206,15 @@ class DriverJobDetailScreen extends StatelessWidget {
                       ),
                     ],
                   ),
+                  // Driver sees the payment status (read-only) once completed.
+                  if (job.status == 'completed') ...[
+                    const SizedBox(height: 16),
+                    PaymentSection(
+                      jobId: job.id,
+                      isOwner: false,
+                      postedPrice: job.price,
+                    ),
+                  ],
                 ],
               ],
             ),

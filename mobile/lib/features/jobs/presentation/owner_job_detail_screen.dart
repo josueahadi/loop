@@ -15,6 +15,7 @@ import '../../../core/config/basemap.dart';
 import '../../../core/config/map_markers.dart';
 import '../../../core/config/map_zoom_controls.dart';
 import '../../../core/repositories/routing_repository.dart';
+import '../../payments/payment_section.dart';
 import '../../../core/repositories/proposal_repository.dart';
 import '../../chat/presentation/job_chat_screen.dart';
 import '../../matching/presentation/nearby_drivers_map.dart';
@@ -390,6 +391,8 @@ class _OwnerJobDetailScreenState extends State<OwnerJobDetailScreen> {
     }
     if (j.status == 'completed') {
       return [
+        PaymentSection(jobId: j.id, isOwner: true, postedPrice: j.price),
+        const SizedBox(height: 12),
         _ownerRated
             ? const Center(child: Text('You rated this delivery ✓'))
             : btn('Rate driver', _rateDriver),
