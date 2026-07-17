@@ -41,6 +41,16 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!-- M8: payment provider redirects back to the app via this deep link
+                 after checkout (loop://payment-callback). The app just needs to
+                 come to the foreground; the payment status is polled from the API
+                 (the webhook is the source of truth), so no data is parsed here. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="loop" android:host="payment-callback"/>
+            </intent-filter>
         </activity>
         <!-- FCM: channel used to render notifications when the app is in the
              background/killed. Must match the channel id created in the client

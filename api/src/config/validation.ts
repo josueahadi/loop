@@ -38,6 +38,14 @@ export const validationSchema = Joi.object({
   NEARBY_RADIUS_KM: Joi.number().positive().default(10),
   PUSH_DRIVER: Joi.string().valid('stub', 'fcm').default('stub'),
 
+  PAYMENT_DRIVER: Joi.string().valid('stub', 'flutterwave').default('stub'),
+  // Required only when the real driver is selected; optional under the stub.
+  FLUTTERWAVE_PUBLIC_KEY: Joi.string().allow('').optional(),
+  FLUTTERWAVE_SECRET_KEY: Joi.string().allow('').optional(),
+  FLUTTERWAVE_ENCRYPTION_KEY: Joi.string().allow('').optional(),
+  FLUTTERWAVE_WEBHOOK_HASH: Joi.string().allow('').optional(),
+  PAYMENT_REDIRECT_URL: Joi.string().allow('').optional(),
+
   GEOCODE_SEARCH_URL: Joi.string().uri().optional(),
   GEOCODE_REVERSE_URL: Joi.string().uri().optional(),
   GEOCODE_USER_AGENT: Joi.string().optional(),

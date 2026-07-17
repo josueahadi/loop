@@ -44,6 +44,20 @@ export interface AppConfig {
     // stub = log notifications (dev); fcm = real Firebase Cloud Messaging.
     driver: 'stub' | 'fcm';
   };
+  payments: {
+    // stub = log + auto-succeed after a delay (dev, no creds);
+    // flutterwave = real hosted checkout + webhook (test mode first).
+    driver: 'stub' | 'flutterwave';
+    // Flutterwave test-mode keys (env-only, never committed).
+    flutterwavePublicKey: string;
+    flutterwaveSecretKey: string;
+    flutterwaveEncryptionKey: string;
+    // Secret hash sent in the webhook's verif-hash header — reject any mismatch.
+    flutterwaveWebhookHash: string;
+    // Base URL Flutterwave redirects the browser back to after checkout (a deep
+    // link Loop handles); and the API's own base for building tx callbacks.
+    redirectUrl: string;
+  };
   geocode: {
     // OSM providers (swappable). Search = Photon, reverse = Nominatim.
     searchUrl: string;
@@ -109,6 +123,14 @@ export default (): AppConfig => ({
   push: {
     driver: (process.env.PUSH_DRIVER as 'stub' | 'fcm') ?? 'stub',
   },
+  payments: {
+    driver: (process.env.PAYMENT_DRIVER as 'stub' | 'flutterwave') ?? 'stub',
+    flutterwavePublicKey: process.env.FLUTTERWAVE_PUBLIC_KEY ?? '',
+    flutterwaveSecretKey: process.env.FLUTTERWAVE_SECRET_KEY ?? '',
+    flutterwaveEncryptionKey: process.env.FLUTTERWAVE_ENCRYPTION_KEY ?? '',
+    flutterwaveWebhookHash: process.env.FLUTTERWAVE_WEBHOOK_HASH ?? '',
+    redirectUrl: process.env.PAYMENT_REDIRECT_URL ?? 'loop://payment-callback',
+  },
   geocode: {
     searchUrl: process.env.GEOCODE_SEARCH_URL ?? 'https://photon.komoot.io/api',
     reverseUrl:
@@ -123,7 +145,8 @@ export default (): AppConfig => ({
   },
   routing: {
     baseUrl: process.env.ROUTING_OSRM_URL ?? 'https://router.project-osrm.org',
-    userAgent: process.env.ROUTING_USER_AGENT ?? 'LoopApp/0.1 (ahadihjosue@gmail.com)',
+    userAgent:
+      process.env.ROUTING_USER_AGENT ?? 'LoopApp/0.1 (ahadihjosue@gmail.com)',
     timeoutMs: parseInt(process.env.ROUTING_TIMEOUT_MS ?? '6000', 10),
   },
 });

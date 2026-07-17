@@ -29,6 +29,15 @@ export enum JobStatus {
   CANCELLED = 'cancelled',
 }
 
+// M8 pass-through payment lifecycle. Only the verified provider webhook moves a
+// payment to a terminal state (successful | failed | cancelled).
+export enum PaymentStatus {
+  PENDING = 'pending',
+  SUCCESSFUL = 'successful',
+  FAILED = 'failed',
+  CANCELLED = 'cancelled',
+}
+
 export enum JobSize {
   SMALL = 'small',
   MEDIUM = 'medium',
