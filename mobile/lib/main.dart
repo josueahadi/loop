@@ -101,21 +101,10 @@ class MyApp extends StatelessWidget {
             });
           };
 
-          // Foreground pushes: refresh the unread badge + show an in-app banner
-          // (the OS shows nothing while the app is open).
+          // Foreground pushes: PushMessaging renders the OS notification; here we
+          // just refresh the in-app unread badge so counts stay current.
           authProvider.push.onForegroundMessage = (message) {
             notifications.refreshUnread();
-            final messenger = _messengerKey.currentState;
-            final n = message.notification;
-            if (messenger != null && n != null) {
-              messenger.showSnackBar(
-                SnackBar(
-                  content: Text(n.title ?? n.body ?? 'New notification'),
-                  backgroundColor: primaryGreen,
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
-            }
           };
 
           return MaterialApp(
