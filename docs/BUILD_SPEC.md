@@ -29,8 +29,49 @@ Engineering distillation of the proposal for implementation. The REST resources,
 10. **Two-way ratings:** both parties rate after completion; the aggregate is shown on the profile.
 11. **Admin (separate Next.js app):** a verification review queue (approve/reject) and a metrics dashboard surfacing the evaluation metrics are the must-haves; read-only lists of users and jobs for oversight are a nice-to-have.
 
-### Out of scope: payments (future work only)
-Payments are fully out of scope. Loop never processes, holds, or records payment: no MoMo/USSD dial shortcut, no card/PSP integration, no escrow. Parties settle payment offline, out of band. The MoMo USSD flow and card payments are cited in future work only.
+### Payments (M8 — in scope as a pass-through)
+
+**Scope revision (supervisor-directed).** Payments were previously out of scope entirely, on the
+reasoning that holding funds is what exposed heavier regional platforms (Kobo360) to working-capital
+risk. That reasoning is preserved, and it is precisely what makes a **pass-through** safe: Loop
+**never fronts, holds, escrows, or takes commission on funds**. Money moves owner → provider →
+driver; the platform only **orchestrates the checkout and records the outcome**. Loop's balance
+sheet is never exposed, so the Kobo360 failure mode does not apply. **Escrow remains out of scope**,
+as do negotiation and a learned ML pricing model.
+
+**Why payments are in scope: they close the measurement chain.** Loop's pricing thesis produces
+three figures per job, and until now only two were observable:
+
+> `estimated_price` (system-suggested) → `price` (owner-posted) → `PAYMENT.amount` (confirmed
+> settled). Estimate-acceptance already measures the first link — how far the owner moves from the
+> suggestion. In-app payment makes the last link observable: off-platform settlement never confirms
+> that the posted price was the price actually paid, so the chain ends in an assumption. Recording a
+> verified settlement closes it. This is deliberate instrumentation for future pricing calibration
+> and impact measurement, and it connects directly to the cold-start problem cited in the proposal
+> (Panda & Ray, 2022) and to Chen et al. (2025): the learned pricing model stays reserved as future
+> work, and in-app payments are the mechanism by which the transaction data needed to train it
+> accumulates. Without confirmed settlement figures there is no ground truth to calibrate against.
+
+**Provider: Flutterwave (not Stripe).** Stripe does not support Rwanda-based merchants, so it cannot
+settle to a Rwandan driver or business. Flutterwave supports **RWF card and MTN Mobile Money**
+collections natively through its Rwanda integration. This matters for the roadmap: moving local
+users to mobile money later is **enabling an additional payment method on the same integration —
+a dashboard toggle, not a provider migration or a code change**. The provider sits behind a
+`PAYMENT_DRIVER` env (`stub` | `flutterwave`), the same swappable-driver pattern already used for
+`MAIL_DRIVER`, `STORAGE_DRIVER`, and `PUSH_DRIVER`, so the full flow is demonstrable without
+credentials and the provider stays replaceable.
+
+**Rules.**
+- Payment is offered only on a **completed** job, only to the **owner**, and only when no successful
+  payment exists for that job. The amount is **locked server-side to the job's posted `price`** —
+  the client never supplies an amount.
+- The **webhook is the single source of truth** for status; the client redirect only prompts a poll.
+  Every webhook call is **signature-verified** and **idempotent**: a replay with the same
+  `provider_ref` reaches the same terminal state and never double-writes.
+- At most **one `successful` payment per job**, enforced by a partial unique index — the same
+  data-layer discipline as M4's one-accepted-proposal-per-job.
+- **Paying in-app is optional, never forced.** A completed job with no payment record is still a
+  valid, rateable job; parties may settle off-platform as before.
 
 ### Routing & in-app navigation (M7 — in scope)
 Road routing and in-app turn-by-turn were previously future work, on the reasoning that navigation
@@ -113,6 +154,8 @@ The taxonomy is presented as a dropdown with a short capacity/example hint under
 
 **RATING:** `rating_id` (PK), `job_id` (FK→JOB), `from_user_id` (FK→USER), `to_user_id` (FK→USER), `score` [1–5], `comment`, `created_at`.
 
+**PAYMENT (M8):** `payment_id` (PK), `job_id` (FK→JOB), `payer_id` (FK→USER, the job's owner), `payee_id` (FK→USER, the accepted driver), `amount` (integer RWF, locked to the job's posted `price`), `currency` ('RWF'), `provider`, `provider_ref` (unique — the provider's transaction reference), `status` [pending | successful | failed | cancelled], `created_at`, `paid_at` (nullable), `failure_reason` (nullable), `raw_webhook_payload` (jsonb, for audit). A **partial unique index** allows at most one `status='successful'` row per `job_id`. Pass-through only: Loop records the settlement, never holds the funds.
+
 **VERIFICATION_RECORD:** `record_id` (PK), `driver_id` (FK→USER), `document_type` [licence | national_id | vehicle_reg], `storage_reference`, `status` [pending | approved | rejected], `reviewed_by` (FK→USER, an admin), `reviewed_at`.
 
 Relationships: USER 1–N VEHICLE; USER(owner) 1–N JOB; JOB 1–N PROPOSAL; USER(driver) 1–N PROPOSAL; JOB 1–N MESSAGE; JOB 1–(0..2) RATING; USER 1–N RATING; USER(driver) 1–N VERIFICATION_RECORD. Driver location uses PostGIS geography/geometry to support nearby queries.
@@ -130,6 +173,7 @@ Relationships: USER 1–N VEHICLE; USER(owner) 1–N JOB; JOB 1–N PROPOSAL; US
 - **Proposals:** `POST /jobs/:id/proposals` (owner to driver), `GET /proposals` (driver: incoming), `PATCH /proposals/:id` (accept/decline).
 - **Messages:** `GET /jobs/:id/messages`, `POST /jobs/:id/messages`; real-time delivery over a NestJS WebSocket gateway (Socket.IO), with Postgres as the source of truth.
 - **Ratings:** `POST /jobs/:id/ratings`, `GET /users/:id/ratings`.
+- **Payments (M8, pass-through):** `POST /jobs/:id/payment` (owner only; only when the job is `completed` and no successful payment exists, else 409) creates a pending PAYMENT locked to the posted `price` and returns the provider checkout link (`tx_ref = payment_id`, currency RWF). `POST /payments/webhook` (public, provider-called) is **signature-verified every call** and **idempotent** on `provider_ref` — it is the only thing that moves a payment to a terminal state, stores the raw payload, and best-effort-pushes the driver on success / owner on failure. `GET /jobs/:id/payment` returns the row to the job's participants only. With `PAYMENT_DRIVER=stub` the checkout link resolves through a dev endpoint that auto-succeeds, so the flow runs without provider credentials.
 - **Admin metrics:** `GET /admin/metrics` returns server-computed evaluation metrics (time-to-match, estimate-acceptance rate, in-app coordination rate, empty-trip change, verification completion). Aggregation lives in the API; the dashboard only renders.
 
 ## 4. Screen inventory
@@ -198,6 +242,7 @@ future-work item once real transaction density exists.
 - **M5, Trust:** two-way ratings plus reputation aggregation on profiles.
 - **M6, Evaluation:** the Next.js metrics dashboard over `GET /admin/metrics` (data already accumulating since M1), polish, and the Kigali user test.
 - **M7, Routing + pricing v2 + in-app navigation (scope revision — see [section 1](#routing--in-app-navigation-m7--in-scope)):** a `routing` OSRM proxy module mirroring `geocode` (`GET /routing/route`, great-circle fallback); **pricing v2** (`min_fare` + `rate_per_min` migration, road distance *and* duration priced, the used distance/duration/source persisted on the JOB); owner-side route context (the real road polyline plus road distance and duration on create-job and job detail, replacing the straight line when a route is available); and the driver's **NavigationScreen** — full-screen `flutter_map` turn-by-turn with follow-me camera, an instruction banner with a live countdown, remaining distance/ETA, guarded off-route rerouting, `flutter_tts` voice guidance, and `wakelock_plus`, with "Open in Maps" kept as the secondary option and the OSRM-unreachable fallback.
+- **M8, In-app payments (pass-through — see [section 1 → Payments](#payments-m8--in-scope-as-a-pass-through)):** a `payments` module with a `PaymentsService` behind `PAYMENT_DRIVER` (`stub` | `flutterwave`), a `PAYMENT` entity + migration (partial unique index for one successful payment per job), `POST /jobs/:id/payment` (owner-only, completed-only, amount locked to the posted price), a signature-verified idempotent `POST /payments/webhook` as the status source of truth, `GET /jobs/:id/payment` for participants, and best-effort push on success/failure. Mobile: an owner "Pay driver" action on a completed job that opens the provider checkout and polls for the webhook-confirmed status, plus a Pending / Paid / Failed status chip (with owner retry) on both parties' job detail. Off-platform settlement stays valid.
 
 **Stretch (after M4–M5 are green; optional demo polish):**
 - **S1, Minimal basemap:** `flutter_map` points at a muted OSM-based tile source (CartoDB Positron or a light style) with clean custom markers (a blue "you" dot, green vehicle pins). It is small and high-impact; raster-only, with no vector tiles, no SDK, and no key beyond a basemap provider's free tier (respecting its terms and attribution). It is safe to do independently at any point.
@@ -249,6 +294,7 @@ mobile/lib/
 ├── features/                 # one folder per feature
 │   ├── auth/  onboarding/  matching/  jobs/  proposals/  messaging/  ratings/  profile/
 │   ├── navigation/           # M7: driver turn-by-turn (NavigationScreen + route follower)
+│   ├── payments/             # M8: owner pay-driver flow + status chip (pass-through)
 │   └── <feature>/{data, presentation}     # add domain/ only if a feature truly needs it
 └── shared/models/            # API models (prefer generating from OpenAPI, see below)
 ```
@@ -267,7 +313,7 @@ api/src/
 ├── database/                 # data source, migrations, seeds (seed the admin here)
 └── modules/
     ├── auth/  users/  verification/  vehicles/  matching/  pricing/  geocode/  routing/
-    ├── jobs/  proposals/  messaging/  ratings/  admin/
+    ├── jobs/  proposals/  messaging/  ratings/  payments/  admin/
     └── <feature>/{<feature>.module.ts, .controller.ts, .service.ts, entities/, dto/}
 ```
 ORM: TypeORM has native PostGIS `geometry`/`geography` columns (simplest for the matching query); Prisma also works, with raw SQL for the geo parts. Metrics aggregation lives in the `admin` module (`admin.service` behind `GET /admin/metrics`). A shared `mail` service wraps SendGrid (with a console-log stub for dev) and is reused by `auth`; a `notifications` helper wraps FCM; the `messaging` module hosts the WebSocket gateway for real-time chat.
