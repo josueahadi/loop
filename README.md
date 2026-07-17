@@ -22,6 +22,7 @@ The **API is the system of record** (PostgreSQL/PostGIS). The mobile app and adm
 - [Screenshots](#screenshots)
 - [Testing](#testing)
 - [Status](#status)
+- [Pricing](#pricing)
 - [Technical report](#technical-report)
 - [Roadmap (Future Works)](#roadmap-future-works)
 - [Contributing](#contributing)
@@ -143,7 +144,7 @@ cd mobile && flutter test # model / screen / widget tests
 
 ## Status
 
-All milestones **M1–M6** are built (the milestone plan is [section 6 of `docs/BUILD_SPEC.md`](docs/BUILD_SPEC.md#6-suggested-build-order-maps-to-the-junaug-timeline)):
+All milestones **M1–M7** are built (the milestone plan is [section 6 of `docs/BUILD_SPEC.md`](docs/BUILD_SPEC.md#6-suggested-build-order-maps-to-the-junaug-timeline)):
 
 - **M1 — Foundation:** monorepo, database schema for all core entities, NestJS-issued JWT auth (argon2, access + rotating refresh), driver verification + admin review.
 - **M2 — Matching:** availability + location capture, PostGIS nearby-driver query (approved **and** online, nearest first), `flutter_map`/OpenStreetMap map view + vehicle-type filter, vehicle CRUD.
@@ -152,6 +153,30 @@ All milestones **M1–M6** are built (the milestone plan is [section 6 of `docs/
 - **M4 — Transaction loop:** proposals (accept/decline), in-app messaging (REST + WebSocket), `tel:` call button, FCM push (stub-safe).
 - **M5 — Trust:** two-way ratings + portable reputation.
 - **M6 — Admin:** Next.js verification queue + server-computed metrics dashboard + read-only drivers/users/jobs directory.
+- **M7 — Routing + pricing v2 + navigation:** OSRM road routing (with a great-circle fallback), a **distance-and-time** cost estimate (see [Pricing](#pricing) below), and driver in-app turn-by-turn navigation (route line, follow-me camera, voice, off-route rerouting), with "Open in Maps" kept as a secondary option.
+
+### Pricing
+
+The cost estimate is rule-based and transparent (not ML — there is no transaction history at cold start), computed server-side and rounded to whole RWF (a zero-decimal currency):
+
+```
+estimated_price = max( min_fare(vt),
+                       base_fare(vt) + rate_per_km(vt) × distance_km
+                                     + rate_per_min(vt) × duration_min )
+                  × size_factor(size)
+```
+
+`distance_km` and `duration_min` come from OSRM road routing; if the router is unavailable the estimate falls back to the PostGIS great-circle distance and drops the time term. Every parameter is DB config (editable without a redeploy); the seeded values (placeholders pending field research, whole RWF) are:
+
+| Vehicle type | `min_fare` | `base_fare` | `rate_per_km` | `rate_per_min` |
+| --- | ---: | ---: | ---: | ---: |
+| moto | 800 | 500 | 300 | 30 |
+| pickup | 1,500 | 1,000 | 600 | 60 |
+| van | 2,000 | 1,500 | 800 | 80 |
+| small_truck | 3,000 | 2,000 | 1,200 | 120 |
+| large_truck | 5,000 | 3,000 | 2,000 | 200 |
+
+`size_factor` is 1.0 (small), 1.3 (medium), 1.6 (large). The estimate is a reference — the owner sets the final price, and both are stored on the job.
 
 ## Technical report
 
@@ -167,7 +192,7 @@ Loop currently runs as a single **Railway** project (PostGIS DB + API + admin), 
 
 A product-side item is **admin user management**: today the single admin is seeded (no public admin signup, by design), and a later phase adds a super-admin who can create and manage other admin accounts from the admin console.
 
-See **[DEPLOYMENT.md section 11 (Future / production migration)](DEPLOYMENT.md#11-future--production-migration)** for the infrastructure detail. Other product/feature future work (payments, live driver tracking, an abstracted basemap, road routing) is tracked in [`docs/BUILD_SPEC.md`](docs/BUILD_SPEC.md).
+See **[DEPLOYMENT.md section 11 (Future / production migration)](DEPLOYMENT.md#11-future--production-migration)** for the infrastructure detail. Other product/feature future work (payments, live driver tracking, traffic-aware routing and alternate routes) is tracked in [`docs/BUILD_SPEC.md`](docs/BUILD_SPEC.md).
 
 ## Contributing
 
