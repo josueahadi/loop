@@ -13,6 +13,7 @@ import '../../../core/repositories/job_repository.dart';
 import '../../../core/repositories/message_repository.dart';
 import '../../../core/config/basemap.dart';
 import '../../../core/config/map_markers.dart';
+import '../../../core/config/map_zoom_controls.dart';
 import '../../../core/repositories/routing_repository.dart';
 import '../../../core/repositories/proposal_repository.dart';
 import '../../chat/presentation/job_chat_screen.dart';
@@ -36,6 +37,7 @@ class _OwnerJobDetailScreenState extends State<OwnerJobDetailScreen> {
   final _proposals = ProposalRepository();
   final _messages = MessageRepository();
   final _routing = RoutingRepository();
+  final _mapController = MapController();
   late Job _job = widget.job;
   Proposal? _accepted;
   bool _ownerRated = false;
@@ -54,6 +56,12 @@ class _OwnerJobDetailScreenState extends State<OwnerJobDetailScreen> {
     _loadAccepted();
     _loadUnread();
     _loadRoute();
+  }
+
+  @override
+  void dispose() {
+    _mapController.dispose();
+    super.dispose();
   }
 
   // Best-effort road geometry for the map; a failure just leaves the straight
@@ -280,30 +288,43 @@ class _OwnerJobDetailScreenState extends State<OwnerJobDetailScreen> {
       (j.pickup.latitude + j.dropOff.latitude) / 2,
       (j.pickup.longitude + j.dropOff.longitude) / 2,
     );
-    return FlutterMap(
-      options: MapOptions(initialCenter: mid, initialZoom: 12),
+    return Stack(
       children: [
-        Basemap.tileLayer(context),
-        PolylineLayer(
-          polylines: [
-            Polyline(
-              points: _routePolyline.isNotEmpty
-                  ? _routePolyline
-                  : [j.pickup, j.dropOff],
-              strokeWidth: _routePolyline.isNotEmpty ? 4 : 3,
-              color: primaryGreen,
+        FlutterMap(
+          mapController: _mapController,
+          options: MapOptions(initialCenter: mid, initialZoom: 12),
+          children: [
+            Basemap.tileLayer(context),
+            PolylineLayer(
+              polylines: [
+                Polyline(
+                  points: _routePolyline.isNotEmpty
+                      ? _routePolyline
+                      : [j.pickup, j.dropOff],
+                  strokeWidth: _routePolyline.isNotEmpty ? 4 : 3,
+                  color: primaryGreen,
+                ),
+              ],
+            ),
+            MarkerLayer(
+              markers: [
+                MapMarkers.pickupPin(j.pickup),
+                MapMarkers.dropOffPin(j.dropOff),
+              ],
+            ),
+            RichAttributionWidget(
+              alignment: AttributionAlignment.bottomLeft,
+              attributions: [TextSourceAttribution(Basemap.attribution)],
             ),
           ],
         ),
-        MarkerLayer(
-          markers: [
-            MapMarkers.pickupPin(j.pickup),
-            MapMarkers.dropOffPin(j.dropOff),
-          ],
-        ),
-        RichAttributionWidget(
-          alignment: AttributionAlignment.bottomLeft,
-          attributions: [TextSourceAttribution(Basemap.attribution)],
+        Positioned(
+          right: 8,
+          top: 8,
+          child: MapZoomControls(
+            controller: _mapController,
+            heroPrefix: 'ownerjob',
+          ),
         ),
       ],
     );

@@ -13,6 +13,7 @@ import '../core/repositories/geocode_repository.dart';
 import '../core/repositories/job_repository.dart';
 import '../core/repositories/pricing_repository.dart';
 import '../core/config/basemap.dart';
+import '../core/config/map_zoom_controls.dart';
 import '../core/repositories/routing_repository.dart';
 
 /// Owner create-job flow (M3/M3.5): set pickup + drop-off by place/landmark
@@ -65,6 +66,7 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
   // straight line in that case).
   final _routing = RoutingRepository();
   List<LatLng> _routePolyline = const [];
+  Timer? _routeDebounce;
 
   @override
   void initState() {
@@ -75,6 +77,7 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
   @override
   void dispose() {
     _debounce?.cancel();
+    _routeDebounce?.cancel();
     _cargoTypeController.dispose();
     _weightController.dispose();
     _priceController.dispose();
@@ -113,6 +116,28 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
     });
     if (move) _mapController.move(point, 15);
     if (label == null) _reverseActivePin(point, _settingPickup);
+    _refreshRoutePreview();
+  }
+
+  // Draw the road route between the pins as soon as both are set, so the owner
+  // sees the actual road path (not a straight line) before asking for a price.
+  // Debounced and best-effort: a failure just leaves the straight-line fallback.
+  void _refreshRoutePreview() {
+    _routeDebounce?.cancel();
+    if (_pickup == null || _dropOff == null) return;
+    final from = _pickup!, to = _dropOff!;
+    _routeDebounce = Timer(const Duration(milliseconds: 400), () async {
+      try {
+        final r = await _routing.route(from, to);
+        if (!mounted) return;
+        // Ignore if the pins moved again while this was in flight.
+        if (_pickup == from && _dropOff == to) {
+          setState(() => _routePolyline = r.polyline);
+        }
+      } catch (_) {
+        // keep the straight line
+      }
+    });
   }
 
   Future<void> _reverseActivePin(LatLng point, bool forPickup) async {
@@ -147,6 +172,7 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
       _routePolyline = const [];
     });
     _reverseActivePin(point, isPickup);
+    _refreshRoutePreview();
   }
 
   Future<void> _useMyLocationForActivePin() async {
@@ -345,6 +371,14 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
               attributions: [TextSourceAttribution(Basemap.attribution)],
             ),
           ],
+        ),
+        Positioned(
+          right: 12,
+          top: 12,
+          child: MapZoomControls(
+            controller: _mapController,
+            heroPrefix: 'createjob',
+          ),
         ),
         Positioned(
           right: 12,

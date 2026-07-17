@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../core/config/basemap.dart';
 import '../../../core/config/map_markers.dart';
+import '../../../core/config/map_zoom_controls.dart';
 import '../../../core/errors/error_messages.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
@@ -313,6 +314,14 @@ class _NearbyDriversMapState extends State<NearbyDriversMap> {
                           ],
                         ),
                       ],
+                    ),
+                    Positioned(
+                      right: 12,
+                      top: 12,
+                      child: MapZoomControls(
+                        controller: _mapController,
+                        heroPrefix: 'nearby',
+                      ),
                     ),
                     if (_loading)
                       const Center(child: CircularProgressIndicator()),
