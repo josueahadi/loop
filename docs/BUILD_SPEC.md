@@ -33,10 +33,10 @@ Engineering distillation of the proposal for implementation. The REST resources,
 Payments are fully out of scope. Loop never processes, holds, or records payment: no MoMo/USSD dial shortcut, no card/PSP integration, no escrow. Parties settle payment offline, out of band. The MoMo USSD flow and card payments are cited in future work only.
 
 ### Routing & in-app navigation (M7 — in scope)
-**Scope revision (supervisor-directed).** Road routing and in-app turn-by-turn were previously
-future work, on the reasoning that navigation needs a proprietary, metered SDK. **OSRM removes that
-objection**: it is OpenStreetMap-native, needs no API key, is licence-compatible with the OSM
-basemap already in use, and is self-hostable. Both are now in scope and delivered in **M7**.
+Road routing and in-app turn-by-turn were previously future work, on the reasoning that navigation
+needs a proprietary, metered SDK. OSRM removes that objection: it is OpenStreetMap-native, needs no
+API key, is licence-compatible with the OSM basemap, and is self-hostable. Both are in scope and
+delivered in M7.
 
 - **Road distance & duration for the estimate.** `distance_km` comes from OSRM road routing rather
   than the great-circle line, and the route's `duration_min` becomes a *priced* input — see
@@ -62,28 +62,27 @@ basemap already in use, and is self-hostable. Both are now in scope and delivere
   navigation-product concern outside Loop's core (matching, transparent pricing, trust). The driver
   can tap "Open in Maps" for route judgment when needed.
 
-  **What it would actually take:**
-  - *Alternatives geometry (cheap, no new dependency):* our own OSRM proxy already returns them;
-    add `alternatives=true` to the `/routing/route` call and render each as a selectable polyline.
-    This is a UX build, not an infrastructure one. It does **not** give traffic-aware routing.
-  - *Traffic-aware routing (the expensive part):* OSRM's public/self-hosted engine is
-    **free-flow only** — it has no live traffic, so its "fastest" route ignores congestion. Real
-    traffic-aware alternatives (the reason a driver wants to switch routes) require a provider with a
-    live traffic feed. Realistic options and indicative costs:
-    - **Google Directions API** — traffic via `departure_time`/`traffic_model`; ~**$5 per 1,000**
-      requests (Routes API "Advanced"), billed per route call. A monthly free credit exists but is
-      easily exhausted at fleet scale. Pulls us into Google Maps Platform terms and an API key —
-      counter to the current "no Google, no key" stance.
-    - **Mapbox Directions** — traffic profile; ~**$2 per 1,000** requests above a free tier. Adds a
-      Mapbox key + SDK/terms.
-    - **HERE / TomTom** — comparable traffic routing, similar per-request pricing, free dev tiers.
-    - **Self-hosted OSRM + a traffic feed** — keeps the "no third-party key" stance but requires
-      sourcing a live traffic dataset for Rwanda (scarce/expensive) and re-contracting OSRM speeds
-      from it; high operational cost for little payoff at current scale.
-  - *Cost shape:* traffic routing is **per-request metered**, so cost scales with active navigation
-    sessions, not a flat fee — it grows exactly as the platform succeeds. At pilot volume the
-    Google/Mapbox free tiers likely suffice; at scale it becomes a real line item and an external
-    dependency on the very thing (Google) the app deliberately avoids.
+  Requirements if it is taken on later:
+  - *Alternative geometry:* the existing OSRM proxy already supports `alternatives=true`; the
+    `/routing/route` call would return several routes, each rendered as a selectable polyline. This
+    is a client-side UX change with no new dependency, and it does not provide traffic-aware routing.
+  - *Traffic-aware routing:* OSRM (public or self-hosted) is free-flow only — it has no live traffic
+    feed, so its fastest route ignores congestion. Traffic-aware alternatives require a routing
+    provider with a live traffic feed. Options, with trade-offs:
+    - **Google Directions API** — traffic via `departure_time`/`traffic_model`. Per-request pricing
+      with a monthly free credit; requires a Google Maps Platform API key and its terms, against the
+      current no-Google/no-key stance.
+    - **Mapbox Directions** — traffic profile, per-request pricing above a free tier; requires a
+      Mapbox key and terms.
+    - **HERE / TomTom** — comparable traffic routing and per-request pricing, with free developer
+      tiers.
+    - **Self-hosted OSRM with a traffic feed** — avoids a third-party key but requires sourcing a
+      live traffic dataset for Rwanda and applying it to OSRM's speed profiles; higher operational
+      cost.
+  - *Cost profile:* traffic routing is metered per request, so cost scales with the number of active
+    navigation sessions rather than being fixed. Pricing figures change over time and must be checked
+    against each provider before committing. A pilot-scale deployment likely fits within the free
+    tiers; at larger scale it becomes a recurring cost and an external dependency.
 
 ### Stretch: post-core polish (optional, not MVP-done)
 These are perception and UX upgrades that ride on infrastructure the MVP already has. They belong after the core loop (M4) and trust (M5) are done.
@@ -106,7 +105,7 @@ Types are indicative and map to the repo's ORM/migrations. IDs are UUIDs unless 
 
 The taxonomy is presented as a dropdown with a short capacity/example hint under each option, not a free-text field, and with no "Other" option: every vehicle must map to a rate-able, filterable bucket, or matching (the filter), pricing (`rate_per_km` per type), and the results-chapter analysis all break. A vehicle that seems not to fit is handled by widening a bucket's definition (for example, `large_truck` as anything heavier than a light truck) rather than adding "Other". Specialised rigs (tankers, flatbed trailers, refrigerated units) are out of MVP scope and are a clean future-work line. The five buckets are validated against real Kigali demand before M3 seeds `rate_per_km`, since the enum is canonical across four places and changing it later is a coordinated migration.
 
-**JOB:** `job_id` (PK), `owner_id` (FK→USER), `pickup`, `drop_off` (PostGIS geography points), `pickup_label`, `drop_off_label` (nullable, reverse-geocoded display text), `pickup_notes`, `drop_off_notes` (nullable free text, e.g. "blue gate, 2nd house"), `cargo_type`, `size`, `weight`, `estimated_price`, `price`, `req_vehicle_type`, `status` [draft | posted | matched | in_progress | completed | cancelled], `created_at`, plus status-transition timestamps `posted_at`, `matched_at`, `accepted_at`, `in_progress_at`, `completed_at`, `cancelled_at` (columns on JOB, with no separate event table). **Pricing inputs actually used (M7, nullable):** `distance_km`, `duration_min`, `distance_source` [osrm | great_circle] — persisted because they are the features a future learned pricing model would train on and cannot be reconstructed later.
+**JOB:** `job_id` (PK), `owner_id` (FK→USER), `pickup`, `drop_off` (PostGIS geography points), `pickup_label`, `drop_off_label` (nullable, reverse-geocoded display text), `pickup_notes`, `drop_off_notes` (nullable free text, e.g. "blue gate, 2nd house"), `cargo_type`, `size`, `weight`, `estimated_price`, `price`, `req_vehicle_type`, `status` [draft | posted | matched | in_progress | completed | cancelled], `created_at`, plus status-transition timestamps `posted_at`, `matched_at`, `accepted_at`, `in_progress_at`, `completed_at`, `cancelled_at` (columns on JOB, with no separate event table). **Pricing inputs used (M7, nullable):** `distance_km`, `duration_min`, `distance_source` [osrm | great_circle] — persisted as inputs for a future pricing model, since they cannot be reconstructed later.
 
 **PROPOSAL:** `proposal_id` (PK), `job_id` (FK→JOB), `driver_id` (FK→USER), `status` [sent | accepted | declined], `created_at`.
 
@@ -179,17 +178,16 @@ Still **rule-based, not ML** — the platform has no transaction history at laun
 - Returned by `POST /pricing/estimate`; the owner reviews it and sets the final price — the estimate
   is a **reference, never binding**. Both `estimated_price` and the final `price` are stored on the
   JOB so estimate-acceptance can be measured.
-- The `distance_km`, `duration_min`, and `distance_source` actually used are **persisted on the JOB**.
-  This is deliberate instrumentation: they are the features a future learned pricing model would
-  train on, and they cannot be reconstructed after the fact (road networks and traffic change).
+- The `distance_km`, `duration_min`, and `distance_source` used are **persisted on the JOB**. They
+  are inputs a future pricing model would train on and cannot be reconstructed later, since road
+  networks and traffic change over time.
 
 ### Deferred: surge / dynamic pricing
-Demand-responsive pricing is **explicitly out of scope**, on two grounds. Practically, it needs a
-live supply/demand signal that a cold-start platform does not have — there is no density of
-concurrent jobs to infer scarcity from, so any multiplier would be invented, not measured.
-Principally, it **conflicts with the transparency thesis**: Loop's pitch is that the owner sees one
-predictable, owner-set price. A multiplier that moves the number for reasons the owner cannot see is
-the opposite of that. It is a clean future-work line once real transaction density exists.
+Demand-responsive pricing is out of scope. It requires a live supply/demand signal that a cold-start
+platform does not have — with no density of concurrent jobs, any multiplier would be estimated
+rather than measured. It also runs against the transparency goal: the owner sets one predictable
+price, and a multiplier that changes it for reasons the owner cannot see undermines that. It is a
+future-work item once real transaction density exists.
 
 ## 6. Suggested build order (maps to the Jun–Aug timeline)
 - **M1, Foundation:** repo reconciliation (a clean copy of the existing Flutter app into `mobile/`, then `git init` the monorepo), DB schema plus migrations (including the JOB status-transition timestamps and both `estimated_price` and `price`, so metrics data accumulates from day one), NestJS-issued JWT auth (register/login/refresh/password-reset/email-verification, `JwtAuthGuard` plus `RolesGuard`, SendGrid email with a console-log stub until the sender is verified), role-based profiles, a seeded admin account, and driver verification plus admin approval. Out-of-scope business-credential fields and the payment widget are removed from the existing app.
