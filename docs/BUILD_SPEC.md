@@ -61,6 +61,15 @@ a dashboard toggle, not a provider migration or a code change**. The provider si
 `MAIL_DRIVER`, `STORAGE_DRIVER`, and `PUSH_DRIVER`, so the full flow is demonstrable without
 credentials and the provider stays replaceable.
 
+**Onboarding constraint (a real-world finding).** As of July 2026 Flutterwave's *self-serve* signup
+lists **Nigeria as the only selectable country** and routes Rwanda to a "Contact Sales" enterprise
+form — so a Rwandan business cannot obtain merchant keys self-serve, even though Flutterwave
+otherwise processes Rwandan cards/MoMo. The demo therefore runs on the **`stub` driver** (the entire
+pass-through flow works with no credentials), and the `flutterwave` driver stands ready for when keys
+are obtained through sales — or a Rwanda-native self-serve gateway is dropped in behind the same
+`PaymentProvider` interface. This friction is itself worth reporting: it is exactly the kind of
+market-infrastructure gap a Rwanda-first platform must navigate.
+
 **Rules.**
 - Payment is offered only on a **completed** job, only to the **owner**, and only when no successful
   payment exists for that job. The amount is **locked server-side to the job's posted `price`** —
