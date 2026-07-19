@@ -38,12 +38,16 @@ export class PushService implements OnModuleInit {
     try {
       // Reuse the app Storage may have already initialised (same credentials);
       // only init if neither module has done so yet. Supports inline JSON, the
-      // form used on Railway.
+      // form used on Railway. Include storageBucket even though push doesn't use
+      // it: whichever of push/storage initialises the shared admin app first must
+      // set the bucket, or StorageService.onModuleInit fails with "Bucket name
+      // not specified" when it finds the app already initialised without one.
       if (!admin.apps.length) {
         admin.initializeApp({
           credential: admin.credential.cert(
             loadFirebaseServiceAccount(this.config),
           ),
+          storageBucket: this.config.get<string>('storage.bucket') ?? '',
         });
       }
       this.ready = true;

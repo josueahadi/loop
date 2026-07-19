@@ -37,7 +37,11 @@ export class StorageService implements OnModuleInit {
         storageBucket: bucketName,
       });
     }
-    this.bucket = admin.storage().bucket();
+    // Pass the bucket name explicitly rather than relying on the shared app's
+    // default storageBucket: another module (e.g. push) may have initialised the
+    // admin app first without one, and admin.storage().bucket() with no argument
+    // would then throw "Bucket name not specified".
+    this.bucket = admin.storage().bucket(bucketName);
   }
 
   async upload(
