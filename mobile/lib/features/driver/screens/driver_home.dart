@@ -29,6 +29,7 @@ import 'driver_location_screen.dart';
 import '../../../screens/settings_screen.dart';
 import '../../../screens/help_support_screen.dart';
 import '../../../features/profile/providers/profile_provider.dart';
+import '../../../core/widgets/profile_widgets.dart';
 
 class DriverHome extends StatefulWidget {
   const DriverHome({super.key});
@@ -740,238 +741,115 @@ class _ProfileTab extends StatelessWidget with LogoutMixin {
           onRefresh: authProvider.refreshUserData,
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
             child: Column(
               children: [
-                // Profile Header
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: lightGreen,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
+                _DriverProfileHeader(user: user),
+                const SizedBox(height: 20),
+
+                // Account
+                ProfileGroup(
+                  children: [
+                    ProfileOption(
+                      icon: Icons.person_outline,
+                      title: 'Edit Profile',
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const DriverProfileEditScreen(),
+                        ),
+                      ),
+                    ),
+                    ProfileOption(
+                      icon: Icons.star_outline,
+                      title: 'My Ratings',
+                      subtitle: user?.rating != null
+                          ? '${user!.rating!.toStringAsFixed(1)} average'
+                          : 'View ratings you received',
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const MyRatingsScreen(),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // Driver setup
+                if (user != null) ...[
+                  ProfileGroup(
                     children: [
-                      CircleAvatar(
-                        radius: 40,
-                        backgroundColor: primaryGreen,
-                        child: Text(
-                          user?.name.isNotEmpty == true
-                              ? user!.name[0].toUpperCase()
-                              : 'D',
-                          style: const TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                      ProfileOption(
+                        icon: Icons.card_membership_outlined,
+                        title: 'Driver License',
+                        subtitle: user.driverLicense ?? 'Add license details',
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const DriverProfileEditScreen(),
                           ),
                         ),
                       ),
-                      const SizedBox(height: 16),
-                      Text(
-                        user?.name ?? 'Driver',
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
+                      ProfileOption(
+                        icon: Icons.directions_car_outlined,
+                        title: 'Vehicle Details',
+                        subtitle: user.primaryVehicle != null
+                            ? '${user.primaryVehicle!['type']} - ${user.primaryVehicle!['capacity']}'
+                            : 'Add vehicle details',
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const VehicleDetailsScreen(),
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        user?.email ?? '',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey.shade600,
+                      ProfileOption(
+                        icon: Icons.map_outlined,
+                        title: 'My Location',
+                        subtitle: 'See where cargo owners find you',
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const DriverLocationScreen(),
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: primaryGreen,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Text(
-                              'Driver',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: user?.isAvailable == true
-                                  ? primaryGreen
-                                  : Colors.orange,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              user?.isAvailable == true
-                                  ? 'Available'
-                                  : 'Offline',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              children: [
-                                Text(
-                                  user?.rating?.toStringAsFixed(1) ?? '0.0',
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const Text(
-                                  'Rating',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Expanded(
-                            child: Column(
-                              children: [
-                                Text(
-                                  '${user?.completedJobs ?? 0}',
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const Text(
-                                  'Jobs Done',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(height: 24),
-
-                // Profile Options
-                _ProfileOption(
-                  icon: Icons.edit,
-                  title: 'Edit Profile',
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => const DriverProfileEditScreen(),
-                      ),
-                    );
-                  },
-                ),
-                _ProfileOption(
-                  icon: Icons.star_outline,
-                  title: 'My Ratings',
-                  subtitle: user?.rating != null
-                      ? '${user!.rating!.toStringAsFixed(1)} average'
-                      : 'View ratings you received',
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => const MyRatingsScreen(),
-                      ),
-                    );
-                  },
-                ),
-                if (user != null) ...[
-                  _ProfileOption(
-                    icon: Icons.card_membership,
-                    title: 'Driver License',
-                    subtitle: user.driverLicense ?? 'Add license details',
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => const DriverProfileEditScreen(),
-                        ),
-                      );
-                    },
-                  ),
-                  _ProfileOption(
-                    icon: Icons.directions_car,
-                    title: 'Vehicle Details',
-                    subtitle: user.primaryVehicle != null
-                        ? '${user.primaryVehicle!['type']} - ${user.primaryVehicle!['capacity']}'
-                        : 'Add vehicle details',
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => const VehicleDetailsScreen(),
-                        ),
-                      );
-                    },
-                  ),
-                  _ProfileOption(
-                    icon: Icons.map_outlined,
-                    title: 'My Location',
-                    subtitle: 'See where cargo owners find you',
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => const DriverLocationScreen(),
-                        ),
-                      );
-                    },
-                  ),
+                  const SizedBox(height: 16),
                 ],
-                _ProfileOption(
-                  icon: Icons.settings,
-                  title: 'Settings',
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => const SettingsScreen(),
+
+                // Support
+                ProfileGroup(
+                  children: [
+                    ProfileOption(
+                      icon: Icons.settings_outlined,
+                      title: 'Settings',
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const SettingsScreen(),
+                        ),
                       ),
-                    );
-                  },
-                ),
-                _ProfileOption(
-                  icon: Icons.help,
-                  title: 'Help & Support',
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => const HelpSupportScreen(),
+                    ),
+                    ProfileOption(
+                      icon: Icons.help_outline,
+                      title: 'Help & Support',
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const HelpSupportScreen(),
+                        ),
                       ),
-                    );
-                  },
+                    ),
+                  ],
                 ),
-                _ProfileOption(
-                  icon: Icons.logout,
-                  title: 'Logout',
-                  isDestructive: true,
-                  onTap: () => showLogoutConfirmation(context),
+                const SizedBox(height: 16),
+
+                ProfileGroup(
+                  children: [
+                    ProfileOption(
+                      icon: Icons.logout,
+                      title: 'Logout',
+                      isDestructive: true,
+                      onTap: () => showLogoutConfirmation(context),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -1218,32 +1096,121 @@ class _ProposalCardState extends State<_ProposalCard> {
   }
 }
 
-class _ProfileOption extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String? subtitle;
-  final VoidCallback onTap;
-  final bool isDestructive;
-
-  const _ProfileOption({
-    required this.icon,
-    required this.title,
-    this.subtitle,
-    required this.onTap,
-    this.isDestructive = false,
-  });
+// Modernised driver profile header: ring avatar on a tinted gradient card, name,
+// email, role + availability pills, and a rating / jobs-done stats strip.
+class _DriverProfileHeader extends StatelessWidget {
+  final dynamic user;
+  const _DriverProfileHeader({required this.user});
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      leading: Icon(icon, color: isDestructive ? Colors.red : null),
-      title: Text(
-        title,
-        style: TextStyle(color: isDestructive ? Colors.red : null),
+    final name = user?.name as String? ?? 'Driver';
+    final initial = name.isNotEmpty ? name[0].toUpperCase() : 'D';
+    final available = user?.isAvailable == true;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [kTintGreen, lightGreen],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: kSubtleBorder),
       ),
-      subtitle: subtitle != null ? Text(subtitle!) : null,
-      trailing: const Icon(Icons.chevron_right),
-      onTap: onTap,
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: primaryGreen.withValues(alpha: 0.25),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: CircleAvatar(
+              radius: 40,
+              backgroundColor: primaryGreen,
+              child: Text(
+                initial,
+                style: const TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            name,
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: textDark,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            user?.email as String? ?? '',
+            style: const TextStyle(fontSize: 13.5, color: kMutedText),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              const ProfilePill(
+                icon: Icons.local_shipping,
+                label: 'Driver',
+                filled: true,
+              ),
+              ProfilePill(
+                icon: available ? Icons.check_circle : Icons.pause_circle,
+                label: available ? 'Available' : 'Offline',
+                filled: true,
+                fillColor: available ? primaryGreen : Colors.orange,
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Row(
+            children: [
+              Expanded(
+                child: _stat(
+                  (user?.rating as num?)?.toStringAsFixed(1) ?? '0.0',
+                  'Rating',
+                ),
+              ),
+              Container(width: 1, height: 34, color: kSubtleBorder),
+              Expanded(
+                child: _stat('${user?.completedJobs ?? 0}', 'Jobs done'),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
+
+  Widget _stat(String value, String label) => Column(
+    children: [
+      Text(
+        value,
+        style: const TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+          color: textDark,
+        ),
+      ),
+      const SizedBox(height: 2),
+      Text(label, style: const TextStyle(fontSize: 12, color: kMutedText)),
+    ],
+  );
 }

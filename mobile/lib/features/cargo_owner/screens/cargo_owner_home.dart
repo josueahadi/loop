@@ -13,8 +13,10 @@ import '../../../providers/notification_provider.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../mixins/logout_mixin.dart';
 import '../../../features/profile/providers/profile_provider.dart';
+import '../../../core/widgets/profile_widgets.dart';
 import '../../../screens/create_job_screen.dart';
 import '../../../screens/cargo_owner_profile_edit_screen.dart';
+import '../../../screens/help_support_screen.dart';
 import '../../matching/presentation/nearby_drivers_map.dart';
 import '../../../core/theme/ui_kit.dart';
 
@@ -434,132 +436,93 @@ class _ProfileTab extends StatelessWidget with LogoutMixin {
           onRefresh: authProvider.refreshUserData,
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
             child: Column(
               children: [
-                // Profile Header
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: lightGreen,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    children: [
-                      CircleAvatar(
-                        radius: 40,
-                        backgroundColor: primaryGreen,
-                        child: Text(
-                          user.name.isNotEmpty
-                              ? user.name[0].toUpperCase()
-                              : 'U',
-                          style: const TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        user.name,
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        user.email,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: primaryGreen,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Text(
-                          'Cargo Owner',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
+                _ProfileHeader(user: user),
+                const SizedBox(height: 20),
 
-                // Profile Options
-                _ProfileOption(
-                  icon: Icons.person,
-                  title: 'Edit Profile',
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            const CargoOwnerProfileEditScreen(),
+                // Account
+                ProfileGroup(
+                  children: [
+                    ProfileOption(
+                      icon: Icons.person_outline,
+                      title: 'Edit Profile',
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const CargoOwnerProfileEditScreen(),
+                        ),
                       ),
-                    );
-                  },
-                ),
-                _ProfileOption(
-                  icon: Icons.star_outline,
-                  title: 'My Ratings',
-                  subtitle: user.rating != null
-                      ? '${user.rating!.toStringAsFixed(1)} average'
-                      : 'View ratings you received',
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => const MyRatingsScreen(),
+                    ),
+                    ProfileOption(
+                      icon: Icons.star_outline,
+                      title: 'My Ratings',
+                      subtitle: user.rating != null
+                          ? '${user.rating!.toStringAsFixed(1)} average'
+                          : 'View ratings you received',
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const MyRatingsScreen(),
+                        ),
                       ),
-                    );
-                  },
-                ),
-                // Cargo owners need only an account — no business credentials (MVP scope).
-                _ProfileOption(
-                  icon: Icons.notifications,
-                  title: 'Notifications',
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const NotificationsScreen(),
+                    ),
+                    ProfileOption(
+                      icon: Icons.notifications_none,
+                      title: 'Notifications',
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const NotificationsScreen(),
+                        ),
                       ),
-                    );
-                  },
+                    ),
+                  ],
                 ),
-                _ProfileOption(
-                  icon: Icons.help,
-                  title: 'Help & Support',
-                  onTap: () {
-                    // TODO: Navigate to help
-                  },
+                const SizedBox(height: 16),
+
+                // Support
+                ProfileGroup(
+                  children: [
+                    ProfileOption(
+                      icon: Icons.help_outline,
+                      title: 'Help & Support',
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const HelpSupportScreen(),
+                        ),
+                      ),
+                    ),
+                    ProfileOption(
+                      icon: Icons.info_outline,
+                      title: 'About',
+                      onTap: () => showAboutDialog(
+                        context: context,
+                        applicationName: 'Loop',
+                        applicationVersion: '1.0.0',
+                        applicationLegalese:
+                            '© 2026 Habib Josue Ahadi. All rights reserved.',
+                        children: const [
+                          SizedBox(height: 12),
+                          Text(
+                            'Real-time geo-matching for cargo owners and drivers '
+                            'in Rwanda.',
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                _ProfileOption(
-                  icon: Icons.info,
-                  title: 'About',
-                  onTap: () {
-                    // TODO: Navigate to about
-                  },
-                ),
-                const SizedBox(height: 8),
-                const Divider(),
-                _ProfileOption(
-                  icon: Icons.logout,
-                  title: 'Logout',
-                  isDestructive: true,
-                  onTap: () => showLogoutConfirmation(context),
+                const SizedBox(height: 16),
+
+                // Sign out
+                ProfileGroup(
+                  children: [
+                    ProfileOption(
+                      icon: Icons.logout,
+                      title: 'Logout',
+                      isDestructive: true,
+                      onTap: () => showLogoutConfirmation(context),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -704,35 +667,88 @@ class _LocationRow extends StatelessWidget {
   }
 }
 
-class _ProfileOption extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String? subtitle;
-  final VoidCallback onTap;
-  final bool isDestructive;
-
-  const _ProfileOption({
-    required this.icon,
-    required this.title,
-    this.subtitle,
-    required this.onTap,
-    this.isDestructive = false,
-  });
+// Modernised profile header: avatar in a soft ring on a tinted gradient card,
+// name, email, a role chip, and the rating inline when present.
+class _ProfileHeader extends StatelessWidget {
+  final UserModel user;
+  const _ProfileHeader({required this.user});
 
   @override
   Widget build(BuildContext context) {
-    final color = isDestructive ? Colors.red : appGreen;
-    return ListTile(
-      leading: Icon(icon, color: color),
-      title: Text(
-        title,
-        style: isDestructive ? const TextStyle(color: Colors.red) : null,
+    final initial = user.name.isNotEmpty ? user.name[0].toUpperCase() : 'U';
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [kTintGreen, lightGreen],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: kSubtleBorder),
       ),
-      subtitle: subtitle != null ? Text(subtitle!) : null,
-      trailing: isDestructive
-          ? null
-          : Icon(Icons.chevron_right, color: appGreen),
-      onTap: onTap,
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: primaryGreen.withValues(alpha: 0.25),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: CircleAvatar(
+              radius: 40,
+              backgroundColor: primaryGreen,
+              child: Text(
+                initial,
+                style: const TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            user.name,
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: textDark,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            user.email,
+            style: const TextStyle(fontSize: 13.5, color: kMutedText),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              const ProfilePill(
+                icon: Icons.local_shipping_outlined,
+                label: 'Cargo Owner',
+                filled: true,
+              ),
+              if (user.rating != null)
+                ProfilePill(
+                  icon: Icons.star,
+                  label: user.rating!.toStringAsFixed(1),
+                ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
