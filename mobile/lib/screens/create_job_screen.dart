@@ -36,6 +36,7 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
   final _jobs = JobRepository();
   final _geocode = GeocodeRepository();
   final _mapController = MapController();
+  BasemapStyle _style = Basemap.defaultStyle;
   final _formKey = GlobalKey<FormState>();
 
   final _cargoTypeController = TextEditingController();
@@ -326,7 +327,7 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
             onTap: (_, point) => _onMapTap(point),
           ),
           children: [
-            Basemap.tileLayer(context),
+            Basemap.tileLayer(context, _style),
             // Prefer the OSRM road geometry; fall back to a straight line
             // between the pins until a route is fetched (or on OSRM fallback).
             if (_pickup != null && _dropOff != null)
@@ -378,6 +379,8 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
           child: MapZoomControls(
             controller: _mapController,
             heroPrefix: 'createjob',
+            style: _style,
+            onToggleStyle: (s) => setState(() => _style = s),
           ),
         ),
         Positioned(

@@ -4,6 +4,8 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../../constants.dart';
+import '../../../core/config/basemap.dart';
+import '../../../core/config/map_zoom_controls.dart';
 import '../../../core/location/location_service.dart';
 import '../../../core/theme/ui_kit.dart';
 
@@ -21,6 +23,7 @@ class DriverLocationScreen extends StatefulWidget {
 class _DriverLocationScreenState extends State<DriverLocationScreen> {
   final _location = LocationService();
   final _mapController = MapController();
+  BasemapStyle _style = Basemap.defaultStyle;
 
   LatLng? _me;
   bool _loading = true;
@@ -104,11 +107,7 @@ class _DriverLocationScreenState extends State<DriverLocationScreen> {
                     initialZoom: 13,
                   ),
                   children: [
-                    TileLayer(
-                      urlTemplate:
-                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                      userAgentPackageName: 'rw.loop.app',
-                    ),
+                    Basemap.tileLayer(context, _style),
                     if (_me != null)
                       MarkerLayer(
                         markers: [
@@ -122,10 +121,20 @@ class _DriverLocationScreenState extends State<DriverLocationScreen> {
                       ),
                     RichAttributionWidget(
                       attributions: [
-                        TextSourceAttribution('OpenStreetMap contributors'),
+                        TextSourceAttribution(Basemap.attribution),
                       ],
                     ),
                   ],
+                ),
+                Positioned(
+                  right: 12,
+                  top: 12,
+                  child: MapZoomControls(
+                    controller: _mapController,
+                    heroPrefix: 'driverloc',
+                    style: _style,
+                    onToggleStyle: (s) => setState(() => _style = s),
+                  ),
                 ),
                 if (_loading) const Center(child: CircularProgressIndicator()),
                 // Explainer so the driver understands this is what owners see.
