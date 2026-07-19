@@ -37,6 +37,7 @@ class _NearbyDriversMapState extends State<NearbyDriversMap> {
   final _jobs = JobRepository();
   final _proposals = ProposalRepository();
   final _mapController = MapController();
+  BasemapStyle _style = Basemap.defaultStyle;
 
   LatLng? _center;
   List<NearbyDriver> _drivers = [];
@@ -305,7 +306,7 @@ class _NearbyDriversMapState extends State<NearbyDriversMap> {
                         initialZoom: 13,
                       ),
                       children: [
-                        Basemap.tileLayer(context),
+                        Basemap.tileLayer(context, _style),
                         MarkerLayer(markers: _markers()),
                         RichAttributionWidget(
                           alignment: AttributionAlignment.bottomLeft,
@@ -321,6 +322,8 @@ class _NearbyDriversMapState extends State<NearbyDriversMap> {
                       child: MapZoomControls(
                         controller: _mapController,
                         heroPrefix: 'nearby',
+                        style: _style,
+                        onToggleStyle: (s) => setState(() => _style = s),
                       ),
                     ),
                     if (_loading)

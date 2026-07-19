@@ -39,6 +39,7 @@ class _OwnerJobDetailScreenState extends State<OwnerJobDetailScreen> {
   final _messages = MessageRepository();
   final _routing = RoutingRepository();
   final _mapController = MapController();
+  BasemapStyle _style = Basemap.defaultStyle;
   late Job _job = widget.job;
   Proposal? _accepted;
   bool _ownerRated = false;
@@ -295,7 +296,7 @@ class _OwnerJobDetailScreenState extends State<OwnerJobDetailScreen> {
           mapController: _mapController,
           options: MapOptions(initialCenter: mid, initialZoom: 12),
           children: [
-            Basemap.tileLayer(context),
+            Basemap.tileLayer(context, _style),
             PolylineLayer(
               polylines: [
                 Polyline(
@@ -325,6 +326,8 @@ class _OwnerJobDetailScreenState extends State<OwnerJobDetailScreen> {
           child: MapZoomControls(
             controller: _mapController,
             heroPrefix: 'ownerjob',
+            style: _style,
+            onToggleStyle: (s) => setState(() => _style = s),
           ),
         ),
       ],
