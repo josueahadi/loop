@@ -51,7 +51,7 @@ An Android emulator (with Google Play services, for push) or a physical device w
 The release APK is already configured to talk to the hosted API — no local backend or setup is needed. It targets **Android** (Android 6.0 / API 23 and newer).
 
 1. **Download** the APK to your Android phone from the latest release:
-   **[Loop release APK](https://github.com/josueahadi/loop/releases/latest)** → download the `loop-v1.0.0.apk` asset. Or scan this QR code with the phone's camera:
+   **[Loop release APK](https://github.com/josueahadi/loop/releases/latest)** → download the `loop-*.apk` asset from the latest release. Or scan this QR code with the phone's camera:
 
    <img src="apk-download-qr.png" alt="QR code — Loop APK download" width="180" />
 
