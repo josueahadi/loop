@@ -48,6 +48,10 @@ class _DriverProfileEditScreenState extends State<DriverProfileEditScreen>
   File? _vehicleRegistrationFile;
   File? _vehicleImageFile;
 
+  // Turns on inline field errors after the first failed save attempt, so the
+  // licence-number (and other) validators show their message as the user types.
+  AutovalidateMode _autovalidate = AutovalidateMode.disabled;
+
   // Document upload states
   bool _driverLicenseUploading = false;
   bool _nationalIdUploading = false;
@@ -156,7 +160,25 @@ class _DriverProfileEditScreenState extends State<DriverProfileEditScreen>
   }
 
   Future<void> _saveProfile() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      setState(() => _autovalidate = AutovalidateMode.always);
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          0,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Please fill in the required fields highlighted above.',
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
 
     setState(() {
       _isLoading = true;
@@ -435,6 +457,7 @@ class _DriverProfileEditScreenState extends State<DriverProfileEditScreen>
         padding: const EdgeInsets.all(16),
         child: Form(
           key: _formKey,
+          autovalidateMode: _autovalidate,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -543,8 +566,9 @@ class _DriverProfileEditScreenState extends State<DriverProfileEditScreen>
               TextFormField(
                 controller: _driverLicenseNumberController,
                 decoration: const InputDecoration(
-                  labelText: 'Driver License Number',
+                  labelText: 'Driver License Number *',
                   hintText: 'Enter your license number',
+                  helperText: 'Required',
                   border: OutlineInputBorder(),
                 ),
                 validator: (value) {
