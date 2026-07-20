@@ -896,8 +896,20 @@ class _ProposalCardState extends State<_ProposalCard> {
     if (_busy) return;
     setState(() => _busy = true);
     try {
-      await _repo.respond(widget.proposal.id, status);
+      final updated = await _repo.respond(widget.proposal.id, status);
       await widget.onChanged();
+      // On accept, take the driver straight into the job — the accepted job
+      // otherwise silently moves to the My Jobs tab, leaving them on this list
+      // with no cue about what to do next.
+      if (status == 'accepted' && mounted) {
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => DriverJobDetailScreen(proposal: updated),
+          ),
+        );
+        await widget.onChanged();
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

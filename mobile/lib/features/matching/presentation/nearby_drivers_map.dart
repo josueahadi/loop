@@ -176,8 +176,12 @@ class _NearbyDriversMapState extends State<NearbyDriversMap> {
       Navigator.pop(context); // close the driver sheet
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Proposal sent to ${d.name}'),
+          content: Text(
+            'Proposal sent to ${d.name}. You\'ll be notified when they '
+            'accept — track it under this job in My Jobs.',
+          ),
           backgroundColor: primaryGreen,
+          duration: const Duration(seconds: 4),
         ),
       );
     } catch (e) {

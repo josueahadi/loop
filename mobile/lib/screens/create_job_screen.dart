@@ -62,6 +62,11 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
   bool _estimating = false;
   bool _posting = false;
 
+  // Scroll the form to the estimate once it arrives — it renders below the
+  // fold, so without this the result is invisible and the tap looks like a no-op.
+  final _scrollController = ScrollController();
+  final _estimateKey = GlobalKey();
+
   // Road route drawn between the pins once an estimate is fetched. Empty until
   // then, or when only the great-circle fallback is available (we keep the
   // straight line in that case).
@@ -85,6 +90,7 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
     _searchController.dispose();
     _pickupNotesController.dispose();
     _dropOffNotesController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -241,6 +247,19 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
         _routePolyline = poly;
         _priceController.text = est.estimatedPrice.toString();
       });
+      // Reveal the just-rendered estimate — it sits below the fold, so bring it
+      // into view once this frame has laid it out.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final ctx = _estimateKey.currentContext;
+        if (ctx != null) {
+          Scrollable.ensureVisible(
+            ctx,
+            duration: const Duration(milliseconds: 350),
+            curve: Curves.easeInOut,
+            alignment: 0.1,
+          );
+        }
+      });
     } catch (e) {
       _snack(friendlyErrorMessage(e));
     } finally {
@@ -307,6 +326,7 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
           _buildPinToggle(),
           Expanded(
             child: SingleChildScrollView(
+              controller: _scrollController,
               padding: const EdgeInsets.all(16),
               child: Form(key: _formKey, child: _buildForm()),
             ),
@@ -565,6 +585,7 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
         if (_estimate != null) ...[
           const SizedBox(height: 16),
           Container(
+            key: _estimateKey,
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               color: searchBg,
