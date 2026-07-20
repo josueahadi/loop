@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -78,11 +78,23 @@ export function DataTable<T>({
 }: DataTableProps<T>) {
   const [searchInput, setSearchInput] = useState('');
 
-  // Debounce the search input so we don't refetch on every keystroke.
+  // Depend only on the input value. Parents pass a fresh onSearchChange each
+  // render that resets page to 1; keeping it out of the deps stops paging from
+  // re-firing the debounce and snapping back to page 1.
+  const onSearchChangeRef = useRef(onSearchChange);
   useEffect(() => {
-    const t = setTimeout(() => onSearchChange(searchInput), 350);
+    onSearchChangeRef.current = onSearchChange;
+  });
+
+  const lastSearch = useRef(searchInput);
+  useEffect(() => {
+    if (searchInput === lastSearch.current) return;
+    const t = setTimeout(() => {
+      lastSearch.current = searchInput;
+      onSearchChangeRef.current(searchInput);
+    }, 350);
     return () => clearTimeout(t);
-  }, [searchInput, onSearchChange]);
+  }, [searchInput]);
 
   const totalPages = Math.max(1, Math.ceil(total / limit));
   const from = total === 0 ? 0 : (page - 1) * limit + 1;
