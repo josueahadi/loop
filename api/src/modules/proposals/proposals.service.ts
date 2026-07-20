@@ -257,6 +257,7 @@ function jobSummary(j: Job, coords?: JobCoords): ProposalJobDto {
     pickup: coords?.pickup ?? { lat: 0, lng: 0 },
     dropOff: coords?.dropOff ?? { lat: 0, lng: 0 },
     price: j.price ?? 0,
+    estimatedPrice: j.estimatedPrice ?? null,
     reqVehicleType: j.reqVehicleType,
     status: j.status,
   };

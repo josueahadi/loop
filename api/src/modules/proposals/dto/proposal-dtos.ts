@@ -30,6 +30,7 @@ export class ProposalJobDto {
   @ApiProperty() pickup: { lat: number; lng: number };
   @ApiProperty() dropOff: { lat: number; lng: number };
   @ApiProperty() price: number;
+  @ApiProperty({ nullable: true, description: "System estimate the owner saw; informational only" }) estimatedPrice: number | null;
   @ApiProperty() reqVehicleType: string;
   @ApiProperty() status: string;
 }

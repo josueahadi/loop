@@ -19,6 +19,7 @@ class ProposalJob {
   final LatLng pickup;
   final LatLng dropOff;
   final int price;
+  final int? estimatedPrice;
   final VehicleType reqVehicleType;
   final String status;
 
@@ -30,6 +31,7 @@ class ProposalJob {
     required this.pickup,
     required this.dropOff,
     required this.price,
+    this.estimatedPrice,
     required this.reqVehicleType,
     required this.status,
   });
@@ -47,6 +49,7 @@ class ProposalJob {
     pickup: _ll(j['pickup'] as Map<String, dynamic>?),
     dropOff: _ll(j['dropOff'] as Map<String, dynamic>?),
     price: (j['price'] as num?)?.toInt() ?? 0,
+    estimatedPrice: (j['estimatedPrice'] as num?)?.toInt(),
     reqVehicleType: VehicleTypeX.fromApi(j['reqVehicleType'] as String?),
     status: j['status'] as String? ?? '',
   );

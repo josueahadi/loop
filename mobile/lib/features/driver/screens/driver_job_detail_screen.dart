@@ -129,8 +129,15 @@ class DriverJobDetailScreen extends StatelessWidget {
                         label: 'Vehicle',
                         value: job.reqVehicleType.label,
                       ),
+                      // Informational only — the system estimate the owner saw.
+                      // Never gates or changes the driver's accept/decline.
+                      if (job.estimatedPrice != null)
+                        _DetailRow(
+                          label: 'Estimated cost',
+                          value: '~${job.estimatedPrice} RWF',
+                        ),
                       _DetailRow(
-                        label: 'Price',
+                        label: "Owner's posted price",
                         value: '${job.price} RWF',
                         emphasize: true,
                       ),
