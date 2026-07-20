@@ -27,6 +27,12 @@ export interface AppConfig {
     name: string;
     phone: string;
   };
+  // Off-platform survey results; null unless supplied.
+  survey: {
+    trustPerceptionChange: string | null;
+    emptyTripChange: string | null;
+    n: number | null;
+  };
   storage: {
     driver: 'stub' | 'firebase';
     // Either a path to the service-account JSON file, or the JSON inline
@@ -110,6 +116,11 @@ export default (): AppConfig => ({
     password: process.env.ADMIN_PASSWORD ?? 'change-me-admin',
     name: process.env.ADMIN_NAME ?? 'Loop Admin',
     phone: process.env.ADMIN_PHONE ?? '+250780000000',
+  },
+  survey: {
+    trustPerceptionChange: process.env.SURVEY_TRUST_CHANGE ?? null,
+    emptyTripChange: process.env.SURVEY_EMPTY_TRIP_CHANGE ?? null,
+    n: process.env.SURVEY_N ? parseInt(process.env.SURVEY_N, 10) : null,
   },
   storage: {
     driver: (process.env.STORAGE_DRIVER as 'stub' | 'firebase') ?? 'stub',

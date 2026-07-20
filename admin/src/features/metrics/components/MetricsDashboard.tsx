@@ -4,14 +4,17 @@ import Link from 'next/link';
 import {
   ClipboardCheck,
   Clock3,
+  MapPin,
   MessageSquareText,
   Percent,
   Star,
   Target,
+  TrendingDown,
+  TrendingUp,
   Users,
 } from 'lucide-react';
 import { useMetrics } from '../hooks/useMetrics';
-import { CountsChart } from './CountsChart';
+import { DonutChart } from './DonutChart';
 import { formatDuration, formatNumber, formatRate } from './format';
 import { KpiCard } from './KpiCard';
 import { Badge } from '@/components/ui/badge';
@@ -41,6 +44,7 @@ export function MetricsDashboard() {
   }
 
   const oc = m.operational_counts;
+  const totalUsers = Object.values(oc.users_by_role).reduce((a, b) => a + b, 0);
 
   return (
     <div className="flex flex-col gap-8">
@@ -129,10 +133,17 @@ export function MetricsDashboard() {
           href="/drivers"
         />
         <KpiCard
+          label="Driver availability"
+          value={formatRate(m.driver_availability.rate)}
+          detail={`${m.driver_availability.with_driver} / ${m.driver_availability.total_posted} posted jobs`}
+          hint={`≥1 available driver within ${m.driver_availability.radius_km} km of pickup`}
+          icon={MapPin}
+        />
+        <KpiCard
           label="Match rate (proxy)"
           value={formatRate(m.match_rate.rate)}
           detail={`${m.match_rate.matched} / ${m.match_rate.total_posted} posted jobs`}
-          hint="Proxy — not true driver availability"
+          hint="Jobs that reached a match — see driver availability for supply"
           icon={Percent}
         />
         <KpiCard
@@ -147,19 +158,28 @@ export function MetricsDashboard() {
 
       {/* Operational breakdowns — rendered straight from the server's count maps. */}
       <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <CountsChart
+        <DonutChart
           title="Users by role"
           data={oc.users_by_role}
           href="/users"
+          centerLabel="Users"
         />
-        <CountsChart
+        <DonutChart
           title="Jobs by status"
           data={oc.jobs_by_status}
           href="/jobs"
+          centerLabel="Jobs"
         />
       </section>
 
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <KpiCard
+          label="All users"
+          value={formatNumber(totalUsers)}
+          detail={`${formatNumber(oc.users_by_role.cargo_owner ?? 0)} owners · ${formatNumber(oc.users_by_role.driver ?? 0)} drivers`}
+          icon={Users}
+          href="/users"
+        />
         <KpiCard
           label="Ratings collected"
           value={formatNumber(oc.ratings.count)}
@@ -206,28 +226,66 @@ export function MetricsDashboard() {
                 {m.survey_metrics.note}
               </p>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
-                  <p className="text-xs tracking-wide text-muted-foreground uppercase">
-                    Trust perception change
-                  </p>
-                  <p className="text-lg font-medium text-muted-foreground">
-                    {m.survey_metrics.trust_perception_change ??
-                      'Awaiting survey'}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs tracking-wide text-muted-foreground uppercase">
-                    Empty-trip change
-                  </p>
-                  <p className="text-lg font-medium text-muted-foreground">
-                    {m.survey_metrics.empty_trip_change ?? 'Awaiting survey'}
-                  </p>
-                </div>
+                <SurveyMetric
+                  label="Trust perception change"
+                  value={m.survey_metrics.trust_perception_change}
+                  caption="Mean trust in finding transport, before → after"
+                  positive
+                />
+                <SurveyMetric
+                  label="Empty-trip change"
+                  value={m.survey_metrics.empty_trip_change}
+                  caption="Driver idle-time score, before → after (lower is better)"
+                  positive={false}
+                />
               </div>
             </div>
           </CardContent>
         </Card>
       </section>
+    </div>
+  );
+}
+
+function SurveyMetric({
+  label,
+  value,
+  caption,
+  positive,
+}: {
+  label: string;
+  value: string | null;
+  caption: string;
+  positive: boolean;
+}) {
+  if (value == null) {
+    return (
+      <div className="rounded-lg border border-dashed p-4">
+        <p className="text-xs tracking-wide text-muted-foreground uppercase">
+          {label}
+        </p>
+        <p className="mt-1 text-lg font-medium text-muted-foreground">
+          Awaiting survey
+        </p>
+        <p className="mt-1 text-xs text-muted-foreground">{caption}</p>
+      </div>
+    );
+  }
+  const improved = positive
+    ? value.trim().startsWith('+')
+    : /^[−-]/.test(value.trim());
+  const Icon = improved ? TrendingUp : TrendingDown;
+  const tone = improved ? 'text-emerald-600' : 'text-amber-600';
+  return (
+    <div className="rounded-lg border bg-background p-4">
+      <p className="text-xs tracking-wide text-muted-foreground uppercase">
+        {label}
+      </p>
+      <p className={`mt-1 flex items-center gap-1.5 text-2xl font-semibold tabular-nums ${tone}`}>
+        <Icon className="size-5" />
+        {value}
+      </p>
+      <p className="mt-1 text-xs text-muted-foreground">{caption}</p>
     </div>
   );
 }

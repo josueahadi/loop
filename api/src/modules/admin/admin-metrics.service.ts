@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
+import type { AppConfig } from '../../config/configuration';
 
 // Rate over a denominator; null when there's nothing to divide (honest empty state,
 // distinct from a real 0%). The dashboard renders null as "No data yet".
@@ -16,7 +18,10 @@ const round1 = (x: number | null): number | null =>
 // Every metric carries its n / totals so small-n is visible (never smoothed/hidden).
 @Injectable()
 export class AdminMetricsService {
-  constructor(@InjectDataSource() private readonly ds: DataSource) {}
+  constructor(
+    @InjectDataSource() private readonly ds: DataSource,
+    private readonly config: ConfigService<AppConfig, true>,
+  ) {}
 
   async getMetrics() {
     const [ttm] = await this.ds.query(
@@ -54,6 +59,29 @@ export class AdminMetricsService {
       `SELECT COUNT(*) FILTER (WHERE matched_at IS NOT NULL)::int AS matched,
               COUNT(*)::int AS total
        FROM jobs WHERE posted_at IS NOT NULL`,
+    );
+
+    const radiusMeters =
+      (this.config.get('matching.defaultRadiusKm', { infer: true }) ?? 10) *
+      1000;
+    const [avail] = await this.ds.query(
+      `SELECT COUNT(*)::int AS total,
+              COUNT(*) FILTER (WHERE EXISTS (
+                SELECT 1 FROM users u
+                WHERE u.role = 'driver'
+                  AND u.availability_status = 'online'
+                  AND u.location IS NOT NULL
+                  AND ST_DWithin(u.location, j.pickup_location, $1)
+                  AND u.id IN (
+                    SELECT driver_id FROM verification_records
+                    WHERE status = 'approved'
+                    GROUP BY driver_id
+                    HAVING COUNT(DISTINCT document_type) = 3
+                  )
+              ))::int AS with_driver
+       FROM jobs j
+       WHERE j.posted_at IS NOT NULL AND j.pickup_location IS NOT NULL`,
+      [radiusMeters],
     );
 
     const usersByRole = await this.ds.query(
@@ -103,6 +131,12 @@ export class AdminMetricsService {
         matched: mr.matched,
         total_posted: mr.total,
       },
+      driver_availability: {
+        rate: rate(avail.with_driver, avail.total),
+        with_driver: avail.with_driver,
+        total_posted: avail.total,
+        radius_km: radiusMeters / 1000,
+      },
       operational_counts: {
         users_by_role: toMap(usersByRole, 'role'),
         jobs_by_status: toMap(jobsByStatus, 'status'),
@@ -114,11 +148,16 @@ export class AdminMetricsService {
         ratings: { count: rat.count, overall_average: round1(rat.avg) },
         pending_verifications: pv.n,
       },
-      // NOT platform data — collected via the Kigali user-test survey. No fabrication.
+      // Supplied from the off-platform survey via config, not computed from the DB.
       survey_metrics: {
-        trust_perception_change: null,
-        empty_trip_change: null,
-        note: 'Collected via the Kigali user-test survey, not platform data',
+        trust_perception_change: this.config.get('survey.trustPerceptionChange', {
+          infer: true,
+        }),
+        empty_trip_change: this.config.get('survey.emptyTripChange', {
+          infer: true,
+        }),
+        n: this.config.get('survey.n', { infer: true }),
+        note: 'Collected via the Kigali user-test survey (n=20), not platform data',
       },
     };
   }

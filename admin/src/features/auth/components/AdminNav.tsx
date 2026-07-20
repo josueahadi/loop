@@ -9,6 +9,7 @@ import {
   BriefcaseBusiness,
   ClipboardCheck,
   LogOut,
+  PackageOpen,
   UserRoundCog,
   Users,
 } from 'lucide-react';
@@ -55,6 +56,7 @@ const LINK_GROUPS = [
     links: [
       { href: '/verifications', label: 'Verifications', icon: ClipboardCheck },
       { href: '/drivers', label: 'Drivers', icon: Users },
+      { href: '/cargo-owners', label: 'Cargo owners', icon: PackageOpen },
       { href: '/users', label: 'Users', icon: UserRoundCog },
       { href: '/jobs', label: 'Jobs', icon: BriefcaseBusiness },
     ],
@@ -65,6 +67,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/metrics': 'Metrics',
   '/verifications': 'Verifications',
   '/drivers': 'Drivers',
+  '/cargo-owners': 'Cargo owners',
   '/users': 'Users',
   '/jobs': 'Jobs',
 };

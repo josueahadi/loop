@@ -27,6 +27,12 @@ export interface Metrics {
     matched: number;
     total_posted: number;
   };
+  driver_availability: {
+    rate: number | null;
+    with_driver: number;
+    total_posted: number;
+    radius_km: number;
+  };
   operational_counts: {
     users_by_role: Record<string, number>;
     jobs_by_status: Record<string, number>;
@@ -39,8 +45,11 @@ export interface Metrics {
     pending_verifications: number;
   };
   survey_metrics: {
-    trust_perception_change: number | null;
-    empty_trip_change: number | null;
+    // Pre-formatted display strings from the off-platform survey (e.g. "+0.65 / 5"),
+    // or null when the survey hasn't been supplied.
+    trust_perception_change: string | null;
+    empty_trip_change: string | null;
+    n: number | null;
     note: string;
   };
 }
