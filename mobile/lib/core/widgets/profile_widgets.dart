@@ -3,8 +3,6 @@ import 'package:flutter/material.dart';
 import '../../constants.dart';
 import '../theme/ui_kit.dart';
 
-/// A rounded white card that groups profile rows with hairline dividers. Shared
-/// by the cargo-owner and driver profile tabs so both read identically.
 class ProfileGroup extends StatelessWidget {
   final List<Widget> children;
   const ProfileGroup({super.key, required this.children});
@@ -13,26 +11,26 @@ class ProfileGroup extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: kSurface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: kSubtleBorder),
       ),
       clipBehavior: Clip.antiAlias,
-      child: Column(
-        children: [
-          for (var i = 0; i < children.length; i++) ...[
-            children[i],
-            if (i < children.length - 1)
-              const Divider(height: 1, thickness: 1, color: kSubtleBorder),
+      child: Material(
+        color: kSurface,
+        child: Column(
+          children: [
+            for (var i = 0; i < children.length; i++) ...[
+              children[i],
+              if (i < children.length - 1)
+                const Divider(height: 1, thickness: 1, color: kSubtleBorder),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
 }
 
-/// A single profile row: a soft tinted icon tile, title, optional subtitle, and
-/// a chevron (suppressed for the destructive logout row).
 class ProfileOption extends StatelessWidget {
   final IconData icon;
   final String title;
