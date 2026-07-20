@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../constants.dart';
 import '../providers/auth_provider.dart';
 import '../core/enums/app_enums.dart';
+import '../core/utils/rwanda_phone.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -44,7 +45,8 @@ class _SignupScreenState extends State<SignupScreen> {
       email: emailController.text.trim(),
       password: passwordController.text,
       name: nameController.text.trim(),
-      phoneNumber: phoneController.text.trim(),
+      phoneNumber: RwandaPhone.toE164(phoneController.text) ??
+          phoneController.text.trim(),
       role: _selectedRole,
     );
 
@@ -278,20 +280,10 @@ class _SignupScreenState extends State<SignupScreen> {
                     keyboardType: TextInputType.phone,
                     textInputAction: TextInputAction.next,
                     autofillHints: const [AutofillHints.telephoneNumber],
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter your phone number';
-                      }
-                      if (!RegExp(
-                        r'^\+?[0-9]{10,}$',
-                      ).hasMatch(value.replaceAll(' ', ''))) {
-                        return 'Please enter a valid phone number';
-                      }
-                      return null;
-                    },
+                    validator: RwandaPhone.validate,
                     decoration: _fieldDecoration(
                       label: "Phone number",
-                      hint: "+250...",
+                      hint: "0788 123 456",
                       icon: Icons.phone_android,
                     ),
                   ),

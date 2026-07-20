@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../core/models/user_model.dart';
 import '../core/repositories/user_repository.dart';
 import '../core/repositories/vehicle_repository.dart';
+import '../core/utils/rwanda_phone.dart';
 import '../core/repositories/verification_repository.dart';
 import '../providers/auth_provider.dart';
 import '../mixins/image_picker_mixin.dart';
@@ -230,7 +231,8 @@ class _DriverProfileEditScreenState extends State<DriverProfileEditScreen>
       // Update the editable profile fields (name/phone/licence number) via PATCH /me.
       final updatedUser = currentUser.copyWith(
         name: _nameController.text.trim(),
-        phoneNumber: _phoneController.text.trim(),
+        phoneNumber: RwandaPhone.toE164(_phoneController.text) ??
+            _phoneController.text.trim(),
         driverLicenseNumber: _driverLicenseNumberController.text.trim(),
         updatedAt: DateTime.now(),
       );
@@ -553,12 +555,7 @@ class _DriverProfileEditScreenState extends State<DriverProfileEditScreen>
                   border: OutlineInputBorder(),
                 ),
                 keyboardType: TextInputType.phone,
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Please enter your phone number';
-                  }
-                  return null;
-                },
+                validator: RwandaPhone.validate,
               ),
 
               const SizedBox(height: 16),
