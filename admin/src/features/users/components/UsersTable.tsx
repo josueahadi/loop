@@ -8,6 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DataTable, type Column } from '@/components/data-table';
 import { DEFAULT_PAGE_SIZE } from '@/lib/pagination';
+import { ConfirmActionButton } from '@/features/admin-actions/ConfirmActionButton';
+import { useSetUserSuspension } from '@/features/admin-actions/hooks';
 import { useUsers } from '../hooks/useUsers';
 import type { AdminUser, AdminUserRole } from '../types';
 
@@ -17,66 +19,98 @@ const roleLabels: Record<AdminUserRole, string> = {
   driver: 'Driver',
 };
 
-const columns: Column<AdminUser>[] = [
-  {
-    header: 'User',
-    cell: (u) => (
-      <div className="flex flex-col">
-        <span className="font-medium">{u.name}</span>
-        <span className="text-xs text-muted-foreground">{u.phone}</span>
-      </div>
-    ),
-  },
-  {
-    header: 'Role',
-    cell: (u) => (
-      <Badge variant={u.role === 'admin' ? 'default' : 'secondary'}>
-        {roleLabels[u.role]}
-      </Badge>
-    ),
-  },
-  {
-    header: 'Email',
-    cell: (u) => (
-      <div className="flex flex-col">
-        <span>{u.email}</span>
-        <span className="text-xs text-muted-foreground">
-          {u.emailVerifiedAt ? 'Verified' : 'Not verified'}
-        </span>
-      </div>
-    ),
-  },
-  {
-    header: 'Rating',
-    cell: (u) => `${Number(u.averageRating).toFixed(1)} (${u.ratingCount})`,
-  },
-  {
-    header: 'Joined',
-    cell: (u) => new Date(u.createdAt).toLocaleDateString(),
-  },
-  {
-    header: '',
-    // Drivers are the only verified role — jump straight to their docs. Stop
-    // propagation so this doesn't also trigger the row's navigate-to-profile.
-    cell: (u) =>
-      u.role === 'driver' ? (
-        <div className="flex justify-end" onClick={(e) => e.stopPropagation()}>
-          <Button asChild variant="outline" size="sm">
-            <Link href={`/verifications?driver=${u.id}`}>
-              <FileCheck data-icon="inline-start" />
-              Verifications
-            </Link>
-          </Button>
-        </div>
-      ) : null,
-  },
-];
-
 export function UsersTable() {
   const router = useRouter();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
+  const suspension = useSetUserSuspension();
+
+  const columns: Column<AdminUser>[] = [
+    {
+      header: 'User',
+      cell: (u) => (
+        <div className="flex flex-col">
+          <span className="font-medium">{u.name}</span>
+          <span className="text-xs text-muted-foreground">{u.phone}</span>
+        </div>
+      ),
+    },
+    {
+      header: 'Role',
+      cell: (u) => (
+        <div className="flex flex-col gap-1">
+          <Badge variant={u.role === 'admin' ? 'default' : 'secondary'}>
+            {roleLabels[u.role]}
+          </Badge>
+          {u.suspendedAt && <Badge variant="destructive">Suspended</Badge>}
+        </div>
+      ),
+    },
+    {
+      header: 'Email',
+      cell: (u) => (
+        <div className="flex flex-col">
+          <span>{u.email}</span>
+          <span className="text-xs text-muted-foreground">
+            {u.emailVerifiedAt ? 'Verified' : 'Not verified'}
+          </span>
+        </div>
+      ),
+    },
+    {
+      header: 'Rating',
+      cell: (u) => `${Number(u.averageRating).toFixed(1)} (${u.ratingCount})`,
+    },
+    {
+      header: 'Joined',
+      cell: (u) => new Date(u.createdAt).toLocaleDateString(),
+    },
+    {
+      header: '',
+      // Drivers are the only verified role — jump straight to their docs. Stop
+      // propagation so this doesn't also trigger the row's navigate-to-profile.
+      cell: (u) => (
+        <div
+          className="flex flex-wrap justify-end gap-2"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {u.role === 'driver' && (
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/verifications?driver=${u.id}`}>
+                <FileCheck data-icon="inline-start" />
+                Verifications
+              </Link>
+            </Button>
+          )}
+          {u.role !== 'admin' && (
+            <ConfirmActionButton
+              trigger={
+                <Button
+                  variant={u.suspendedAt ? 'outline' : 'destructive'}
+                  size="sm"
+                >
+                  {u.suspendedAt ? 'Reactivate' : 'Suspend'}
+                </Button>
+              }
+              title={u.suspendedAt ? 'Reactivate account?' : 'Suspend account?'}
+              description={
+                u.suspendedAt
+                  ? `${u.name} will be able to log in again.`
+                  : `${u.name} will be signed out of matching and blocked from logging in until reactivated.`
+              }
+              confirmLabel={u.suspendedAt ? 'Reactivate' : 'Suspend'}
+              destructive={!u.suspendedAt}
+              onConfirm={() =>
+                suspension.mutate({ id: u.id, suspended: !u.suspendedAt })
+              }
+              pending={suspension.isPending}
+            />
+          )}
+        </div>
+      ),
+    },
+  ];
 
   const { data, isLoading, isError } = useUsers({
     page,

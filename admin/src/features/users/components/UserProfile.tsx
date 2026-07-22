@@ -4,6 +4,8 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Eye, FileCheck } from 'lucide-react';
 import { DocumentPreviewDialog } from '@/features/verifications/components/DocumentPreviewDialog';
+import { ConfirmActionButton } from '@/features/admin-actions/ConfirmActionButton';
+import { useReopenVerification } from '@/features/admin-actions/hooks';
 import { useUserProfile } from '../hooks/useUsers';
 import type {
   AdminUserProfile,
@@ -242,6 +244,7 @@ function statusVariant(status: ProfileDocument['status']) {
 
 function DocumentsTable({ documents }: { documents: ProfileDocument[] }) {
   const [preview, setPreview] = useState<ProfileDocument | null>(null);
+  const reopen = useReopenVerification();
 
   if (documents.length === 0) {
     return <EmptyState message="No documents submitted." />;
@@ -269,15 +272,31 @@ function DocumentsTable({ documents }: { documents: ProfileDocument[] }) {
                 {d.reviewNote ?? '—'}
               </TableCell>
               <TableCell>{date(d.createdAt)}</TableCell>
-              <TableCell className="text-right">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPreview(d)}
-                >
-                  <Eye data-icon="inline-start" />
-                  View
-                </Button>
+              <TableCell>
+                <div className="flex flex-wrap justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPreview(d)}
+                  >
+                    <Eye data-icon="inline-start" />
+                    View
+                  </Button>
+                  {d.status !== 'pending' && (
+                    <ConfirmActionButton
+                      trigger={
+                        <Button variant="outline" size="sm">
+                          Re-open
+                        </Button>
+                      }
+                      title="Re-open for review?"
+                      description="This returns the document to the pending queue so it can be reviewed again."
+                      confirmLabel="Re-open"
+                      onConfirm={() => reopen.mutate(d.id)}
+                      pending={reopen.isPending}
+                    />
+                  )}
+                </div>
               </TableCell>
             </TableRow>
           ))}

@@ -126,4 +126,28 @@ export class JobsService {
     );
     return this.getOwned(id, ownerId);
   }
+
+  // Admin action: cancel any job that isn't already terminal (completed/cancelled).
+  // Not owner-scoped — an admin can resolve a stuck job regardless of owner.
+  async adminCancel(id: string): Promise<JobResponseDto> {
+    const [job] = await this.dataSource.query(
+      `SELECT id, status FROM jobs WHERE id = $1`,
+      [id],
+    );
+    if (!job) throw new NotFoundException('Job not found');
+    if (
+      job.status === JobStatus.COMPLETED ||
+      job.status === JobStatus.CANCELLED
+    ) {
+      throw new ConflictException(`Cannot cancel a ${job.status} job`);
+    }
+    await this.dataSource.query(
+      `UPDATE jobs
+         SET status = $1, cancelled_at = COALESCE(cancelled_at, now())
+       WHERE id = $2 AND status NOT IN ('completed', 'cancelled')`,
+      [JobStatus.CANCELLED, id],
+    );
+    const rows = await this.dataSource.query(`${SELECT} WHERE id = $1`, [id]);
+    return JobResponseDto.fromRow(rows[0]);
+  }
 }

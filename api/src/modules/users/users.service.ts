@@ -141,6 +141,35 @@ export class UsersService {
     return this.getByIdOrFail(id);
   }
 
+  // Admin action: force a driver offline (a moderation/safety lever). Only ever
+  // OFFLINE — going online needs the driver's real location, which an admin lacks.
+  async forceOffline(id: string): Promise<User> {
+    const user = await this.getByIdOrFail(id);
+    if (user.role !== UserRole.DRIVER) {
+      throw new ForbiddenException('Only drivers have availability.');
+    }
+    await this.users.update(id, {
+      availabilityStatus: AvailabilityStatus.OFFLINE,
+    });
+    return this.getByIdOrFail(id);
+  }
+
+  // Admin action: suspend or reactivate an account. A suspended user cannot log
+  // in; a suspended driver is also forced offline so they leave matching at once.
+  async setSuspended(id: string, suspended: boolean): Promise<User> {
+    const user = await this.getByIdOrFail(id);
+    if (user.role === UserRole.ADMIN) {
+      throw new ForbiddenException('Admin accounts cannot be suspended.');
+    }
+    await this.users.update(id, {
+      suspendedAt: suspended ? new Date() : null,
+      ...(suspended && user.role === UserRole.DRIVER
+        ? { availabilityStatus: AvailabilityStatus.OFFLINE }
+        : {}),
+    });
+    return this.getByIdOrFail(id);
+  }
+
   private async assertDriverCanGoOnline(id: string): Promise<void> {
     const [vehicleRow] = await this.users.manager.query(
       `SELECT COUNT(*)::int AS count FROM vehicles WHERE driver_id = $1`,

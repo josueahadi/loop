@@ -63,6 +63,7 @@ export class AdminDirectoryService {
               availability_status AS "availabilityStatus",
               license_number AS "licenseNumber",
               email_verified_at AS "emailVerifiedAt",
+              suspended_at AS "suspendedAt",
               average_rating AS "averageRating",
               rating_count AS "ratingCount",
               created_at AS "createdAt"
@@ -228,6 +229,7 @@ export class AdminDirectoryService {
     const rows = await this.ds.query(
       `SELECT u.id, u.name, u.email, u.phone,
               u.availability_status AS "availabilityStatus",
+              u.suspended_at AS "suspendedAt",
               COUNT(DISTINCT v.id)::int AS "vehicleCount",
               COUNT(DISTINCT vr.document_type) FILTER
                 (WHERE vr.status = 'approved'
@@ -277,6 +279,7 @@ export class AdminDirectoryService {
     const data = await this.ds.query(
       `SELECT id, name, email, phone, role,
               email_verified_at AS "emailVerifiedAt",
+              suspended_at AS "suspendedAt",
               average_rating AS "averageRating",
               rating_count AS "ratingCount",
               created_at AS "createdAt"

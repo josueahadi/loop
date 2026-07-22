@@ -79,6 +79,11 @@ export class User {
   @Column({ name: 'rating_count', type: 'integer', default: 0 })
   ratingCount: number;
 
+  // Set when an admin suspends the account; null when active. A suspended user
+  // cannot log in, and suspended drivers are excluded from matching.
+  @Column({ name: 'suspended_at', type: 'timestamptz', nullable: true })
+  suspendedAt: Date | null;
+
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;
 

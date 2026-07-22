@@ -53,6 +53,7 @@ export class MatchingService {
        AND ($3::vehicle_type IS NULL OR v.type = $3::vehicle_type)
       WHERE u.role = 'driver'
         AND u.availability_status = 'online'
+        AND u.suspended_at IS NULL
         AND u.location IS NOT NULL
         AND ST_DWithin(u.location, ref.g, $4)
         AND u.id IN (

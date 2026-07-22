@@ -156,4 +156,19 @@ export class VerificationService {
     }
     return saved;
   }
+
+  // Admin action: re-open an already-decided record back to PENDING so it can be
+  // reviewed again (e.g. revoke an approval, or reconsider a rejection).
+  async reopen(id: string): Promise<VerificationRecord> {
+    const record = await this.records.findOne({ where: { id } });
+    if (!record) throw new NotFoundException('Verification record not found');
+    if (record.status === VerificationStatus.PENDING) {
+      throw new ForbiddenException('Record is already pending review.');
+    }
+    record.status = VerificationStatus.PENDING;
+    record.reviewedBy = null;
+    record.reviewedAt = null;
+    record.reviewNote = null;
+    return this.records.save(record);
+  }
 }

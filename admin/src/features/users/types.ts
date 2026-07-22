@@ -7,6 +7,7 @@ export interface AdminUser {
   phone: string;
   role: AdminUserRole;
   emailVerifiedAt: string | null;
+  suspendedAt: string | null;
   averageRating: string | number;
   ratingCount: number;
   createdAt: string;

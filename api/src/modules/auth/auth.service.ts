@@ -84,6 +84,9 @@ export class AuthService {
     if (!user || !(await argon2.verify(user.passwordHash, password))) {
       throw new UnauthorizedException('Invalid credentials');
     }
+    if (user.suspendedAt) {
+      throw new UnauthorizedException('This account has been suspended.');
+    }
     // Note: email verification is intentionally not enforced here.
     // Audit admin logins only (scope decision) — never fails the login.
     if (user.role === UserRole.ADMIN) {

@@ -13,7 +13,9 @@ import { Request } from 'express';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { UserRole, VerificationStatus } from '../../common/enums';
+import { JobsService } from '../jobs/jobs.service';
 import { StorageService } from '../storage/storage.service';
+import { UsersService } from '../users/users.service';
 import { VerificationResponseDto } from '../verification/dto/verification-response.dto';
 import { VerificationService } from '../verification/verification.service';
 import { AdminDirectoryService } from './admin-directory.service';
@@ -22,6 +24,7 @@ import { AuditService } from './audit.service';
 import { DirectoryQuery } from './dto/directory-query.dto';
 import { ListVerificationsQuery } from './dto/list-verifications.query';
 import { ReviewVerificationDto } from './dto/review-verification.dto';
+import { SuspendUserDto } from './dto/suspend-user.dto';
 
 // All /admin/* routes are admin-only (RolesGuard runs globally after JwtAuthGuard).
 @ApiTags('admin')
@@ -35,6 +38,8 @@ export class AdminController {
     private readonly metrics: AdminMetricsService,
     private readonly storage: StorageService,
     private readonly audit: AuditService,
+    private readonly users: UsersService,
+    private readonly jobs: JobsService,
   ) {}
 
   // Server-computed evaluation metrics — the dashboard only renders these.
@@ -114,5 +119,83 @@ export class AdminController {
       metadata: { documentType: record.documentType, driverId: record.driverId },
     });
     return VerificationResponseDto.from(record);
+  }
+
+  // Re-open an already-decided verification record back to pending review.
+  @Patch('verifications/:id/reopen')
+  async reopenVerification(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser('id') adminId: string,
+    @Req() req: Request,
+  ): Promise<VerificationResponseDto> {
+    const record = await this.verification.reopen(id);
+    await this.audit.record({
+      actorId: adminId,
+      action: 'verification.reopened',
+      targetType: 'verification_record',
+      targetId: id,
+      ip: req.ip,
+      userAgent: req.headers['user-agent'] ?? null,
+      metadata: { documentType: record.documentType, driverId: record.driverId },
+    });
+    return VerificationResponseDto.from(record);
+  }
+
+  // Force a driver offline (moderation lever; going online stays driver-only).
+  @Patch('drivers/:id/offline')
+  async forceDriverOffline(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser('id') adminId: string,
+    @Req() req: Request,
+  ) {
+    await this.users.forceOffline(id);
+    await this.audit.record({
+      actorId: adminId,
+      action: 'driver.forced_offline',
+      targetType: 'user',
+      targetId: id,
+      ip: req.ip,
+      userAgent: req.headers['user-agent'] ?? null,
+    });
+    return this.directory.getUserProfile(id);
+  }
+
+  // Suspend or reactivate a user account (a suspended user cannot log in).
+  @Patch('users/:id/suspension')
+  async setUserSuspension(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: SuspendUserDto,
+    @CurrentUser('id') adminId: string,
+    @Req() req: Request,
+  ) {
+    await this.users.setSuspended(id, dto.suspended);
+    await this.audit.record({
+      actorId: adminId,
+      action: dto.suspended ? 'user.suspended' : 'user.reactivated',
+      targetType: 'user',
+      targetId: id,
+      ip: req.ip,
+      userAgent: req.headers['user-agent'] ?? null,
+    });
+    return this.directory.getUserProfile(id);
+  }
+
+  // Cancel any non-terminal job (an admin can resolve a stuck job).
+  @Patch('jobs/:id/cancel')
+  async cancelJob(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser('id') adminId: string,
+    @Req() req: Request,
+  ) {
+    const job = await this.jobs.adminCancel(id);
+    await this.audit.record({
+      actorId: adminId,
+      action: 'job.cancelled',
+      targetType: 'job',
+      targetId: id,
+      ip: req.ip,
+      userAgent: req.headers['user-agent'] ?? null,
+    });
+    return job;
   }
 }
