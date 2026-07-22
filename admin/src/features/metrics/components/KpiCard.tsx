@@ -64,7 +64,7 @@ export function KpiCard({
               {detail}
             </p>
           )}
-          {hint && <p className="text-xs text-muted-foreground/70">{hint}</p>}
+          {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
         </div>
       </CardContent>
     </Card>
