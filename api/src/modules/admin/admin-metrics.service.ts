@@ -148,17 +148,6 @@ export class AdminMetricsService {
         ratings: { count: rat.count, overall_average: round1(rat.avg) },
         pending_verifications: pv.n,
       },
-      // Supplied from the off-platform survey via config, not computed from the DB.
-      survey_metrics: {
-        trust_perception_change: this.config.get('survey.trustPerceptionChange', {
-          infer: true,
-        }),
-        empty_trip_change: this.config.get('survey.emptyTripChange', {
-          infer: true,
-        }),
-        n: this.config.get('survey.n', { infer: true }),
-        note: 'Collected via the Kigali user-test survey (n=20), not platform data',
-      },
     };
   }
 }

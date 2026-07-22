@@ -9,15 +9,12 @@ import {
   Percent,
   Star,
   Target,
-  TrendingDown,
-  TrendingUp,
   Users,
 } from 'lucide-react';
 import { useMetrics } from '../hooks/useMetrics';
 import { DonutChart } from './DonutChart';
 import { formatDuration, formatNumber, formatRate } from './format';
 import { KpiCard } from './KpiCard';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -207,85 +204,6 @@ export function MetricsDashboard() {
           icon={Target}
         />
       </section>
-
-      {/* Survey-only metrics: collected off-platform. Shown as pending, never
-          fabricated with a number. */}
-      <section>
-        <Card>
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between gap-3">
-              <CardTitle className="text-sm font-medium">
-                Survey metrics
-              </CardTitle>
-              <Badge variant="secondary">Off-platform</Badge>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col gap-3">
-              <p className="text-xs text-muted-foreground">
-                {m.survey_metrics.note}
-              </p>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <SurveyMetric
-                  label="Trust perception change"
-                  value={m.survey_metrics.trust_perception_change}
-                  caption="Mean trust in finding transport, before → after"
-                  positive
-                />
-                <SurveyMetric
-                  label="Empty-trip change"
-                  value={m.survey_metrics.empty_trip_change}
-                  caption="Driver idle-time score, before → after (lower is better)"
-                  positive={false}
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </section>
-    </div>
-  );
-}
-
-function SurveyMetric({
-  label,
-  value,
-  caption,
-  positive,
-}: {
-  label: string;
-  value: string | null;
-  caption: string;
-  positive: boolean;
-}) {
-  if (value == null) {
-    return (
-      <div className="rounded-lg border border-dashed p-4">
-        <p className="text-xs tracking-wide text-muted-foreground uppercase">
-          {label}
-        </p>
-        <p className="mt-1 text-lg font-medium text-muted-foreground">
-          Awaiting survey
-        </p>
-        <p className="mt-1 text-xs text-muted-foreground">{caption}</p>
-      </div>
-    );
-  }
-  const improved = positive
-    ? value.trim().startsWith('+')
-    : /^[−-]/.test(value.trim());
-  const Icon = improved ? TrendingUp : TrendingDown;
-  const tone = improved ? 'text-emerald-600' : 'text-amber-600';
-  return (
-    <div className="rounded-lg border bg-background p-4">
-      <p className="text-xs tracking-wide text-muted-foreground uppercase">
-        {label}
-      </p>
-      <p className={`mt-1 flex items-center gap-1.5 text-2xl font-semibold tabular-nums ${tone}`}>
-        <Icon className="size-5" />
-        {value}
-      </p>
-      <p className="mt-1 text-xs text-muted-foreground">{caption}</p>
     </div>
   );
 }

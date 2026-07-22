@@ -44,12 +44,4 @@ export interface Metrics {
     ratings: { count: number; overall_average: number | null };
     pending_verifications: number;
   };
-  survey_metrics: {
-    // Pre-formatted display strings from the off-platform survey (e.g. "+0.65 / 5"),
-    // or null when the survey hasn't been supplied.
-    trust_perception_change: string | null;
-    empty_trip_change: string | null;
-    n: number | null;
-    note: string;
-  };
 }
