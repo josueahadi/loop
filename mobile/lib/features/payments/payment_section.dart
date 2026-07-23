@@ -82,19 +82,22 @@ class _PaymentSectionState extends State<PaymentSection> {
   }
 
   // Poll the payment status for up to ~30s after checkout (webhook confirms it).
+  // A background poll must never throw — network errors (timeout/offline) are
+  // swallowed; the poll just stops after the window rather than crashing.
   void _startPolling() {
     _poll?.cancel();
     var ticks = 0;
     _poll = Timer.periodic(const Duration(seconds: 3), (t) async {
       ticks++;
-      final p = await _payments.forJob(widget.jobId);
-      if (!mounted) return;
-      setState(() => _payment = p);
-      if (p != null && !p.isPending) {
-        t.cancel();
-      } else if (ticks >= 10) {
-        t.cancel();
+      try {
+        final p = await _payments.forJob(widget.jobId);
+        if (!mounted) return;
+        setState(() => _payment = p);
+        if (p != null && !p.isPending) t.cancel();
+      } catch (_) {
+        // network hiccup — try again next tick, don't crash the isolate
       }
+      if (ticks >= 10) t.cancel();
     });
   }
 

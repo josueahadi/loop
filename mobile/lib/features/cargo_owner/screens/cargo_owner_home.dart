@@ -167,7 +167,12 @@ class _DashboardTabState extends State<_DashboardTab> {
     setState(() {
       _future = next;
     });
-    await next;
+    // The FutureBuilder surfaces any error via snapshot.hasError; awaiting here
+    // is only to hold the RefreshIndicator spinner, so swallow failures rather
+    // than letting them become an unhandled exception.
+    try {
+      await next;
+    } catch (_) {}
   }
 
   @override
@@ -332,7 +337,12 @@ class _MyJobsTabState extends State<_MyJobsTab> {
     setState(() {
       _future = next;
     });
-    await next;
+    // The FutureBuilder surfaces any error via snapshot.hasError; awaiting here
+    // is only to hold the RefreshIndicator spinner, so swallow failures rather
+    // than letting them become an unhandled exception.
+    try {
+      await next;
+    } catch (_) {}
   }
 
   @override
