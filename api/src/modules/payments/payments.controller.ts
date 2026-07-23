@@ -7,11 +7,13 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
+  Req,
   Res,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiExcludeEndpoint, ApiTags } from '@nestjs/swagger';
-import type { Response } from 'express';
+import type { RawBodyRequest } from '@nestjs/common';
+import type { Request, Response } from 'express';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
 import {
@@ -53,9 +55,13 @@ export class PaymentsController {
   @HttpCode(200)
   async webhook(
     @Headers() headers: Record<string, string | string[] | undefined>,
+    @Req() req: RawBodyRequest<Request>,
     @Body() body: unknown,
   ): Promise<{ received: true }> {
-    const accepted = await this.payments.handleWebhook(headers, body);
+    // Prefer the exact raw bytes (needed for HMAC signature verification); fall
+    // back to the parsed body for providers that don't sign the raw payload.
+    const payload = req.rawBody ? req.rawBody.toString('utf8') : body;
+    const accepted = await this.payments.handleWebhook(headers, payload);
     if (!accepted) {
       throw new UnauthorizedException('Invalid webhook signature');
     }

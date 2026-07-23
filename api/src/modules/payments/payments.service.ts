@@ -19,6 +19,7 @@ import {
 } from './dto/payment.dto';
 import { Payment } from './entities/payment.entity';
 import { FlutterwavePaymentProvider } from './providers/flutterwave-payment.provider';
+import { FlutterwaveV4PaymentProvider } from './providers/flutterwave-v4-payment.provider';
 import { PaymentProvider, WebhookOutcome } from './providers/payment-provider';
 import { StubPaymentProvider } from './providers/stub-payment.provider';
 
@@ -46,6 +47,23 @@ export class PaymentsService {
 
   private buildProvider(): PaymentProvider {
     const driver = this.config.get<string>('payments.driver') ?? 'stub';
+    if (driver === 'flutterwave_v4') {
+      return new FlutterwaveV4PaymentProvider({
+        clientId: this.config.get<string>('payments.flutterwaveClientId')!,
+        clientSecret: this.config.get<string>(
+          'payments.flutterwaveClientSecret',
+        )!,
+        webhookHash: this.config.get<string>(
+          'payments.flutterwaveWebhookHash',
+        )!,
+        // v4 rejects custom schemes; use an HTTPS callback (deep-links onward).
+        redirectUrl:
+          this.config.get<string>('payments.v4RedirectUrl') ??
+          `${this.config.get<string>('appUrl') ?? ''}/payments/callback`,
+        momoPhone:
+          this.config.get<string>('payments.v4MomoPhone') ?? '0780000000',
+      });
+    }
     if (driver === 'flutterwave') {
       return new FlutterwavePaymentProvider({
         secretKey: this.config.get<string>('payments.flutterwaveSecretKey')!,
@@ -146,9 +164,15 @@ export class PaymentsService {
     const outcome = await this.provider.verifyAndParseWebhook(headers, rawBody);
     if (!outcome) return false; // unverified / unparseable → reject
 
-    const payment = await this.payments.findOne({
-      where: { id: outcome.paymentId },
-    });
+    // Resolve by our payment id, falling back to the provider's own reference.
+    // Some providers (Flutterwave v4) require an alphanumeric reference, so the
+    // UUID is sanitised on the way out and won't equal our id on the way back —
+    // provider_ref (the charge id) is the stable handle in that case.
+    const payment =
+      (await this.payments.findOne({ where: { id: outcome.paymentId } })) ??
+      (await this.payments.findOne({
+        where: { providerRef: outcome.providerRef },
+      }));
     if (!payment) {
       // Verified but unknown id — accept (don't make the provider retry forever).
       this.logger.warn(`Webhook for unknown payment ${outcome.paymentId}`);

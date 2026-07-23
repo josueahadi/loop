@@ -6,7 +6,11 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  // rawBody: keep the exact request bytes so the payments webhook can verify the
+  // provider's HMAC signature over the original body (v4 signs the raw payload).
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    rawBody: true,
+  });
   const config = app.get(ConfigService);
 
   // Behind Railway's proxy — trust X-Forwarded-* so protocol/IP are correct.

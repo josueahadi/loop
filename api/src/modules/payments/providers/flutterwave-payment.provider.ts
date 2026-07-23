@@ -70,7 +70,9 @@ export class FlutterwavePaymentProvider implements PaymentProvider {
       return Promise.resolve(null);
     }
 
-    const body = (rawBody ?? {}) as {
+    const body = (
+      typeof rawBody === 'string' ? JSON.parse(rawBody || '{}') : (rawBody ?? {})
+    ) as {
       data?: {
         tx_ref?: string;
         flw_ref?: string;

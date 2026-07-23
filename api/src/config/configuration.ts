@@ -46,13 +46,20 @@ export interface AppConfig {
   };
   payments: {
     // stub = log + auto-succeed after a delay (dev, no creds);
-    // flutterwave = real hosted checkout + webhook (test mode first).
-    driver: 'stub' | 'flutterwave';
+    // flutterwave = v3 hosted checkout; flutterwave_v4 = v4 charge + redirect.
+    driver: 'stub' | 'flutterwave' | 'flutterwave_v4';
     // Flutterwave test-mode keys (env-only, never committed).
     flutterwavePublicKey: string;
     flutterwaveSecretKey: string;
     flutterwaveEncryptionKey: string;
-    // Secret hash sent in the webhook's verif-hash header — reject any mismatch.
+    // v4 OAuth client credentials (developer sandbox: Client ID + Client Secret).
+    flutterwaveClientId: string;
+    flutterwaveClientSecret: string;
+    // v4 needs an HTTPS redirect (rejects custom schemes) + a MoMo test msisdn.
+    v4RedirectUrl: string;
+    v4MomoPhone: string;
+    // Secret hash: v3 sends it verbatim in verif-hash; v4 uses it as the
+    // HMAC-SHA256 key over the raw body (flutterwave-signature header).
     flutterwaveWebhookHash: string;
     // Base URL Flutterwave redirects the browser back to after checkout (a deep
     // link Loop handles); and the API's own base for building tx callbacks.
@@ -124,10 +131,18 @@ export default (): AppConfig => ({
     driver: (process.env.PUSH_DRIVER as 'stub' | 'fcm') ?? 'stub',
   },
   payments: {
-    driver: (process.env.PAYMENT_DRIVER as 'stub' | 'flutterwave') ?? 'stub',
+    driver:
+      (process.env.PAYMENT_DRIVER as
+        | 'stub'
+        | 'flutterwave'
+        | 'flutterwave_v4') ?? 'stub',
     flutterwavePublicKey: process.env.FLUTTERWAVE_PUBLIC_KEY ?? '',
     flutterwaveSecretKey: process.env.FLUTTERWAVE_SECRET_KEY ?? '',
     flutterwaveEncryptionKey: process.env.FLUTTERWAVE_ENCRYPTION_KEY ?? '',
+    flutterwaveClientId: process.env.FLUTTERWAVE_CLIENT_ID ?? '',
+    flutterwaveClientSecret: process.env.FLUTTERWAVE_CLIENT_SECRET ?? '',
+    v4RedirectUrl: process.env.FLUTTERWAVE_V4_REDIRECT_URL ?? '',
+    v4MomoPhone: process.env.FLUTTERWAVE_V4_MOMO_PHONE ?? '0780000000',
     flutterwaveWebhookHash: process.env.FLUTTERWAVE_WEBHOOK_HASH ?? '',
     redirectUrl: process.env.PAYMENT_REDIRECT_URL ?? 'loop://payment-callback',
   },
