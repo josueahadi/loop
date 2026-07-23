@@ -1,3 +1,4 @@
+import { createHmac } from 'node:crypto';
 import {
   ConflictException,
   ForbiddenException,
@@ -62,6 +63,7 @@ export class PaymentsService {
           `${this.config.get<string>('appUrl') ?? ''}/payments/callback`,
         momoPhone:
           this.config.get<string>('payments.v4MomoPhone') ?? '0780000000',
+        appUrl: this.config.get<string>('appUrl') ?? 'http://localhost:3000',
       });
     }
     if (driver === 'flutterwave') {
@@ -259,5 +261,32 @@ export class PaymentsService {
   // Dev-only: drive the stub webhook from the fake checkout page.
   async stubSettle(paymentId: string): Promise<void> {
     await this.handleWebhook({}, { paymentId, status: 'successful' });
+  }
+
+  // Dev/demo only: simulate the MTN Mobile Money approval that a real subscriber
+  // would give on their phone. Builds the exact charge.completed payload, signs
+  // it with the configured secret hash, and runs it through the REAL webhook path
+  // (HMAC verify + idempotency) — so it proves the verification works rather than
+  // bypassing it. Only meaningful under PAYMENT_DRIVER=flutterwave_v4.
+  async simulateV4Approval(paymentId: string): Promise<void> {
+    const payment = await this.payments.findOne({ where: { id: paymentId } });
+    if (!payment) throw new NotFoundException('Payment not found');
+    const body = JSON.stringify({
+      event: 'charge.completed',
+      data: {
+        reference: paymentId.replace(/[^a-zA-Z0-9]/g, ''),
+        id: payment.providerRef,
+        status: 'succeeded',
+      },
+    });
+    const hash = this.config.get<string>('payments.flutterwaveWebhookHash') ?? '';
+    const signature = createHmac('sha256', hash).update(body).digest('base64');
+    const accepted = await this.handleWebhook(
+      { 'flutterwave-signature': signature },
+      body,
+    );
+    if (!accepted) {
+      throw new Error('Simulated webhook was rejected (check FLUTTERWAVE_WEBHOOK_HASH)');
+    }
   }
 }

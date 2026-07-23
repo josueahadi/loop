@@ -87,4 +87,25 @@ export class PaymentsController {
        </body></html>`,
     );
   }
+
+  // Dev/demo only: simulate the MTN Mobile Money approval a subscriber would give
+  // on their phone (the sandbox has no real handset). Fires a REAL signed
+  // charge.completed webhook, then bounces back to the app. Only meaningful under
+  // PAYMENT_DRIVER=flutterwave_v4.
+  @Public()
+  @ApiExcludeEndpoint()
+  @Get('payments/v4/simulate-approval/:paymentId')
+  async simulateV4Approval(
+    @Param('paymentId', ParseUUIDPipe) paymentId: string,
+    @Res() res: Response,
+  ): Promise<void> {
+    await this.payments.simulateV4Approval(paymentId);
+    res.type('html').send(
+      `<html><body style="font-family:sans-serif;text-align:center;padding:40px">
+         <h2>✅ Mobile Money payment approved</h2>
+         <p>Confirmed via the Flutterwave webhook. You can return to the Loop app.</p>
+         <script>setTimeout(function(){ location.href='loop://payment-callback'; }, 800);</script>
+       </body></html>`,
+    );
+  }
 }

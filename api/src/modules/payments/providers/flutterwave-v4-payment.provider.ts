@@ -19,6 +19,10 @@ export interface FlutterwaveV4Config {
   // Test MoMo msisdn — the payer's phone for the sandbox push. Real integrations
   // collect this from the owner; for the demo it's a fixed sandbox number.
   momoPhone: string;
+  // API base URL. MoMo returns no checkout page (it's a phone push), so for the
+  // sandbox demo we hand the client the simulate-approval page instead, which
+  // fires a real signed webhook — the existing webview-checkout flow then works.
+  appUrl: string;
 }
 
 const IDP_TOKEN_URL =
@@ -196,12 +200,13 @@ export class FlutterwaveV4PaymentProvider implements PaymentProvider {
       | { type?: string; redirect_url?: { url?: string } }
       | undefined;
 
-    // A redirect-based method (card 3DS) would return a URL; MoMo returns a
-    // phone-authorisation instruction. When there's no URL, hand back the API's
-    // own callback so the client shows "authorise on your phone, awaiting
-    // confirmation" and then waits for the webhook.
+    // A redirect-based method (card 3DS) would return a URL the client opens.
+    // MoMo is a phone push with no URL, and the sandbox has no real handset — so
+    // hand back the simulate-approval page, which fires a real signed webhook.
+    // Keyed on the original UUID (not the sanitised reference) for the lookup.
     const checkoutUrl =
-      nextAction?.redirect_url?.url ?? this.config.redirectUrl;
+      nextAction?.redirect_url?.url ??
+      `${this.config.appUrl}/payments/v4/simulate-approval/${req.paymentId}`;
     return { checkoutUrl, providerRef: chargeId };
   }
 
