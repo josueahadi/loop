@@ -16,6 +16,7 @@ import '../../../core/location/location_service.dart';
 import '../../../core/models/job.dart';
 import '../../../core/models/nearby_driver.dart';
 import '../../../core/repositories/job_repository.dart';
+import '../../jobs/presentation/owner_job_detail_screen.dart';
 import '../../../core/repositories/matching_repository.dart';
 import '../../../core/repositories/proposal_repository.dart';
 
@@ -176,12 +177,17 @@ class _NearbyDriversMapState extends State<NearbyDriversMap> {
       Navigator.pop(context); // close the driver sheet
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            'Proposal sent to ${d.name}. You\'ll be notified when they '
-            'accept — track it under this job in My Jobs.',
-          ),
+          content: Text('Proposal sent to ${d.name}. Awaiting their response.'),
           backgroundColor: primaryGreen,
-          duration: const Duration(seconds: 4),
+        ),
+      );
+      // Take the owner to the job detail instead of leaving them on the map:
+      // it shows the status timeline now and reveals chat / contact / mark-in-
+      // progress once the driver accepts (that screen refreshes in the
+      // background). They can still go back to send another proposal.
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => OwnerJobDetailScreen(job: job),
         ),
       );
     } catch (e) {

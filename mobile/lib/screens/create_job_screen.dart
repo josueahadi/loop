@@ -61,6 +61,9 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
   PriceEstimate? _estimate;
   bool _estimating = false;
   bool _posting = false;
+  // Off until the first failed submit, then always — so validation errors stay
+  // visible on the fields the user must fix, instead of the post failing silently.
+  AutovalidateMode _autovalidate = AutovalidateMode.disabled;
 
   // Scroll the form to the estimate once it arrives — it renders below the
   // fold, so without this the result is invisible and the tap looks like a no-op.
@@ -268,7 +271,18 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
   }
 
   Future<void> _post() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      // Reveal the errors and bring the failing fields into view rather than
+      // failing silently in the background.
+      setState(() => _autovalidate = AutovalidateMode.always);
+      _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+      _snack('Please fill in the highlighted fields.');
+      return;
+    }
     if (_pickup == null || _dropOff == null || _estimate == null) {
       _snack('Get a price estimate before posting.');
       return;
@@ -328,7 +342,11 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
             child: SingleChildScrollView(
               controller: _scrollController,
               padding: const EdgeInsets.all(16),
-              child: Form(key: _formKey, child: _buildForm()),
+              child: Form(
+                key: _formKey,
+                autovalidateMode: _autovalidate,
+                child: _buildForm(),
+              ),
             ),
           ),
         ],

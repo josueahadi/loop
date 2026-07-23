@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import '../../../core/errors/error_messages.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -49,8 +51,13 @@ class _OwnerJobDetailScreenState extends State<OwnerJobDetailScreen> {
   // the straight line is kept). Distance/duration shown come from the persisted
   // JOB fields, so they never re-hit OSRM.
   List<LatLng> _routePolyline = const [];
+  // Polls the job status while it's still live (posted/matched/in_progress), so
+  // an owner waiting here sees the driver accept without leaving the screen.
+  Timer? _poll;
 
   static const _assignedStatuses = {'matched', 'in_progress', 'completed'};
+
+  static const _liveStatuses = {'posted', 'matched', 'in_progress'};
 
   @override
   void initState() {
@@ -58,12 +65,20 @@ class _OwnerJobDetailScreenState extends State<OwnerJobDetailScreen> {
     _loadAccepted();
     _loadUnread();
     _loadRoute();
+    _startPolling();
   }
 
   @override
   void dispose() {
+    _poll?.cancel();
     _mapController.dispose();
     super.dispose();
+  }
+
+  void _startPolling() {
+    _poll?.cancel();
+    if (!_liveStatuses.contains(_job.status)) return;
+    _poll = Timer.periodic(const Duration(seconds: 15), (_) => _refresh());
   }
 
   // Best-effort road geometry for the map; a failure just leaves the straight
@@ -104,6 +119,12 @@ class _OwnerJobDetailScreenState extends State<OwnerJobDetailScreen> {
       final updated = await _jobs.getById(_job.id);
       if (mounted) setState(() => _job = updated);
       await _loadAccepted();
+      // Stop polling once the job is done; (re)start if it's live again.
+      if (_liveStatuses.contains(_job.status)) {
+        if (_poll == null || !_poll!.isActive) _startPolling();
+      } else {
+        _poll?.cancel();
+      }
     } catch (_) {}
   }
 
