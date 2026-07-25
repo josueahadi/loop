@@ -1,6 +1,7 @@
 import 'package:cargo_app/constants.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../core/config/map_markers.dart';
 import '../../../core/enums/app_enums.dart';
 import '../../../core/models/job.dart';
 import '../../../core/models/user_model.dart';
@@ -630,8 +631,8 @@ class _OwnerJobCard extends StatelessWidget {
               const SizedBox(height: 8),
               Row(
                 children: [
-                  const Icon(
-                    Icons.local_shipping,
+                  Icon(
+                    vehicleIconFor(job.reqVehicleType),
                     size: 16,
                     color: Colors.grey,
                   ),

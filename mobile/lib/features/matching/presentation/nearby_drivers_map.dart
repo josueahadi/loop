@@ -322,45 +322,85 @@ class _NearbyDriversMapState extends State<NearbyDriversMap> {
         Expanded(
           child: _error != null
               ? _ErrorView(message: _error!, onRetry: _load)
-              : Stack(
+              : Column(
                   children: [
-                    FlutterMap(
-                      mapController: _mapController,
-                      options: MapOptions(
-                        initialCenter:
-                            _center ?? const LatLng(-1.9441, 30.0619),
-                        initialZoom: 13,
+                    // Map takes the top ~55%; the list below shows every matched
+                    // driver — so drivers at the same/overlapping point (whose
+                    // pins would stack into one) are all still visible + tappable.
+                    Expanded(
+                      flex: 55,
+                      child: Stack(
+                        children: [
+                          FlutterMap(
+                            mapController: _mapController,
+                            options: MapOptions(
+                              initialCenter:
+                                  _center ?? const LatLng(-1.9441, 30.0619),
+                              initialZoom: 13,
+                            ),
+                            children: [
+                              Basemap.tileLayer(context, _style),
+                              MarkerLayer(markers: _markers()),
+                              RichAttributionWidget(
+                                alignment: AttributionAlignment.bottomLeft,
+                                attributions: [
+                                  TextSourceAttribution(Basemap.attribution),
+                                ],
+                              ),
+                            ],
+                          ),
+                          Positioned(
+                            right: 12,
+                            top: 12,
+                            child: MapZoomControls(
+                              controller: _mapController,
+                              heroPrefix: 'nearby',
+                              style: _style,
+                              onToggleStyle: (s) =>
+                                  setState(() => _style = s),
+                            ),
+                          ),
+                          if (_loading)
+                            const Center(child: CircularProgressIndicator()),
+                        ],
                       ),
-                      children: [
-                        Basemap.tileLayer(context, _style),
-                        MarkerLayer(markers: _markers()),
-                        RichAttributionWidget(
-                          alignment: AttributionAlignment.bottomLeft,
-                          attributions: [
-                            TextSourceAttribution(Basemap.attribution),
-                          ],
-                        ),
-                      ],
                     ),
-                    Positioned(
-                      right: 12,
-                      top: 12,
-                      child: MapZoomControls(
-                        controller: _mapController,
-                        heroPrefix: 'nearby',
-                        style: _style,
-                        onToggleStyle: (s) => setState(() => _style = s),
-                      ),
+                    Expanded(
+                      flex: 45,
+                      child: (!_loading && _drivers.isEmpty)
+                          ? const Center(child: _NoDriversBanner())
+                          : ListView.separated(
+                              padding: const EdgeInsets.symmetric(vertical: 4),
+                              itemCount: _drivers.length,
+                              separatorBuilder: (context, index) =>
+                                  const Divider(height: 1),
+                              itemBuilder: (_, i) {
+                                final d = _drivers[i];
+                                return ListTile(
+                                  leading: CircleAvatar(
+                                    backgroundColor: primaryGreen,
+                                    child: Icon(
+                                      vehicleIconFor(
+                                        d.vehicles.isNotEmpty
+                                            ? d.vehicles.first.type
+                                            : null,
+                                      ),
+                                      color: Colors.white,
+                                      size: 20,
+                                    ),
+                                  ),
+                                  title: Text(d.name),
+                                  subtitle: Text(
+                                    '${d.vehicles.map((v) => v.type.label).join(', ')} · '
+                                    '${d.ratingCount == 0 ? 'No ratings' : '${d.averageRating.toStringAsFixed(1)}★'} · '
+                                    '${d.distanceLabel}',
+                                  ),
+                                  trailing: const Icon(Icons.chevron_right),
+                                  onTap: () => _showDriver(d),
+                                );
+                              },
+                            ),
                     ),
-                    if (_loading)
-                      const Center(child: CircularProgressIndicator()),
-                    if (!_loading && _drivers.isEmpty)
-                      const Positioned(
-                        bottom: 24,
-                        left: 24,
-                        right: 24,
-                        child: _NoDriversBanner(),
-                      ),
                   ],
                 ),
         ),
@@ -375,7 +415,11 @@ class _NearbyDriversMapState extends State<NearbyDriversMap> {
     }
     for (final d in _drivers) {
       markers.add(
-        MapMarkers.vehiclePin(LatLng(d.lat, d.lng), onTap: () => _showDriver(d)),
+        MapMarkers.vehiclePin(
+          LatLng(d.lat, d.lng),
+          onTap: () => _showDriver(d),
+          vehicleType: d.vehicles.isNotEmpty ? d.vehicles.first.type : null,
+        ),
       );
     }
     return markers;

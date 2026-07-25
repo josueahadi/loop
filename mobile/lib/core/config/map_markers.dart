@@ -5,6 +5,26 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../constants.dart';
+import '../enums/app_enums.dart';
+
+/// A distinct icon per vehicle type, so a moto reads differently from a truck at
+/// a glance — used on both the map pins and the driver list.
+IconData vehicleIconFor(VehicleType? type) {
+  switch (type) {
+    case VehicleType.moto:
+      return Icons.two_wheeler;
+    case VehicleType.pickup:
+      return Icons.local_shipping;
+    case VehicleType.van:
+      return Icons.airport_shuttle;
+    case VehicleType.smallTruck:
+      return Icons.local_shipping_outlined;
+    case VehicleType.largeTruck:
+      return Icons.fire_truck;
+    case null:
+      return Icons.local_shipping;
+  }
+}
 
 /// Consistent custom markers for every map surface, so the "you" dot, vehicle
 /// pins, and pickup/drop-off pins look and read the same on Nearby, create-job,
@@ -20,13 +40,21 @@ class MapMarkers {
     child: _YouDot(headingDeg: headingDeg),
   );
 
-  static Marker vehiclePin(LatLng point, {VoidCallback? onTap}) => Marker(
+  static Marker vehiclePin(
+    LatLng point, {
+    VoidCallback? onTap,
+    VehicleType? vehicleType,
+  }) => Marker(
     point: point,
     width: 44,
     height: 44,
     child: GestureDetector(
       onTap: onTap,
-      child: const Icon(Icons.local_shipping, color: primaryGreen, size: 36),
+      child: Icon(
+        vehicleIconFor(vehicleType),
+        color: primaryGreen,
+        size: 36,
+      ),
     ),
   );
 
