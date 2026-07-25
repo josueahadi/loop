@@ -147,11 +147,15 @@ class _NearbyDriversMapState extends State<NearbyDriversMap> {
       if (!mounted) return;
       setState(() {
         _postedJobs = posted;
+        final previousJobId = _selectedJob?.id;
         if (_selectedJob == null ||
             !posted.any((j) => j.id == _selectedJob!.id)) {
           _selectedJob = posted.isEmpty ? null : posted.first;
         }
-        if (_selectedJob != null) {
+        // Only re-derive the filter from the job when the SELECTED JOB actually
+        // changed — otherwise a plain reload would clobber a filter the user
+        // just picked, snapping it back to the job's vehicle type.
+        if (_selectedJob != null && _selectedJob!.id != previousJobId) {
           _filter = _selectedJob!.reqVehicleType;
         }
       });
