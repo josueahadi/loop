@@ -246,13 +246,18 @@ class _NearbyDriversMapState extends State<NearbyDriversMap> {
                   style: TextStyle(color: textGray),
                 )
               else
-                DropdownButtonFormField<Job>(
-                  initialValue: selectedJob,
+                DropdownButtonFormField<String>(
+                  // Key on the stable job id, not the Job object — Job has no
+                  // value equality, so a reloaded list gives fresh instances and
+                  // matching on identity would crash (no item == the selection).
+                  initialValue: _postedJobs.any((j) => j.id == selectedJob?.id)
+                      ? selectedJob?.id
+                      : null,
                   decoration: const InputDecoration(labelText: 'Propose for'),
                   items: _postedJobs
                       .map(
-                        (j) => DropdownMenuItem<Job>(
-                          value: j,
+                        (j) => DropdownMenuItem<String>(
+                          value: j.id,
                           child: Text(
                             '${j.cargoType} · ${j.reqVehicleType.label} · ${j.price} RWF',
                             overflow: TextOverflow.ellipsis,
@@ -260,8 +265,9 @@ class _NearbyDriversMapState extends State<NearbyDriversMap> {
                         ),
                       )
                       .toList(),
-                  onChanged: (job) {
-                    if (job == null) return;
+                  onChanged: (jobId) {
+                    if (jobId == null) return;
+                    final job = _postedJobs.firstWhere((j) => j.id == jobId);
                     setState(() {
                       _selectedJob = job;
                       _filter = job.reqVehicleType;
