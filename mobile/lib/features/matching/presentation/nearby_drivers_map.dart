@@ -17,6 +17,7 @@ import '../../../core/models/job.dart';
 import '../../../core/models/nearby_driver.dart';
 import '../../../core/repositories/job_repository.dart';
 import '../../jobs/presentation/owner_job_detail_screen.dart';
+import '../../../screens/create_job_screen.dart';
 import '../../../core/repositories/matching_repository.dart';
 import '../../../core/repositories/proposal_repository.dart';
 
@@ -239,51 +240,56 @@ class _NearbyDriversMapState extends State<NearbyDriversMap> {
             const SizedBox(height: 12),
             Text('Vehicles: ${d.vehicles.map((v) => v.type.label).join(', ')}'),
             const SizedBox(height: 20),
-            if (widget.forJob == null) ...[
-              if (_postedJobs.isEmpty)
-                const Text(
-                  'No open posted jobs. Post a job first, then send a proposal.',
-                  style: TextStyle(color: textGray),
-                )
-              else
-                DropdownButtonFormField<String>(
-                  // Key on the stable job id, not the Job object — Job has no
-                  // value equality, so a reloaded list gives fresh instances and
-                  // matching on identity would crash (no item == the selection).
-                  initialValue: _postedJobs.any((j) => j.id == selectedJob?.id)
-                      ? selectedJob?.id
-                      : null,
-                  decoration: const InputDecoration(labelText: 'Propose for'),
-                  items: _postedJobs
-                      .map(
-                        (j) => DropdownMenuItem<String>(
-                          value: j.id,
-                          child: Text(
-                            '${j.cargoType} · ${j.reqVehicleType.label} · ${j.price} RWF',
-                            overflow: TextOverflow.ellipsis,
-                          ),
+            if (widget.forJob == null && _postedJobs.isNotEmpty)
+              DropdownButtonFormField<String>(
+                // Key on the stable job id, not the Job object — Job has no
+                // value equality, so a reloaded list gives fresh instances and
+                // matching on identity would crash (no item == the selection).
+                initialValue: _postedJobs.any((j) => j.id == selectedJob?.id)
+                    ? selectedJob?.id
+                    : null,
+                decoration: const InputDecoration(labelText: 'Propose for'),
+                items: _postedJobs
+                    .map(
+                      (j) => DropdownMenuItem<String>(
+                        value: j.id,
+                        child: Text(
+                          '${j.cargoType} · ${j.reqVehicleType.label} · ${j.price} RWF',
+                          overflow: TextOverflow.ellipsis,
                         ),
-                      )
-                      .toList(),
-                  onChanged: (jobId) {
-                    if (jobId == null) return;
-                    final job = _postedJobs.firstWhere((j) => j.id == jobId);
-                    setState(() {
-                      _selectedJob = job;
-                      _filter = job.reqVehicleType;
-                    });
-                    Navigator.pop(context);
-                    _load();
-                  },
-                ),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (jobId) {
+                  if (jobId == null) return;
+                  final job = _postedJobs.firstWhere((j) => j.id == jobId);
+                  setState(() {
+                    _selectedJob = job;
+                    _filter = job.reqVehicleType;
+                  });
+                  Navigator.pop(context);
+                  _load();
+                },
+              ),
+            if (widget.forJob == null && _postedJobs.isNotEmpty)
               const SizedBox(height: 12),
-            ],
             SizedBox(
               width: double.infinity,
+              // Browsing (no posted job to propose for): the driver's still
+              // useful info to see — offer to create a job rather than dead-end.
               child: selectedJob == null
-                  ? const OutlinedButton(
-                      onPressed: null,
-                      child: Text('Post a job first'),
+                  ? OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const CreateJobScreen(),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.add),
+                      label: const Text('Create a job'),
                     )
                   : ElevatedButton(
                       style: ElevatedButton.styleFrom(
