@@ -15,12 +15,7 @@ class _SettingsScreenState extends State<SettingsScreen> with LogoutMixin {
   final UserRepository _userRepository = ApiUserRepository();
 
   bool _isLoading = false;
-
-  // Settings
   bool _isAvailable = false;
-  bool _pushNotifications = true;
-  bool _emailNotifications = true;
-  bool _smsNotifications = false;
 
   @override
   void initState() {
@@ -31,15 +26,8 @@ class _SettingsScreenState extends State<SettingsScreen> with LogoutMixin {
   Future<void> _loadUserData() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final currentUser = authProvider.user;
-
     if (currentUser != null) {
-      setState(() {
-        _isAvailable = currentUser.isAvailable ?? false;
-        // These would be loaded from user preferences in a real app
-        _pushNotifications = true;
-        _emailNotifications = true;
-        _smsNotifications = false;
-      });
+      setState(() => _isAvailable = currentUser.isAvailable ?? false);
     }
   }
 
@@ -198,132 +186,6 @@ class _SettingsScreenState extends State<SettingsScreen> with LogoutMixin {
 
             const SizedBox(height: 32),
 
-            // Notification Settings
-            const Text(
-              'Notifications',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Manage how you receive notifications',
-              style: TextStyle(color: Colors.grey[600], fontSize: 14),
-            ),
-            const SizedBox(height: 16),
-
-            _buildSettingsTile(
-              icon: Icons.notifications,
-              title: 'Push Notifications',
-              subtitle: 'Receive instant notifications on your device',
-              value: _pushNotifications,
-              onChanged: (value) {
-                setState(() {
-                  _pushNotifications = value;
-                });
-                // Here you would save the preference to user settings
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      value
-                          ? 'Push notifications enabled'
-                          : 'Push notifications disabled',
-                    ),
-                  ),
-                );
-              },
-            ),
-
-            _buildSettingsTile(
-              icon: Icons.email,
-              title: 'Email Notifications',
-              subtitle: 'Receive job updates via email',
-              value: _emailNotifications,
-              onChanged: (value) {
-                setState(() {
-                  _emailNotifications = value;
-                });
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      value
-                          ? 'Email notifications enabled'
-                          : 'Email notifications disabled',
-                    ),
-                  ),
-                );
-              },
-            ),
-
-            _buildSettingsTile(
-              icon: Icons.sms,
-              title: 'SMS Notifications',
-              subtitle: 'Receive job alerts via SMS',
-              value: _smsNotifications,
-              onChanged: (value) {
-                setState(() {
-                  _smsNotifications = value;
-                });
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      value
-                          ? 'SMS notifications enabled'
-                          : 'SMS notifications disabled',
-                    ),
-                  ),
-                );
-              },
-            ),
-
-            const SizedBox(height: 32),
-
-            // Account Settings
-            const Text(
-              'Account',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-
-            _buildActionTile(
-              icon: Icons.security,
-              title: 'Privacy & Security',
-              subtitle: 'Manage your account security settings',
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Privacy & Security - Coming Soon!'),
-                  ),
-                );
-              },
-            ),
-
-            _buildActionTile(
-              icon: Icons.language,
-              title: 'Language',
-              subtitle: 'Change app language',
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Language Settings - Coming Soon!'),
-                  ),
-                );
-              },
-            ),
-
-            _buildActionTile(
-              icon: Icons.dark_mode,
-              title: 'Theme',
-              subtitle: 'Light, Dark, or System',
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Theme Settings - Coming Soon!'),
-                  ),
-                );
-              },
-            ),
-
-            const SizedBox(height: 32),
-
             // App Settings
             const Text(
               'App',
@@ -339,35 +201,13 @@ class _SettingsScreenState extends State<SettingsScreen> with LogoutMixin {
                 showAboutDialog(
                   context: context,
                   applicationName: 'Loop Rwanda',
-                  applicationVersion: '1.0.0',
+                  applicationVersion: '1.1.0',
                   applicationIcon: const Icon(Icons.local_shipping, size: 48),
                   children: [
                     const Text(
                       'Connecting cargo owners with reliable drivers across Rwanda.',
                     ),
                   ],
-                );
-              },
-            ),
-
-            _buildActionTile(
-              icon: Icons.feedback,
-              title: 'Send Feedback',
-              subtitle: 'Help us improve the app',
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Feedback - Coming Soon!')),
-                );
-              },
-            ),
-
-            _buildActionTile(
-              icon: Icons.star_rate,
-              title: 'Rate App',
-              subtitle: 'Rate Loop on the app store',
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Rate App - Coming Soon!')),
                 );
               },
             ),

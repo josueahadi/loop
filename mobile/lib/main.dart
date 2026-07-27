@@ -12,7 +12,6 @@ import 'screens/splash_screen.dart';
 import 'screens/password_reset_confirmation.dart';
 import 'screens/email_verification_screen.dart';
 import 'screens/home.dart';
-import 'screens/personal_data_screen.dart';
 import 'providers/auth_provider.dart';
 import 'providers/notification_provider.dart';
 import 'providers/onboarding_provider.dart';
@@ -129,7 +128,6 @@ class MyApp extends StatelessWidget {
               '/email-verification': (context) =>
                   const EmailVerificationScreen(),
               '/home': (context) => const Home(),
-              '/personal-data': (context) => const PersonalDataScreen(),
             },
           );
         },

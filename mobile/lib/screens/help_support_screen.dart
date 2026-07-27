@@ -1,54 +1,69 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 
-class HelpSupportScreen extends StatefulWidget {
+class HelpSupportScreen extends StatelessWidget {
   const HelpSupportScreen({super.key});
 
-  @override
-  State<HelpSupportScreen> createState() => _HelpSupportScreenState();
-}
+  static const _supportPhone = '+250789660422';
+  static const _supportEmail = 'ahadihjosue@gmail.com';
 
-class _HelpSupportScreenState extends State<HelpSupportScreen> {
-  final List<FAQItem> _faqs = [
-    FAQItem(
+  // FAQs describe only what Loop actually does today.
+  static final List<_FAQItem> _faqs = [
+    _FAQItem(
       question: 'How do I get started as a driver?',
       answer:
-          'To get started as a driver:\n1. Complete your profile with accurate information\n2. Upload required documents (license, ID, vehicle registration)\n3. Wait for verification (usually 24-48 hours)\n4. Set your status to "Available" to start receiving job requests',
+          '1. Create an account and complete your profile.\n'
+          '2. Add your vehicle and upload the three required documents: '
+          'driver\'s licence, national ID, and vehicle registration.\n'
+          '3. Wait for an admin to review and approve them.\n'
+          '4. Once approved you are set online automatically — go offline/online '
+          'any time from your profile.',
     ),
-    FAQItem(
+    _FAQItem(
       question: 'What documents do I need to upload?',
       answer:
-          'Required documents include:\n• Valid driver\'s license\n• National ID\n• Vehicle registration certificate\n• Vehicle insurance certificate\n• Clear photo of your vehicle\n\nAll documents must be current and clearly readable.',
+          'Three documents, each clear and current:\n'
+          '• Driver\'s licence\n'
+          '• National ID\n'
+          '• Vehicle registration\n\n'
+          'A driver only appears in matching once all three are approved.',
     ),
-    FAQItem(
-      question: 'How do I receive job notifications?',
+    _FAQItem(
+      question: 'How does matching work?',
       answer:
-          'Job notifications are sent when:\n• You are marked as "Available"\n• A cargo owner posts a job that matches your vehicle type\n• You are within the delivery area\n\nMake sure push notifications are enabled in Settings.',
+          'When a cargo owner searches, the app shows nearby drivers who are '
+          'online, verified, and driving the requested vehicle type, closest '
+          'first. The owner sends a proposal at their posted price; the driver '
+          'accepts or declines.',
     ),
-    FAQItem(
+    _FAQItem(
+      question: 'How is the price set?',
+      answer:
+          'The app computes a transparent estimate from distance, time, weight, '
+          'and vehicle type. It is only a reference — the cargo owner reviews it '
+          'and sets the final posted price. Drivers accept or decline that price.',
+    ),
+    _FAQItem(
       question: 'How is payment handled?',
       answer:
-          'Payment is negotiated directly between you and the cargo owner. Loop facilitates the connection but does not handle payments directly. Always agree on payment terms before starting a job.',
+          'After a job is completed the owner can pay the driver in-app through '
+          'the payment provider. Loop never holds the money — it only initiates '
+          'the payment and records the result. Paying in-app is optional; you '
+          'can also settle off-platform.',
     ),
-    FAQItem(
-      question: 'What if I have an issue during delivery?',
+    _FAQItem(
+      question: 'How do I coordinate a job?',
       answer:
-          'If you encounter issues:\n1. Contact the cargo owner through the in-app chat\n2. Document the issue with photos if necessary\n3. Contact Loop support if needed\n4. Complete the delivery report accurately',
+          'Once a driver accepts, in-app chat opens between you and the other '
+          'party, and you can call them directly. The driver gets in-app '
+          'turn-by-turn navigation to the pickup and drop-off.',
     ),
-    FAQItem(
-      question: 'How do I update my vehicle information?',
-      answer:
-          'To update vehicle details:\n1. Go to Profile → Vehicle Details\n2. Update the required information\n3. Upload new documents if needed\n4. Save changes\n\nChanges may require re-verification.',
-    ),
-    FAQItem(
-      question: 'Can I cancel a job after accepting?',
-      answer:
-          'While possible, frequent cancellations affect your rating. Only cancel for valid reasons:\n• Vehicle breakdown\n• Emergency situations\n• Safety concerns\n\nAlways communicate with the cargo owner before canceling.',
-    ),
-    FAQItem(
+    _FAQItem(
       question: 'How do ratings work?',
       answer:
-          'Both drivers and cargo owners rate each other after completing a job:\n• Ratings are from 1-5 stars\n• Your average rating affects job visibility\n• Maintain a high rating for better opportunities\n• Professional service leads to better ratings',
+          'After a completed job, the owner and driver rate each other from 1 '
+          'to 5 stars. Your average rating and count are shown to the other '
+          'party, building a reputation over time.',
     ),
   ];
 
@@ -61,180 +76,42 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Quick Actions
             const Text(
-              'Quick Actions',
+              'Contact us',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 16),
-
-            Row(
-              children: [
-                Expanded(
-                  child: _buildQuickActionCard(
-                    icon: Icons.phone,
-                    title: 'Call Support',
-                    subtitle: '+250 788 123 456',
-                    onTap: () {
-                      _showContactDialog('Phone', '+250 788 123 456');
-                    },
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _buildQuickActionCard(
-                    icon: Icons.email,
-                    title: 'Email Us',
-                    subtitle: 'ahadihjosue@gmail.com',
-                    onTap: () {
-                      _showContactDialog('Email', 'ahadihjosue@gmail.com');
-                    },
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(width: 16),
-
-            Row(
-              children: [
-                Expanded(
-                  child: _buildQuickActionCard(
-                    icon: Icons.chat,
-                    title: 'Live Chat',
-                    subtitle: 'Chat with support',
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Live Chat - Coming Soon!'),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _buildQuickActionCard(
-                    icon: Icons.report_problem,
-                    title: 'Report Issue',
-                    subtitle: 'Report a problem',
-                    onTap: () {
-                      _showReportIssueDialog();
-                    },
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 32),
-
-            // FAQ Section
-            const Text(
-              'Frequently Asked Questions',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-
-            ...List.generate(
-              _faqs.length,
-              (index) => _buildFAQTile(_faqs[index]),
-            ),
-
-            const SizedBox(height: 32),
-
-            // Resources Section
-            const Text(
-              'Resources',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-
-            _buildResourceTile(
-              icon: Icons.book,
-              title: 'Driver Guide',
-              subtitle: 'Complete guide for new drivers',
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Driver Guide - Coming Soon!')),
-                );
-              },
-            ),
-
-            _buildResourceTile(
-              icon: Icons.security,
-              title: 'Safety Guidelines',
-              subtitle: 'Important safety tips and procedures',
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Safety Guidelines - Coming Soon!'),
-                  ),
-                );
-              },
-            ),
-
-            _buildResourceTile(
-              icon: Icons.policy,
-              title: 'Terms & Conditions',
-              subtitle: 'Read our terms of service',
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Terms & Conditions - Coming Soon!'),
-                  ),
-                );
-              },
-            ),
-
-            _buildResourceTile(
-              icon: Icons.privacy_tip,
-              title: 'Privacy Policy',
-              subtitle: 'How we protect your data',
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Privacy Policy - Coming Soon!'),
-                  ),
-                );
-              },
-            ),
-
-            const SizedBox(height: 32),
-
-            // Contact Information
+            const SizedBox(height: 12),
             Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Loop Support',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
+              child: Column(
+                children: [
+                  ListTile(
+                    leading: Icon(Icons.phone, color: Theme.of(context).primaryColor),
+                    title: const Text('Call support'),
+                    subtitle: const Text(_supportPhone),
+                    onTap: () => _launch(context, Uri.parse('tel:$_supportPhone')),
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
+                    leading: Icon(Icons.email, color: Theme.of(context).primaryColor),
+                    title: const Text('Email us'),
+                    subtitle: const Text(_supportEmail),
+                    onTap: () => _launch(
+                      context,
+                      Uri(scheme: 'mailto', path: _supportEmail),
                     ),
-                    const SizedBox(height: 8),
-                    const Text('Available 24/7 to help you succeed'),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        const Icon(Icons.schedule, size: 16),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Response time: Usually within 2 hours',
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
+
+            const SizedBox(height: 28),
+
+            const Text(
+              'Frequently asked questions',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            ..._faqs.map((faq) => _FAQTile(faq: faq)),
 
             const SizedBox(height: 16),
           ],
@@ -243,44 +120,21 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
     );
   }
 
-  Widget _buildQuickActionCard({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
-    return Card(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            children: [
-              Icon(icon, size: 32, color: Theme.of(context).primaryColor),
-              const SizedBox(height: 8),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                subtitle,
-                style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+  Future<void> _launch(BuildContext context, Uri uri) async {
+    if (!await launchUrl(uri) && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not open that app.')),
+      );
+    }
   }
+}
 
-  Widget _buildFAQTile(FAQItem faq) {
+class _FAQTile extends StatelessWidget {
+  final _FAQItem faq;
+  const _FAQTile({required this.faq});
+
+  @override
+  Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ExpansionTile(
@@ -300,173 +154,10 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
       ),
     );
   }
-
-  Widget _buildResourceTile({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
-        leading: Icon(icon, color: Theme.of(context).primaryColor),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
-        subtitle: Text(
-          subtitle,
-          style: TextStyle(color: Colors.grey[600], fontSize: 12),
-        ),
-        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-        onTap: onTap,
-      ),
-    );
-  }
-
-  void _showContactDialog(String method, String contact) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Contact via $method'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('$method: $contact'),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  TextButton.icon(
-                    onPressed: () {
-                      Clipboard.setData(ClipboardData(text: contact));
-                      Navigator.of(context).pop();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Copied to clipboard')),
-                      );
-                    },
-                    icon: const Icon(Icons.copy),
-                    label: const Text('Copy'),
-                  ),
-                  TextButton.icon(
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Opening $method app...')),
-                      );
-                    },
-                    icon: Icon(method == 'Phone' ? Icons.phone : Icons.email),
-                    label: Text('Open'),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text('Close'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _showReportIssueDialog() {
-    final TextEditingController issueController = TextEditingController();
-    String selectedCategory = 'Technical Issue';
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              title: const Text('Report an Issue'),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Category:'),
-                    const SizedBox(height: 8),
-                    DropdownButtonFormField<String>(
-                      value: selectedCategory,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                      ),
-                      items:
-                          [
-                            'Technical Issue',
-                            'App Bug',
-                            'Payment Issue',
-                            'Safety Concern',
-                            'User Behavior',
-                            'Other',
-                          ].map((String category) {
-                            return DropdownMenuItem<String>(
-                              value: category,
-                              child: Text(category),
-                            );
-                          }).toList(),
-                      onChanged: (String? newValue) {
-                        if (newValue != null) {
-                          setState(() {
-                            selectedCategory = newValue;
-                          });
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    const Text('Description:'),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: issueController,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        hintText: 'Please describe the issue in detail...',
-                      ),
-                      maxLines: 4,
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                  child: const Text('Cancel'),
-                ),
-                TextButton(
-                  onPressed: () {
-                    if (issueController.text.trim().isNotEmpty) {
-                      Navigator.of(context).pop();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'Issue reported successfully! We\'ll get back to you soon.',
-                          ),
-                        ),
-                      );
-                    }
-                  },
-                  child: const Text('Report'),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
 }
 
-class FAQItem {
+class _FAQItem {
   final String question;
   final String answer;
-
-  FAQItem({required this.question, required this.answer});
+  _FAQItem({required this.question, required this.answer});
 }
