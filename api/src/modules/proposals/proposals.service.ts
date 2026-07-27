@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -9,6 +10,7 @@ import { In, Repository } from 'typeorm';
 import { JobStatus, ProposalStatus, UserRole } from '../../common/enums';
 import { Job } from '../jobs/entities/job.entity';
 import { PushService } from '../push/push.service';
+import { SMS_SERVICE, SmsService } from '../sms/sms.service';
 import { User } from '../users/entities/user.entity';
 import {
   ContactDto,
@@ -25,6 +27,7 @@ export class ProposalsService {
     @InjectRepository(Job) private readonly jobs: Repository<Job>,
     @InjectRepository(User) private readonly users: Repository<User>,
     private readonly push: PushService,
+    @Inject(SMS_SERVICE) private readonly sms: SmsService,
   ) {}
 
   // Owner sends a proposal to a driver, at the job's posted price. Only while the
@@ -65,6 +68,13 @@ export class ProposalsService {
       body: `${job.cargoType} · ${job.price ?? 0} RWF`,
       data: { type: 'proposal', jobId, proposalId: saved.id },
     });
+    // Drivers are best reached by SMS in this market — send alongside the push.
+    if (driver.phone) {
+      void this.sms.send(
+        driver.phone,
+        `Loop: new job proposal — ${job.cargoType}, ${job.price ?? 0} RWF. Open the app to accept or decline.`,
+      );
+    }
     const coords = (await this.coordsFor([jobId])).get(jobId);
     return this.toDto(saved, { job, coords });
   }

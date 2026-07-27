@@ -21,6 +21,10 @@ export const validationSchema = Joi.object({
 
   MAIL_DRIVER: Joi.string().valid('stub', 'sendgrid').default('stub'),
   SENDGRID_API_KEY: Joi.string().allow('').optional(),
+  SMS_DRIVER: Joi.string().valid('stub', 'africastalking').default('stub'),
+  AT_USERNAME: Joi.string().allow('').optional(),
+  AT_API_KEY: Joi.string().allow('').optional(),
+  AT_SENDER_ID: Joi.string().allow('').optional(),
   SENDGRID_FROM: Joi.string().required(),
   MAIL_FROM_NAME: Joi.string().default('Loop'),
 

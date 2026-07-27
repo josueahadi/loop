@@ -18,11 +18,13 @@ describe('ProposalsService.respond', () => {
     const jobsRepo = {};
     const usersRepo = {};
     const push = { sendToUser: jest.fn() };
+    const sms = { send: jest.fn() };
     const service = new ProposalsService(
       proposalsRepo as any,
       jobsRepo as any,
       usersRepo as any,
       push as any,
+      sms as any,
     );
     // coordsFor hits the DB; stub it so the accept/decline paths stay pure.
     jest

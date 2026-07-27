@@ -21,6 +21,12 @@ export interface AppConfig {
     from: string;
     fromName: string;
   };
+  sms: {
+    driver: 'stub' | 'africastalking';
+    username: string;
+    apiKey: string;
+    senderId: string;
+  };
   admin: {
     email: string;
     password: string;
@@ -111,6 +117,12 @@ export default (): AppConfig => ({
     sendgridApiKey: process.env.SENDGRID_API_KEY ?? '',
     from: process.env.SENDGRID_FROM ?? 'no-reply@loop.rw',
     fromName: process.env.MAIL_FROM_NAME ?? 'Loop',
+  },
+  sms: {
+    driver: (process.env.SMS_DRIVER as 'stub' | 'africastalking') ?? 'stub',
+    username: process.env.AT_USERNAME ?? '',
+    apiKey: process.env.AT_API_KEY ?? '',
+    senderId: process.env.AT_SENDER_ID ?? '',
   },
   admin: {
     email: process.env.ADMIN_EMAIL ?? 'admin@loop.rw',

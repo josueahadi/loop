@@ -13,6 +13,7 @@ import { GeocodeModule } from './modules/geocode/geocode.module';
 import { HealthModule } from './modules/health/health.module';
 import { JobsModule } from './modules/jobs/jobs.module';
 import { MailModule } from './modules/mail/mail.module';
+import { SmsModule } from './modules/sms/sms.module';
 import { MatchingModule } from './modules/matching/matching.module';
 import { MessagingModule } from './modules/messaging/messaging.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
@@ -50,6 +51,7 @@ import { VerificationModule } from './modules/verification/verification.module';
     }),
     HealthModule,
     MailModule,
+    SmsModule,
     StorageModule,
     NotificationsModule,
     PushModule,
