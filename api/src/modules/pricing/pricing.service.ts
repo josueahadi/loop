@@ -7,14 +7,16 @@ import { EstimateDto, EstimateResponseDto } from './dto/estimate.dto';
 import { PricingConfig } from './entities/pricing-config.entity';
 import { SizeMultiplier } from './entities/size-multiplier.entity';
 
-// Rule-based pricing v2 (no ML). Reads base_fare / rate_per_km / rate_per_min /
-// min_fare from pricing_config and size_factor from size_multipliers — no magic
-// numbers. Road distance + duration come from the routing (OSRM) proxy, with the
-// PostGIS great-circle as the fallback. RWF integer.
+// Rule-based pricing v3 (no ML). Reads base_fare / rate_per_km / rate_per_min /
+// rate_per_kg / min_fare from pricing_config and size_factor from size_multipliers
+// — no magic numbers. Road distance + duration come from the routing (OSRM) proxy,
+// with the PostGIS great-circle as the fallback. RWF integer.
 //   estimated_price = max( min_fare,
-//                          base_fare + rate_per_km × km + rate_per_min × min )
+//                          base_fare + rate_per_km × km + rate_per_min × min
+//                                    + rate_per_kg × weight )
 //                     × size_factor
-// The time term is omitted when duration is unknown (great-circle fallback).
+// The time term is omitted when duration is unknown (great-circle fallback); the
+// weight term is omitted when weight is unknown.
 @Injectable()
 export class PricingService {
   constructor(
@@ -31,6 +33,8 @@ export class PricingService {
     distanceKm: number;
     // Omit (or null) on the great-circle fallback: the time term is then dropped.
     durationMin?: number | null;
+    // Cargo weight in kg. Omit (or null) to drop the weight term.
+    weightKg?: number | null;
   }): Promise<number> {
     const config = await this.pricing.findOne({
       where: { vehicleType: params.vehicleType },
@@ -53,7 +57,9 @@ export class PricingService {
     const distanceTerm = config.ratePerKm * params.distanceKm;
     const timeTerm =
       params.durationMin != null ? config.ratePerMin * params.durationMin : 0;
-    const variable = config.baseFare + distanceTerm + timeTerm;
+    const weightTerm =
+      params.weightKg != null ? config.ratePerKg * params.weightKg : 0;
+    const variable = config.baseFare + distanceTerm + timeTerm + weightTerm;
     // min_fare is a floor inside the max, so size_factor scales the floor too.
     const raw = Math.max(config.minFare, variable) * sizeFactor;
     return Math.round(raw); // whole RWF
@@ -68,6 +74,7 @@ export class PricingService {
       size: dto.size,
       distanceKm: route.distance_km,
       durationMin: route.duration_min,
+      weightKg: dto.weight_kg,
     });
     return {
       estimated_price: estimatedPrice,

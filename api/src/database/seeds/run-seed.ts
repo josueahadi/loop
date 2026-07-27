@@ -91,39 +91,53 @@ async function seed() {
   // before launch. Editable at runtime (no redeploy). Upserted so re-seeding
   // corrects the values.
   const pricing = ds.getRepository(PricingConfig);
+  // v3 rates: base_fare / rate_per_km / rate_per_min / rate_per_kg / min_fare.
+  // Recalibrated to realistic Kigali levels; weight is now a direct term. Still
+  // configurable at runtime (no redeploy) and PLACEHOLDER pending field research.
   const placeholderFares: Record<
     VehicleType,
-    { baseFare: number; ratePerKm: number; ratePerMin: number; minFare: number }
+    {
+      baseFare: number;
+      ratePerKm: number;
+      ratePerMin: number;
+      ratePerKg: number;
+      minFare: number;
+    }
   > = {
     [VehicleType.MOTO]: {
-      baseFare: 500,
-      ratePerKm: 300,
-      ratePerMin: 30,
-      minFare: 800,
+      baseFare: 800,
+      ratePerKm: 280,
+      ratePerMin: 25,
+      ratePerKg: 6,
+      minFare: 1000,
     },
     [VehicleType.PICKUP]: {
-      baseFare: 1000,
-      ratePerKm: 600,
-      ratePerMin: 60,
-      minFare: 1500,
-    },
-    [VehicleType.VAN]: {
-      baseFare: 1500,
-      ratePerKm: 800,
-      ratePerMin: 80,
-      minFare: 2000,
-    },
-    [VehicleType.SMALL_TRUCK]: {
-      baseFare: 2000,
-      ratePerKm: 1200,
-      ratePerMin: 120,
+      baseFare: 2500,
+      ratePerKm: 550,
+      ratePerMin: 50,
+      ratePerKg: 8,
       minFare: 3000,
     },
+    [VehicleType.VAN]: {
+      baseFare: 3500,
+      ratePerKm: 700,
+      ratePerMin: 60,
+      ratePerKg: 6,
+      minFare: 4500,
+    },
+    [VehicleType.SMALL_TRUCK]: {
+      baseFare: 5000,
+      ratePerKm: 1000,
+      ratePerMin: 90,
+      ratePerKg: 4,
+      minFare: 7000,
+    },
     [VehicleType.LARGE_TRUCK]: {
-      baseFare: 3000,
-      ratePerKm: 2000,
-      ratePerMin: 200,
-      minFare: 5000,
+      baseFare: 8000,
+      ratePerKm: 1600,
+      ratePerMin: 150,
+      ratePerKg: 3,
+      minFare: 12000,
     },
   };
   for (const [vehicleType, vals] of Object.entries(placeholderFares)) {
@@ -131,7 +145,7 @@ async function seed() {
       'vehicleType',
     ]);
   }
-  console.log('Seeded pricing_config (PLACEHOLDER rates)');
+  console.log('Seeded pricing_config (v3 rates, PLACEHOLDER pending field research)');
 
   // ---- size multipliers (PLACEHOLDER) ----
   const sizes = ds.getRepository(SizeMultiplier);

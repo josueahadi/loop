@@ -40,10 +40,10 @@ export class EstimateDto {
   @IsEnum(JobSize)
   size: JobSize;
 
-  // Part of the load profile; does NOT affect the price (size_factor captures the
-  // load effect). Accepted for the job record, ignored by the estimate formula.
+  // v3: weight is now a direct price term (rate_per_kg), in addition to the
+  // size_factor. Omitted → the weight term is dropped.
   @ApiPropertyOptional({
-    description: 'Cargo weight in kg (not a price input)',
+    description: 'Cargo weight in kg (a price input via rate_per_kg)',
   })
   @IsOptional()
   @IsNumber()

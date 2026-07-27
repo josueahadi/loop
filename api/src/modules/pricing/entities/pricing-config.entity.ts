@@ -28,6 +28,10 @@ export class PricingConfig {
   @Column({ name: 'rate_per_min', type: 'integer', default: 0 })
   ratePerMin: number;
 
+  // v3: per-kg term so weight is a direct price input (not just via size_factor).
+  @Column({ name: 'rate_per_kg', type: 'integer', default: 0 })
+  ratePerKg: number;
+
   @Column({ name: 'min_fare', type: 'integer', default: 0 })
   minFare: number;
 
