@@ -57,9 +57,11 @@ settle to a Rwandan driver or business. Flutterwave supports **RWF card and MTN 
 collections natively through its Rwanda integration. This matters for the roadmap: moving local
 users to mobile money later is **enabling an additional payment method on the same integration —
 a dashboard toggle, not a provider migration or a code change**. The provider sits behind a
-`PAYMENT_DRIVER` env (`stub` | `flutterwave`), the same swappable-driver pattern already used for
-`MAIL_DRIVER`, `STORAGE_DRIVER`, and `PUSH_DRIVER`, so the full flow is demonstrable without
-credentials and the provider stays replaceable.
+`PAYMENT_DRIVER` env (`stub` | `flutterwave` [v3 hosted card+MoMo checkout] | `flutterwave_v4`
+[v4 MoMo]), the same swappable-driver pattern already used for `MAIL_DRIVER`, `STORAGE_DRIVER`,
+and `PUSH_DRIVER`, so the full flow is demonstrable without credentials and the provider stays
+replaceable. See `docs/CHANGES_LOG.md` for the current payment drivers, the v3 card demo setup,
+and Flutterwave test cards.
 
 **Onboarding constraint (a real-world finding).** As of July 2026 Flutterwave's *self-serve* signup
 lists **Nigeria as the only selectable country** and routes Rwanda to a "Contact Sales" enterprise

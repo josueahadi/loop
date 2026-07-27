@@ -36,6 +36,7 @@ mobile/.pub/
 /docs/*
 !/docs/BUILD_SPEC.md
 !/docs/TECHNICAL_REPORT.md
+!/docs/CHANGES_LOG.md
 /CLAUDE.md
 
 # ---- OS ----

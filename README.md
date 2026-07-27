@@ -162,21 +162,22 @@ The cost estimate is rule-based and transparent (not ML — there is no transact
 ```
 estimated_price = max( min_fare(vt),
                        base_fare(vt) + rate_per_km(vt) × distance_km
-                                     + rate_per_min(vt) × duration_min )
+                                     + rate_per_min(vt) × duration_min
+                                     + rate_per_kg(vt) × weight_kg )
                   × size_factor(size)
 ```
 
-`distance_km` and `duration_min` come from OSRM road routing; if the router is unavailable the estimate falls back to the PostGIS great-circle distance and drops the time term. Every parameter is DB config (editable without a redeploy); the seeded values (placeholders pending field research, whole RWF) are:
+`distance_km` and `duration_min` come from OSRM road routing; if the router is unavailable the estimate falls back to the PostGIS great-circle distance and drops the time term (the weight term is dropped when weight is unknown). Every parameter is DB config (editable without a redeploy); the current v3 values (placeholders pending field research, whole RWF) are:
 
-| Vehicle type | `min_fare` | `base_fare` | `rate_per_km` | `rate_per_min` |
-| --- | ---: | ---: | ---: | ---: |
-| moto | 800 | 500 | 300 | 30 |
-| pickup | 1,500 | 1,000 | 600 | 60 |
-| van | 2,000 | 1,500 | 800 | 80 |
-| small_truck | 3,000 | 2,000 | 1,200 | 120 |
-| large_truck | 5,000 | 3,000 | 2,000 | 200 |
+| Vehicle type | `base_fare` | `rate_per_km` | `rate_per_min` | `rate_per_kg` | `min_fare` |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| moto | 800 | 280 | 25 | 6 | 1,000 |
+| pickup | 2,500 | 550 | 50 | 8 | 3,000 |
+| van | 3,500 | 700 | 60 | 6 | 4,500 |
+| small_truck | 5,000 | 1,000 | 90 | 4 | 7,000 |
+| large_truck | 8,000 | 1,600 | 150 | 3 | 12,000 |
 
-`size_factor` is 1.0 (small), 1.3 (medium), 1.6 (large). The estimate is a reference — the owner sets the final price, and both are stored on the job.
+`size_factor` is 1.0 (small), 1.3 (medium), 1.6 (large), and reflects **bulk/awkwardness**, not weight — weight is priced separately via `rate_per_kg`. The estimate is a reference — the owner sets the final price, and both are stored on the job. Recent changes beyond this README are logged in [`docs/CHANGES_LOG.md`](docs/CHANGES_LOG.md).
 
 ## Technical report
 

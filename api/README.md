@@ -87,7 +87,7 @@ All variables are validated on boot (`src/config/validation.ts`). See `.env.exam
 
 ## Endpoints
 
-The full, always-current schema is at **`/docs`** (OpenAPI/Swagger). The summary below covers every wired route across M1–M6.
+The full, always-current schema is at **`/docs`** (OpenAPI/Swagger). The summary below covers every wired route across M1–M8.
 
 **Auth** (public unless noted)
 
@@ -119,7 +119,11 @@ The full, always-current schema is at **`/docs`** (OpenAPI/Swagger). The summary
 
 **Pricing**
 
-- `POST /pricing/estimate`: `{ pickup, drop_off, vehicle_type, size, weight }` → `{ estimated_price, distance_km }` (rule-based; config-driven; integer RWF)
+- `POST /pricing/estimate`: `{ pickup, drop_off, vehicle_type, size, weight_kg }` → `{ estimated_price, distance_km, duration_min, distance_source }` (rule-based v3; config-driven; integer RWF). Formula: `max(min_fare, base_fare + rate_per_km·km + rate_per_min·min + rate_per_kg·weight) × size_factor`. Weight is a direct term; `size_factor` reflects bulk, not weight. See `docs/CHANGES_LOG.md`.
+
+**Routing** (M7 — OSRM proxy, cargo owner)
+
+- `GET /routing/route?...`: road polyline + distance/duration from the OSRM proxy, with a PostGIS great-circle fallback (`distance_source` flags `osrm` | `great_circle`). Feeds pricing and the driver's in-app turn-by-turn navigation.
 
 **Jobs** (cargo owner)
 
@@ -143,6 +147,12 @@ The full, always-current schema is at **`/docs`** (OpenAPI/Swagger). The summary
 - `POST /jobs/:jobId/ratings`: two-way rating after completion
 - `GET /users/:id/ratings`: a user's received ratings + aggregate
 
+**Payments** (M8 — pass-through, `PAYMENT_DRIVER` = `stub` | `flutterwave` [v3 card+MoMo] | `flutterwave_v4` [v4 MoMo])
+
+- `POST /jobs/:id/payment`: owner-only, only when the job is `completed` and no successful payment exists (else 409). Creates a pending PAYMENT locked to the posted `price`, returns the provider checkout link.
+- `POST /payments/webhook`: public, provider-called. **Signature-verified every call** (v3 `verif-hash`; v4 HMAC-SHA256), **idempotent** on `provider_ref`. The only thing that moves a payment to a terminal state — the client never self-reports success.
+- `GET /jobs/:id/payment`: the payment row, participants only.
+
 **Notifications**
 
 - `GET /notifications` · `GET /notifications/unread-count`
@@ -160,6 +170,7 @@ The full, always-current schema is at **`/docs`** (OpenAPI/Swagger). The summary
 - `GET /admin/verifications/:id/document-url`: signed URL to view a submitted document
 - `GET /admin/drivers` · `GET /admin/users` · `GET /admin/users/:id`
 - `GET /admin/jobs` · `GET /admin/jobs/:id` · `GET /admin/audit`
+- Moderation actions (each audit-logged): `PATCH /admin/drivers/:id/offline` (force a driver offline), `PATCH /admin/users/:id/suspension` `{ suspended }` (suspend/reactivate — a suspended user can't log in), `PATCH /admin/jobs/:id/cancel`, `PATCH /admin/verifications/:id/reopen`
 
 **Health**
 
@@ -200,8 +211,8 @@ api/src/
 - **Driver gating:** a driver appears in matching only when verification is approved **AND** availability is online.
 - **PostGIS** handles all distance/proximity — no geospatial math in app code.
 - **Pricing** is a rule-based _estimate_ the owner can override; the JOB stores both `estimated_price` and the posted `price` so estimate-acceptance can be measured.
-- **Geocoding** is OpenStreetMap-only (Photon/Nominatim) and API-proxied; there is no routing endpoint — turn-by-turn is handed off to the driver's maps app client-side.
+- **Geocoding and routing** are OpenStreetMap-only (Photon/Nominatim for geocoding; OSRM for routing) and API-proxied. Road routing (`/routing/route`, M7) feeds pricing and the driver's **in-app** turn-by-turn navigation, with a great-circle fallback; "Open in Maps" is a secondary hand-off.
 
 ## Milestone status
 
-All milestones **M1–M6** are built: JWT auth, driver verification + admin review (M1); availability, PostGIS nearby-driver query, vehicle CRUD (M2); rule-based cost estimate + jobs create/post (M3); the `/geocode/*` OSM proxy (M3.5); proposals, messaging + push (M4); ratings (M5); and the Next.js admin dashboard (M6). See [section 6 of `../docs/BUILD_SPEC.md`](../docs/BUILD_SPEC.md#6-suggested-build-order-maps-to-the-junaug-timeline) for the plan.
+All milestones **M1–M8** are built: JWT auth, driver verification + admin review (M1); availability, PostGIS nearby-driver query, vehicle CRUD (M2); rule-based cost estimate + jobs create/post (M3); the `/geocode/*` OSM proxy (M3.5); proposals, messaging + push (M4); ratings (M5); the Next.js admin dashboard + moderation actions (M6); OSRM road routing + pricing v3 (weight term) + in-app turn-by-turn navigation (M7); and pass-through in-app payments — `PAYMENT_DRIVER` stub | Flutterwave v3/v4, webhook-as-truth (M8). Plus SMS driver notifications and auto-activate-on-approval. See [section 6 of `../docs/BUILD_SPEC.md`](../docs/BUILD_SPEC.md#6-suggested-build-order-maps-to-the-junaug-timeline) and `../docs/CHANGES_LOG.md`.
