@@ -270,6 +270,19 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
     }
   }
 
+  // Descriptive size hints — size is about bulk/awkwardness, not weight (weight
+  // is its own field and priced separately via rate_per_kg).
+  String _sizeHint(JobSize s) {
+    switch (s) {
+      case JobSize.small:
+        return 'Small — a few boxes / fits on a lap';
+      case JobSize.medium:
+        return 'Medium — a couple of people can carry it';
+      case JobSize.large:
+        return 'Large — fills the vehicle bed';
+    }
+  }
+
   Future<void> _post() async {
     if (!_formKey.currentState!.validate()) {
       // Reveal the errors and bring the failing fields into view rather than
@@ -561,9 +574,18 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
         const SizedBox(height: 12),
         DropdownButtonFormField<JobSize>(
           initialValue: _size,
-          decoration: const InputDecoration(labelText: 'Load size'),
+          isExpanded: true,
+          decoration: const InputDecoration(
+            labelText: 'Load size (how bulky)',
+            helperText: 'Bulk / how much space it takes — weight is separate below',
+          ),
           items: JobSize.values
-              .map((s) => DropdownMenuItem(value: s, child: Text(s.label)))
+              .map(
+                (s) => DropdownMenuItem(
+                  value: s,
+                  child: Text(_sizeHint(s), overflow: TextOverflow.ellipsis),
+                ),
+              )
               .toList(),
           onChanged: (v) => setState(() {
             _size = v ?? _size;

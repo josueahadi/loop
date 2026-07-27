@@ -105,6 +105,29 @@ class _PaymentSectionState extends State<PaymentSection> {
     context,
   ).showSnackBar(SnackBar(content: Text(msg)));
 
+  // Off-platform settlement is a valid fallback, but the app never self-reports a
+  // payment as successful — only the provider webhook can. So this just informs
+  // the owner; it records no payment state. The job stays complete + rateable.
+  Future<void> _confirmOffPlatform() async {
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Paid outside the app?'),
+        content: const Text(
+          'That’s fine — paying in-app is optional. The job stays complete and '
+          'you can rate the driver. Note: an off-platform payment isn’t recorded '
+          'as an in-app payment, since only the payment provider can confirm one.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Got it'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loading) return const SizedBox.shrink();
@@ -132,30 +155,39 @@ class _PaymentSectionState extends State<PaymentSection> {
               style: const TextStyle(color: textGray, fontSize: 12),
             ),
           ),
-        // Owner action: pay (nothing yet / no row) or retry (failed).
+        // Owner action: the in-app payment is the primary, prominent path.
+        // Off-platform settlement stays available but is clearly secondary.
         if (widget.isOwner && !paid && !pending) ...[
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
+            height: 52,
             child: ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
                 backgroundColor: primaryGreen,
                 foregroundColor: Colors.white,
+                textStyle: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
               onPressed: _busy ? null : _pay,
-              icon: const Icon(Icons.payments_outlined, size: 18),
+              icon: const Icon(Icons.payments, size: 20),
               label: Text(
                 failed
-                    ? 'Retry payment (${widget.postedPrice} RWF)'
-                    : 'Pay driver (${widget.postedPrice} RWF)',
+                    ? 'Retry payment · ${widget.postedPrice} RWF'
+                    : 'Pay driver · ${widget.postedPrice} RWF',
               ),
             ),
           ),
-          const Padding(
-            padding: EdgeInsets.only(top: 4),
-            child: Text(
-              'Optional — you can also settle off-platform.',
-              style: TextStyle(color: textGray, fontSize: 12),
+          const SizedBox(height: 6),
+          Center(
+            child: TextButton(
+              onPressed: _busy ? null : _confirmOffPlatform,
+              child: const Text(
+                'Already paid outside the app?',
+                style: TextStyle(color: textGray, fontSize: 12),
+              ),
             ),
           ),
         ],
