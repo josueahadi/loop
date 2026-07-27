@@ -36,24 +36,36 @@ Webhook (Flutterwave dashboard → **Webhooks → V3 Test webhooks**):
 
 The v3 provider sends the secret hash in the `verif-hash` header; the API rejects any webhook whose header doesn't match. The v4 provider instead verifies an HMAC-SHA256 `flutterwave-signature` over the raw body (that's why the API keeps the raw request body — `rawBody: true` in `main.ts`).
 
-### Demo flow (v3 card)
+### Demo flow (v3 — card AND Mobile Money, same hosted page)
 
 1. Owner completes a job → taps **"Pay driver · X RWF"**.
-2. The Flutterwave hosted page opens in a webview.
-3. Owner enters a **test card**, PIN, OTP → pays.
+2. The Flutterwave hosted page opens in a webview. It **defaults to Mobile Money**
+   — to pay by card, tap **"Change payment method" → Card**.
+3. Complete the chosen method:
+   - **Card:** enter a test card, PIN, OTP.
+   - **Mobile Money:** enter a Rwanda test MSISDN, then the MoMo OTP.
 4. Flutterwave fires the webhook → the API flips the payment to **Paid** (verified, idempotent on `provider_ref`).
 5. The app polls and the status chip shows **Paid**.
 
-### Flutterwave sandbox test cards
+Both methods run through the **same** v3 hosted checkout and the **same** webhook —
+so the demo can show card and Mobile Money without any code difference.
 
-Test cards work only against test keys / the sandbox — never live. Canonical Flutterwave test cards (use the CURRENT expiry — a future year like 09/32):
+### Flutterwave sandbox test values
+
+Work only against test keys / the sandbox — never live.
+
+**Test cards** (use a future expiry, e.g. 09/32; declined-as-expired → bump the year):
 
 | Type | Number | CVV | Expiry | PIN | OTP |
 |---|---|---|---|---|---|
 | Mastercard | 5531 8866 5214 2950 | 564 | 09/(future) | 3310 | 12345 |
 | Visa | 4187 4274 1556 4246 | 828 | 09/(future) | 3310 | 12345 |
 
-Always-current list: https://developer.flutterwave.com/docs/testing (and the dashboard's test-cards reference). If a card is declined for "expired", bump the expiry year.
+**Mobile Money (Rwanda):** on the hosted page enter a Rwanda MSISDN (e.g.
+`250780000000`) and pay. Flutterwave's sandbox auto-authorises Rwanda MoMo after a
+few seconds; if an OTP screen appears, the sandbox OTP is **12345**.
+
+Always-current list: https://developer.flutterwave.com/docs/testing.
 
 ### In-app payment is the primary path (UX)
 
@@ -61,7 +73,7 @@ On a completed job the owner sees a prominent **"Pay driver · X RWF"** button. 
 
 ### Why not Stripe / v4-card note
 
-Stripe still can't onboard a Rwanda merchant (unchanged). On v4, card requires client-side AES-GCM encryption whose exact byte-format is undocumented — so the **card demo uses v3** (hosted page, no encryption needed) and **MoMo uses v4**.
+Stripe still can't onboard a Rwanda merchant (unchanged). The **v3 hosted checkout does both card and Mobile Money** in one page, so it's the demo driver — no client-side encryption needed. (The `flutterwave_v4` driver was also built: v4 is MoMo-only in our provider and its card path needs undocumented client-side AES-GCM encryption, so we don't use it for the demo.)
 
 ---
 
@@ -135,6 +147,43 @@ Admins were read-only except verification review. Added (each admin-guarded and 
 
 ---
 
+## 7. Concurrency & edge-case behaviour
+
+Two "what happens when…" cases, documented for the defence.
+
+### Two proposals to the same driver at once — handled (race-safe)
+
+A driver can hold several pending proposals at once (each for a different owner's
+job) — that's intended; the driver chooses which to accept. When accepts race,
+exactly one job wins and there is never a double-booking. Two guards enforce it:
+
+1. **App-layer pre-check** — accept first checks the job is still `POSTED`, else
+   `409 ConflictException('Job has already been matched')`.
+2. **Atomic DB guard** — inside the accept transaction, the job is flipped with
+   `UPDATE jobs SET status='matched' WHERE id=$1 AND status='POSTED'`. Even if two
+   requests pass the pre-check simultaneously, the Postgres row-lock serialises
+   them: the first flips the row, the second matches **zero** rows and is a no-op.
+   Accepting also auto-declines the job's other pending proposals in the same
+   transaction. (Verified directly: two concurrent guarded UPDATEs on one `posted`
+   row → first matches 1 row, second matches 0. Plus a unit test asserting the
+   second accept is rejected.)
+
+So: exactly one accepted proposal per job, no double-booking, no corrupt state —
+the loser gets a clean 409, not a broken match.
+
+### Owner waiting with no drivers — NOT notified when a driver comes online
+
+**Known gap, not built.** If an owner searches and no matchable driver is online,
+they see the honest empty state — but when a driver **later comes online**, the
+app only flips `availability_status`; it does **not** notify owners with an open
+job that supply has arrived. The owner must re-open the Nearby screen and re-check.
+The notifications that exist run the other direction (driver ← new proposal;
+owner ← accept/decline). A "driver now available near your posted job" push is a
+sensible future enhancement (a fan-out on going-online to nearby owners with a
+matching open job) — deferred as a demand/supply matching-loop improvement.
+
+---
+
 ## Testing status
 
-API unit suite: **58 tests** across 8 suites (was 47) — includes pricing v3 weight cases, verification auto-activate, and SMS provider tests. Plus one real PostGIS integration test. Admin (Vitest) 9, mobile (flutter_test) ~20+.
+API unit suite: **59 tests** across 8 suites (was 47) — includes pricing v3 weight cases, verification auto-activate, SMS provider tests, and a proposal-accept concurrency test. Plus one real PostGIS integration test. Admin (Vitest) 9, mobile (flutter_test) ~20+.

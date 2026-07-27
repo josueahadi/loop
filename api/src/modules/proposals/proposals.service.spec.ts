@@ -103,4 +103,39 @@ describe('ProposalsService.respond', () => {
     // Accept path runs in a transaction (updates proposal + job + auto-declines others).
     expect(proposalsRepo.manager.transaction).toHaveBeenCalled();
   });
+
+  // Concurrency: two owners each send the same driver a proposal (for their own
+  // job), and the driver's accepts race. Only one job can win; the second must be
+  // rejected, never producing two matched jobs for one driver. At the app layer
+  // the loser is caught by the "job must still be POSTED" pre-check; the deeper
+  // guarantee is the atomic UPDATE ... WHERE status='POSTED' in the transaction,
+  // which only flips the row once even if both requests pass the pre-check (a
+  // Postgres row-lock serialises them). This asserts the app-layer half.
+  it('lets only one job win when a driver accepts two proposals racing', async () => {
+    // Proposal A: job-A still open → accept succeeds and matches job-A.
+    const propA = {
+      ...baseProposal(),
+      id: 'prop-A',
+      jobId: 'job-A',
+      job: { ...baseProposal().job, id: 'job-A', status: JobStatus.POSTED },
+    };
+    const { service: svcA } = makeService(propA);
+    await expect(
+      svcA.respond(DRIVER, 'prop-A', ProposalStatus.ACCEPTED),
+    ).resolves.toBeDefined();
+
+    // Proposal B: by the time the second accept lands, its job has been matched
+    // (the driver is now busy) → the pre-check rejects it with a 409, rather than
+    // creating a second match.
+    const propB = {
+      ...baseProposal(),
+      id: 'prop-B',
+      jobId: 'job-B',
+      job: { ...baseProposal().job, id: 'job-B', status: JobStatus.MATCHED },
+    };
+    const { service: svcB } = makeService(propB);
+    await expect(
+      svcB.respond(DRIVER, 'prop-B', ProposalStatus.ACCEPTED),
+    ).rejects.toBeInstanceOf(ConflictException);
+  });
 });
