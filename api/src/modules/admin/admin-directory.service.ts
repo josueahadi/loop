@@ -230,6 +230,7 @@ export class AdminDirectoryService {
       `SELECT u.id, u.name, u.email, u.phone,
               u.availability_status AS "availabilityStatus",
               u.suspended_at AS "suspendedAt",
+              u.created_at AS "createdAt",
               COUNT(DISTINCT v.id)::int AS "vehicleCount",
               COUNT(DISTINCT vr.document_type) FILTER
                 (WHERE vr.status = 'approved'

@@ -70,6 +70,10 @@ export function DriversTable() {
       ),
     },
     {
+      header: 'Joined',
+      cell: (d) => new Date(d.createdAt).toLocaleDateString(),
+    },
+    {
       header: '',
       cell: (d) => (
         <div

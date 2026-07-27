@@ -8,6 +8,7 @@ export interface AdminDriver {
   phone: string;
   availabilityStatus: DriverAvailabilityStatus;
   suspendedAt: string | null;
+  createdAt: string;
   vehicleCount: number;
   approvedDocumentCount: number;
   matchabilityStatus: DriverMatchabilityStatus;
