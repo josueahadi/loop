@@ -13,6 +13,7 @@ import { DocumentType, VerificationStatus } from '../../common/enums';
 import { MAIL_SERVICE, MailService } from '../mail/mail.service';
 import { PushService } from '../push/push.service';
 import { StorageService } from '../storage/storage.service';
+import { UsersService } from '../users/users.service';
 import { VerificationRecord } from './entities/verification-record.entity';
 
 const ALLOWED_MIME = ['image/jpeg', 'image/png', 'application/pdf'];
@@ -33,6 +34,7 @@ export class VerificationService {
     private readonly storage: StorageService,
     private readonly push: PushService,
     @Inject(MAIL_SERVICE) private readonly mail: MailService,
+    private readonly users: UsersService,
   ) {}
 
   // Driver uploads a document (API-mediated → private Storage bucket → DB row).
@@ -148,6 +150,17 @@ export class VerificationService {
         data: { type: 'verification_rejected', documentType: record.documentType },
       });
     } else {
+      // If THIS approval completes the driver's verification (all required docs
+      // approved), auto-activate them online as a one-time "you're live" signal.
+      // The driver's manual toggle works normally afterward — this sets the
+      // initial state once, it does not pin them online. Best-effort.
+      if (await this.isFullyVerified(record.driverId)) {
+        try {
+          await this.users.activateOnVerification(record.driverId);
+        } catch (err) {
+          this.logger.error('Auto-activate on approval failed', err as Error);
+        }
+      }
       void this.push.sendToUser(record.driverId, {
         title: 'Document approved',
         body: `Your ${label} was approved.`,
@@ -155,6 +168,27 @@ export class VerificationService {
       });
     }
     return saved;
+  }
+
+  // True once the driver has all three required documents approved — the same
+  // rule the matching query and go-online guard use.
+  private async isFullyVerified(driverId: string): Promise<boolean> {
+    const rows = await this.records
+      .createQueryBuilder('r')
+      .select('COUNT(DISTINCT r.documentType)', 'count')
+      .where('r.driverId = :driverId', { driverId })
+      .andWhere('r.status = :status', {
+        status: VerificationStatus.APPROVED,
+      })
+      .andWhere('r.documentType IN (:...types)', {
+        types: [
+          DocumentType.LICENCE,
+          DocumentType.NATIONAL_ID,
+          DocumentType.VEHICLE_REG,
+        ],
+      })
+      .getRawOne<{ count: string }>();
+    return Number(rows?.count ?? 0) === 3;
   }
 
   // Admin action: re-open an already-decided record back to PENDING so it can be

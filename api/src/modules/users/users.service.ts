@@ -170,6 +170,20 @@ export class UsersService {
     return this.getByIdOrFail(id);
   }
 
+  // Called once, when a driver becomes fully verified, to set them online as a
+  // "you're live" signal. Sets the initial availability only — the driver's
+  // manual online/offline toggle works normally afterward (this never pins them
+  // online). No-op for non-drivers. Location may be null until they next go
+  // online from the app; matching still requires location, so this can't surface
+  // a locationless driver.
+  async activateOnVerification(id: string): Promise<void> {
+    const user = await this.getByIdOrFail(id);
+    if (user.role !== UserRole.DRIVER) return;
+    await this.users.update(id, {
+      availabilityStatus: AvailabilityStatus.ONLINE,
+    });
+  }
+
   private async assertDriverCanGoOnline(id: string): Promise<void> {
     const [vehicleRow] = await this.users.manager.query(
       `SELECT COUNT(*)::int AS count FROM vehicles WHERE driver_id = $1`,
