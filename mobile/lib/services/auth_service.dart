@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 import '../core/api/api_client.dart';
 import '../core/api/token_store.dart';
 import '../core/enums/app_enums.dart';
+import '../core/errors/error_messages.dart';
 import '../core/models/user_model.dart';
 
 /// Auth against the NestJS API (JWT). Replaces the previous FirebaseAuth +
@@ -204,13 +205,15 @@ class AuthService {
     }
   }
 
-  /// Maps a Dio error to a readable message from the API's error envelope.
+  /// Maps a Dio error to a readable message. When the server replied, surface its
+  /// error-envelope message; otherwise (timeout, no connection) fall back to the
+  /// shared friendly message rather than leaking Dio's raw internals to the user.
   Exception _mapError(DioException e) {
     final data = e.response?.data;
     if (data is Map && data['message'] != null) {
       final msg = data['message'];
       return Exception(msg is List ? msg.join(', ') : msg.toString());
     }
-    return Exception(e.message ?? 'Network error');
+    return Exception(friendlyErrorMessage(e));
   }
 }

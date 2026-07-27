@@ -41,7 +41,12 @@ class ApiClient {
           Dio(
             BaseOptions(
               baseUrl: AppConfig.apiBaseUrl,
-              connectTimeout: const Duration(seconds: 15),
+              // The hosted API resolves to a single provider edge IP; a cold DNS
+              // + connect on a slow mobile-data path can be several seconds, so
+              // give the connect step headroom (see DEPLOYMENT.md §12 — the
+              // durable fix is fronting the API with a CDN). The server itself
+              // responds in well under a second once connected.
+              connectTimeout: const Duration(seconds: 30),
               receiveTimeout: const Duration(seconds: 20),
               contentType: 'application/json',
             ),

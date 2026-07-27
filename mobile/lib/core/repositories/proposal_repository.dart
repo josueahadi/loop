@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 
 import '../api/api_client.dart';
+import '../errors/error_messages.dart';
 import '../models/proposal.dart';
 
 /// Proposals against the API. Owner sends + reviews; driver lists incoming + responds.
@@ -64,6 +65,6 @@ class ProposalRepository {
     if (e.response?.statusCode == 409) {
       return 'This proposal is no longer available. Refresh to see the latest status.';
     }
-    return e.message ?? 'Request failed';
+    return friendlyErrorMessage(e);
   }
 }
