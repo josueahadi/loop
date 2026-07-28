@@ -84,10 +84,14 @@ class _DriverHomeState extends State<DriverHome> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     // On resume, recount pending proposals + unread notifications, and remount
-    // tabs so anything that changed while away is reflected.
+    // tabs so anything that changed while away is reflected. Also re-fetch the
+    // user so a verification approval that landed while backgrounded (e.g. the
+    // driver tapped the "Document approved" push) flips the banner and online
+    // state without a manual pull-to-refresh.
     if (state == AppLifecycleState.resumed) {
       _onProposalsChanged();
       context.read<NotificationProvider>().refreshUnread();
+      context.read<AuthProvider>().refreshUserData();
     }
   }
 

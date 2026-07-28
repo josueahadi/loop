@@ -101,9 +101,16 @@ class MyApp extends StatelessWidget {
           };
 
           // Foreground pushes: PushMessaging renders the OS notification; here we
-          // just refresh the in-app unread badge so counts stay current.
+          // refresh the in-app unread badge so counts stay current, and — for a
+          // verification decision — re-fetch the user so the driver's banner and
+          // online state flip the moment an admin approves, with no pull-to-refresh.
           authProvider.push.onForegroundMessage = (message) {
             notifications.refreshUnread();
+            final type = message.data['type'];
+            if (type == 'verification_approved' ||
+                type == 'verification_rejected') {
+              authProvider.refreshUserData();
+            }
           };
 
           return MaterialApp(
