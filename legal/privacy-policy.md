@@ -61,16 +61,20 @@ If you believe a rating is unfair or a suspension mistaken, contact us at the ad
 
 ## 8. How long we keep it and how to delete it
 
-> **FILL THIS IN BEFORE PUBLISHING.** State a retention period for each category below, then describe how a user closes their account, what is deleted, what is retained, and why. This section is a legal requirement under Law No. 058/2021 and an empty version will be noticed.
+We keep the information described in section 2 for as long as your account is open. We do not delete it automatically on a schedule; instead we make deletion available to you, which is what Law No. 058/2021 requires. What each category holds while your account is open:
 
-- Account information: {{RETENTION_ACCOUNT}}
-- Verification documents: {{RETENTION_VERIFICATION}}
-- Location history: {{RETENTION_LOCATION}}
-- Messages: {{RETENTION_MESSAGES}}
-- Job records: {{RETENTION_JOBS}}
-- Payment references: {{RETENTION_PAYMENTS}}
+- Account information: kept while your account is open.
+- Verification documents: kept while your account is open, so you remain matchable as a driver. The document files are held in private storage, separate from your account record.
+- Location: we store only your most recent position, not a history or trail. Each update overwrites the previous one; going offline stops it being used for matching.
+- Messages and job records: kept while your account is open, as the record of what was agreed with your counterparty.
+- Payment references: the amount, time and provider reference for a settlement (see section 4). These are financial records and are treated separately from your account — see below.
 
-To close your account, {{DELETION_PROCESS}}.
+You can delete your account yourself, at any time, from the app, after confirming your password. You may also ask us to delete it using the contact address above, and we will action the request within 5 working days.
+
+When an account is deleted, we erase your account information and the data it owns — your jobs, proposals, messages, ratings and, for drivers, your vehicle details and verification document files. Two things are treated differently, and we tell you so plainly:
+
+- **Payment records are kept, with your identity removed.** Because a settlement is a financial record, we retain the amount, time and provider reference, but we remove the link to you and delete the provider's raw response. The record can no longer be traced back to you.
+- **Removal for false documents leaves a minimal block.** If a driver is removed for submitting false documents (see section 10), we keep a one-way fingerprint of the email address and phone number used — not the values themselves — so the same details cannot immediately be used to register again. Nothing else about the account is retained.
 
 ## 9. Your rights
 

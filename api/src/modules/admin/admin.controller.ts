@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseUUIDPipe,
@@ -13,6 +14,7 @@ import { Request } from 'express';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { UserRole, VerificationStatus } from '../../common/enums';
+import { AccountDeletionService } from '../account/account-deletion.service';
 import { JobsService } from '../jobs/jobs.service';
 import { StorageService } from '../storage/storage.service';
 import { UsersService } from '../users/users.service';
@@ -23,6 +25,7 @@ import { AdminMetricsService } from './admin-metrics.service';
 import { AuditService } from './audit.service';
 import { DirectoryQuery } from './dto/directory-query.dto';
 import { ListVerificationsQuery } from './dto/list-verifications.query';
+import { DeleteUserDto } from './dto/delete-user.dto';
 import { ReviewVerificationDto } from './dto/review-verification.dto';
 import { SuspendUserDto } from './dto/suspend-user.dto';
 
@@ -40,6 +43,7 @@ export class AdminController {
     private readonly audit: AuditService,
     private readonly users: UsersService,
     private readonly jobs: JobsService,
+    private readonly deletion: AccountDeletionService,
   ) {}
 
   // Server-computed evaluation metrics — the dashboard only renders these.
@@ -178,6 +182,31 @@ export class AdminController {
       userAgent: req.headers['user-agent'] ?? null,
     });
     return this.directory.getUserProfile(id);
+  }
+
+  // Delete a user account and the data it owns (Law No. 058/2021 erasure).
+  // Irreversible. `blocklist: true` (fraud removal) keeps a hashed record so the
+  // same email/phone cannot immediately re-register.
+  @Delete('users/:id')
+  async deleteUser(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: DeleteUserDto,
+    @CurrentUser('id') adminId: string,
+    @Req() req: Request,
+  ): Promise<{ deleted: true; filesPurged: number; blocklisted: boolean }> {
+    const result = await this.deletion.deleteUser(id, {
+      blocklistReason: dto.blocklist ? (dto.reason ?? 'admin removal') : undefined,
+    });
+    await this.audit.record({
+      actorId: adminId,
+      action: 'user.deleted',
+      targetType: 'user',
+      targetId: id,
+      ip: req.ip,
+      userAgent: req.headers['user-agent'] ?? null,
+      metadata: { blocklisted: result.blocklisted, reason: dto.reason ?? null },
+    });
+    return { deleted: true, ...result };
   }
 
   // Cancel any non-terminal job (an admin can resolve a stuck job).

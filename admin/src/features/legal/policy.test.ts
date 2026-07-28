@@ -23,17 +23,9 @@ describe('shared privacy policy content', () => {
     }
   });
 
-  it('exposes the retention/deletion placeholders in one object', () => {
-    for (const key of [
-      'RETENTION_ACCOUNT',
-      'RETENTION_VERIFICATION',
-      'RETENTION_LOCATION',
-      'RETENTION_MESSAGES',
-      'RETENTION_JOBS',
-      'RETENTION_PAYMENTS',
-      'DELETION_PROCESS',
-    ]) {
-      expect(policy.placeholders).toHaveProperty(key);
-    }
+  it('collects any remaining placeholders into one object', () => {
+    // All placeholders are currently filled, so the set is empty; the shape must
+    // still be present so the renderer can flag any future unfilled value.
+    expect(policy.placeholders).toBeTypeOf('object');
   });
 });

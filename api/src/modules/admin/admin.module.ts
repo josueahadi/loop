@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { AccountModule } from '../account/account.module';
 import { JobsModule } from '../jobs/jobs.module';
 import { UsersModule } from '../users/users.module';
 import { VerificationModule } from '../verification/verification.module';
@@ -15,6 +16,7 @@ import { AuditLog } from './entities/audit-log.entity';
     VerificationModule,
     UsersModule,
     JobsModule,
+    AccountModule,
     TypeOrmModule.forFeature([AuditLog]),
   ],
   controllers: [AdminController],

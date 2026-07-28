@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
+import * as argon2 from 'argon2';
 import { DataSource, Repository } from 'typeorm';
 import { AvailabilityStatus, UserRole } from '../../common/enums';
 import { User } from './entities/user.entity';
@@ -231,5 +232,13 @@ export class UsersService {
     // empty string, so the push send-path's fcmToken check stays unambiguous.
     const normalised = token && token.trim().length > 0 ? token : null;
     await this.users.update({ id }, { fcmToken: normalised });
+  }
+
+  // Confirms a user's password — used to gate a destructive self-serve action
+  // (account deletion) behind re-authentication.
+  async verifyPassword(id: string, password: string): Promise<boolean> {
+    const user = await this.findById(id);
+    if (!user) return false;
+    return argon2.verify(user.passwordHash, password);
   }
 }

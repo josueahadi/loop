@@ -30,21 +30,23 @@ export class Payment {
   @JoinColumn({ name: 'job_id' })
   job: Job;
 
-  // The job's owner (who pays).
-  @Column({ name: 'payer_id' })
-  payerId: string;
+  // The job's owner (who pays). Nulled if the payer deletes their account —
+  // the payment record survives as a financial record (see AccountDeletion
+  // migration), so this FK is ON DELETE SET NULL, not CASCADE.
+  @Column({ name: 'payer_id', nullable: true })
+  payerId: string | null;
 
-  @ManyToOne(() => User, { onDelete: 'CASCADE' })
+  @ManyToOne(() => User, { onDelete: 'SET NULL' })
   @JoinColumn({ name: 'payer_id' })
-  payer: User;
+  payer: User | null;
 
-  // The accepted driver (who is paid).
-  @Column({ name: 'payee_id' })
-  payeeId: string;
+  // The accepted driver (who is paid). Nulled on account deletion, same reason.
+  @Column({ name: 'payee_id', nullable: true })
+  payeeId: string | null;
 
-  @ManyToOne(() => User, { onDelete: 'CASCADE' })
+  @ManyToOne(() => User, { onDelete: 'SET NULL' })
   @JoinColumn({ name: 'payee_id' })
-  payee: User;
+  payee: User | null;
 
   // Whole RWF (zero-decimal currency). Locked to the job's posted price.
   @Column({ type: 'integer' })

@@ -79,4 +79,26 @@ export class StorageService implements OnModuleInit {
     });
     return { url, stub: false };
   }
+
+  // Delete every object under a prefix — used to purge a driver's verification
+  // documents (prefix `verification/{driverId}/`) on account deletion. Best-effort
+  // and never throws: a Storage hiccup must not abort the account deletion, whose
+  // system-of-record erasure is the DB row. Returns the number of files removed.
+  async deleteByPrefix(prefix: string): Promise<number> {
+    if (this.driver !== 'firebase' || !this.bucket) {
+      this.logger.log(`[stub delete] prefix ${prefix}`);
+      return 0;
+    }
+    try {
+      const [files] = await this.bucket.getFiles({ prefix });
+      await Promise.all(files.map((f) => f.delete()));
+      return files.length;
+    } catch (err) {
+      this.logger.error(
+        `Failed to purge storage prefix ${prefix} (continuing)`,
+        err as Error,
+      );
+      return 0;
+    }
+  }
 }

@@ -1,4 +1,4 @@
-import { UnauthorizedException } from '@nestjs/common';
+import { ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import * as argon2 from 'argon2';
 import { UserRole } from '../../common/enums';
 import { AuthService } from './auth.service';
@@ -24,6 +24,9 @@ describe('AuthService', () => {
     const jwt = { sign: jest.fn(() => 'access-token') };
     const config = { get: jest.fn(() => 'x') };
     const audit = { record: jest.fn(() => Promise.resolve()) };
+    const deletion = {
+      isBlocklisted: jest.fn(() => Promise.resolve(false)),
+    };
     const mail = {
       sendPasswordReset: jest.fn(),
       sendEmailVerification: jest.fn(),
@@ -35,9 +38,10 @@ describe('AuthService', () => {
       jwt as any,
       config as any,
       audit as any,
+      deletion as any,
       mail as any,
     );
-    return { service, users, audit, mail };
+    return { service, users, audit, deletion, mail };
   }
 
   describe('login', () => {
@@ -122,6 +126,21 @@ describe('AuthService', () => {
       expect(passed.passwordHash).toBeDefined();
       expect(passed.passwordHash).not.toContain('plaintext-secret');
       expect(passed.passwordHash.startsWith('$argon2')).toBe(true);
+    });
+
+    it('rejects a blocklisted identifier and never creates the user', async () => {
+      const { service, users, deletion } = makeService();
+      deletion.isBlocklisted.mockResolvedValueOnce(true);
+      await expect(
+        service.register({
+          name: 'Blocked',
+          email: 'blocked@loop.rw',
+          phone: '+250780000009',
+          password: 'pw12345',
+          role: UserRole.DRIVER,
+        }),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      expect(users.createUser).not.toHaveBeenCalled();
     });
   });
 });
