@@ -119,6 +119,16 @@ export class FlutterwaveV4PaymentProvider implements PaymentProvider {
     return (json.data ?? {}) as Record<string, unknown>;
   }
 
+  // Like get(), but for list endpoints where `data` is an array.
+  private async getList(path: string): Promise<unknown[]> {
+    const token = await this.accessToken();
+    const res = await fetch(`${SANDBOX_BASE}${path}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const json = (await res.json().catch(() => ({}))) as { data?: unknown };
+    return Array.isArray(json.data) ? json.data : [];
+  }
+
   // Create the customer, or reuse the existing one if the email already exists
   // (Flutterwave dedupes on email and returns a 409 without the id).
   private async ensureCustomer(
@@ -136,13 +146,15 @@ export class FlutterwaveV4PaymentProvider implements PaymentProvider {
       return created.id as string;
     } catch (e) {
       if (e instanceof FlutterwaveApiError && e.type === 'RESOURCE_CONFLICT') {
-        const existing = await this.get(
-          `/customers?email=${encodeURIComponent(email)}`,
-        );
-        const id = Array.isArray(existing)
-          ? (existing[0] as { id?: string })?.id
-          : (existing as { id?: string })?.id;
-        if (id) return id;
+        // The customer already exists. The sandbox's ?email= filter is not
+        // honoured (it returns the full list), so match on email ourselves
+        // rather than trusting the first row — [0] is otherwise whichever
+        // customer was created most recently, which is the wrong id.
+        const list = await this.getList('/customers');
+        const match = list.find(
+          (c) => (c as { email?: string }).email === email,
+        ) as { id?: string } | undefined;
+        if (match?.id) return match.id;
       }
       throw e;
     }
