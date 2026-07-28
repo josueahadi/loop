@@ -43,25 +43,19 @@ class PushMessaging {
   /// does not display a foreground notification on its own).
   void Function(RemoteMessage message)? onForegroundMessage;
 
-  // The onTokenRefresh/onMessage listeners are attached exactly once for the
-  // life of the app (they must NOT be re-added on every start(), which would
-  // stack duplicates). They are the durable safety net: FCM emits the token on
-  // onTokenRefresh whenever it is first provisioned, so as long as this listener
-  // is attached BEFORE the permission prompt is answered, a fresh signup's token
-  // is always captured — even if the awaited getToken() path below is interrupted
-  // by navigation or a slow permission dialog (the bug that left new users with
-  // no token: getToken() was awaited behind the permission prompt, and if that
-  // future was superseded before the user tapped Allow, nothing registered).
   bool _listenersAttached = false;
 
   /// Call once the user is authenticated (the API needs a JWT to store the
   /// token against the user). Safe to call more than once.
   Future<void> start() async {
+    // Attach the durable listeners BEFORE the permission await below: on a fresh
+    // signup the token may only arrive once the user answers the permission
+    // dialog, and onTokenRefresh is what catches it if the awaited getToken()
+    // path is interrupted by navigation. This was the new-user "no token" bug.
     _attachListeners();
 
-    // Skip only if a token is already registered, or a run is in flight. If a
-    // previous run finished WITHOUT a token, a later call (e.g. right after
-    // signup) is allowed through to try again.
+    // A previous run that finished WITHOUT a token must not latch — a later call
+    // (e.g. right after signup) is allowed through to try again.
     if (_tokenRegistered || _running) return;
     _running = true;
     try {
@@ -70,19 +64,14 @@ class PushMessaging {
       final messaging = FirebaseMessaging.instance;
 
       // iOS/Android 13+ ask for permission; on older Android this is a no-op.
-      // On a fresh signup this shows a dialog and only resolves once the user
-      // answers — the token cannot be minted until permission is granted.
       final settings = await messaging.requestPermission();
       debugPrint(
         'PushMessaging: permission = ${settings.authorizationStatus}',
       );
 
       // On a fresh install/signup FCM may not have provisioned the token yet, so
-      // getToken() can return null/empty on the first call. Retry a few times
-      // with a short backoff rather than giving up. The onTokenRefresh listener
-      // (attached above, before the permission await) is the belt-and-suspenders
-      // that catches a token arriving even later. Only ever register a real
-      // token — never overwrite a good one with ''.
+      // retry a few times before giving up (onTokenRefresh is the fallback).
+      // Only ever register a real token — never overwrite a good one with ''.
       var token = await messaging.getToken();
       for (var attempt = 0; (token == null || token.isEmpty) && attempt < 5; attempt++) {
         await Future<void>.delayed(const Duration(seconds: 2));
@@ -102,9 +91,7 @@ class PushMessaging {
     }
   }
 
-  // Attach the durable FCM listeners once. Idempotent — safe to call on every
-  // start(). onTokenRefresh is what makes token capture resilient to the
-  // permission-dialog race on fresh signups.
+  // Idempotent — re-adding these on every start() would stack duplicate listeners.
   void _attachListeners() {
     if (_listenersAttached) return;
     _listenersAttached = true;
@@ -112,7 +99,7 @@ class PushMessaging {
     final messaging = FirebaseMessaging.instance;
 
     // Token can arrive late (after a signup permission grant, or on rotation);
-    // register it whenever it does. This is the primary path for new users.
+    // register it whenever it does. Primary path for new users.
     messaging.onTokenRefresh.listen((t) {
       if (t.isNotEmpty) {
         _auth.registerPushToken(t);
