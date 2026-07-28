@@ -24,19 +24,21 @@ export class Message {
   @JoinColumn({ name: 'job_id' })
   job: Job;
 
-  @Column({ name: 'sender_id' })
-  senderId: string;
+  // Nulled if this participant deletes their account, so the counterparty's side
+  // of the conversation survives (SET NULL, see DetachSharedRecords migration).
+  @Column({ name: 'sender_id', nullable: true })
+  senderId: string | null;
 
-  @ManyToOne(() => User, { onDelete: 'CASCADE' })
+  @ManyToOne(() => User, { onDelete: 'SET NULL' })
   @JoinColumn({ name: 'sender_id' })
-  sender: User;
+  sender: User | null;
 
-  @Column({ name: 'receiver_id' })
-  receiverId: string;
+  @Column({ name: 'receiver_id', nullable: true })
+  receiverId: string | null;
 
-  @ManyToOne(() => User, { onDelete: 'CASCADE' })
+  @ManyToOne(() => User, { onDelete: 'SET NULL' })
   @JoinColumn({ name: 'receiver_id' })
-  receiver: User;
+  receiver: User | null;
 
   @Column({ type: 'text' })
   content: string;

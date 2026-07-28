@@ -31,6 +31,8 @@ export class MessagingAccessService {
     }
     const job = await this.jobs.findOne({ where: { id: jobId } });
     if (!job) throw new ForbiddenException('Job not found');
+    // A null owner means the owner deleted their account — the thread is closed.
+    if (!job.ownerId) throw new ForbiddenException('This account no longer exists');
     return { ownerId: job.ownerId, driverId: accepted.driverId };
   }
 

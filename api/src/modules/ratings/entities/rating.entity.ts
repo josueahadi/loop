@@ -28,12 +28,14 @@ export class Rating {
   @JoinColumn({ name: 'job_id' })
   job: Job;
 
-  @Column({ name: 'from_user_id' })
-  fromUserId: string;
+  // Nulled if the rater deletes their account — the rating they GAVE survives as
+  // part of the ratee's reputation (SET NULL, see DetachSharedRecords migration).
+  @Column({ name: 'from_user_id', nullable: true })
+  fromUserId: string | null;
 
-  @ManyToOne(() => User, { onDelete: 'CASCADE' })
+  @ManyToOne(() => User, { onDelete: 'SET NULL' })
   @JoinColumn({ name: 'from_user_id' })
-  fromUser: User;
+  fromUser: User | null;
 
   @Column({ name: 'to_user_id' })
   toUserId: string;

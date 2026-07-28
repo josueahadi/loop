@@ -155,11 +155,13 @@ export class ProposalsService {
       proposal.status = ProposalStatus.DECLINED;
       proposal.respondedAt = new Date();
       await this.proposals.save(proposal);
-      void this.push.sendToUser(proposal.job.ownerId, {
-        title: 'Proposal declined',
-        body: 'A driver declined your proposal.',
-        data: { type: 'proposal_declined', jobId: proposal.jobId },
-      });
+      if (proposal.job.ownerId) {
+        void this.push.sendToUser(proposal.job.ownerId, {
+          title: 'Proposal declined',
+          body: 'A driver declined your proposal.',
+          data: { type: 'proposal_declined', jobId: proposal.jobId },
+        });
+      }
       const coords = (await this.coordsFor([proposal.jobId])).get(
         proposal.jobId,
       );
@@ -197,11 +199,13 @@ export class ProposalsService {
     proposal.job.status = JobStatus.MATCHED;
     proposal.job.matchedAt = proposal.respondedAt;
     proposal.job.acceptedAt = proposal.respondedAt;
-    void this.push.sendToUser(proposal.job.ownerId, {
-      title: 'Proposal accepted',
-      body: 'A driver accepted — you can now chat and share contact.',
-      data: { type: 'proposal_accepted', jobId: proposal.jobId },
-    });
+    if (proposal.job.ownerId) {
+      void this.push.sendToUser(proposal.job.ownerId, {
+        title: 'Proposal accepted',
+        body: 'A driver accepted — you can now chat and share contact.',
+        data: { type: 'proposal_accepted', jobId: proposal.jobId },
+      });
+    }
     const coords = (await this.coordsFor([proposal.jobId])).get(proposal.jobId);
     return this.toDto(proposal, {
       job: proposal.job,
@@ -254,8 +258,9 @@ interface JobCoords {
   dropOff: { lat: number; lng: number };
 }
 
-function contactOf(u: User): ContactDto {
-  return { name: u.name, phone: u.phone };
+function contactOf(u: User | null): ContactDto | null {
+  // Owner can be null if they deleted their account after the match.
+  return u ? { name: u.name, phone: u.phone } : null;
 }
 
 function jobSummary(j: Job, coords?: JobCoords): ProposalJobDto {

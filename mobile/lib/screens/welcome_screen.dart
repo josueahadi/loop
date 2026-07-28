@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../constants.dart';
+import '../features/legal/presentation/policy_screen.dart';
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
@@ -30,6 +31,16 @@ class WelcomeScreen extends StatelessWidget {
               onPressed: () => Navigator.pushNamed(context, '/login'),
               style: outlineButtonStyle,
               child: const Text("LOGIN", style: TextStyle(color: appGreen)),
+            ),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const PolicyScreen()),
+              ),
+              child: const Text(
+                "Privacy & Terms",
+                style: TextStyle(color: textGray),
+              ),
             ),
           ],
         ),

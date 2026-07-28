@@ -47,11 +47,17 @@ export class RatingsService {
       where: { jobId, status: ProposalStatus.ACCEPTED },
     });
     if (!accepted) throw new ForbiddenException('Job has no accepted driver');
-    const participants = [job.ownerId, accepted.driverId];
+    // A null owner means the counterparty deleted their account — nobody left to
+    // rate on this job.
+    if (!job.ownerId) {
+      throw new ForbiddenException('The other party is no longer available');
+    }
+    const ownerId = job.ownerId;
+    const participants = [ownerId, accepted.driverId];
     if (!participants.includes(userId)) {
       throw new ForbiddenException('Only the job participants can rate');
     }
-    const toUserId = userId === job.ownerId ? accepted.driverId : job.ownerId;
+    const toUserId = userId === ownerId ? accepted.driverId : ownerId;
     if (toUserId === userId) {
       throw new ForbiddenException('You cannot rate yourself');
     }

@@ -26,7 +26,8 @@ export class CreateRatingDto {
 export class RatingResponseDto {
   @ApiProperty() id: string;
   @ApiProperty() jobId: string;
-  @ApiProperty() fromUserId: string;
+  // null once the rater has deleted their account (the rating itself survives).
+  @ApiProperty({ nullable: true }) fromUserId: string | null;
   @ApiProperty() toUserId: string;
   @ApiProperty() score: number;
   @ApiProperty({ nullable: true }) comment: string | null;
