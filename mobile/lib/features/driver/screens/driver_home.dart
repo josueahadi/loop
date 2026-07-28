@@ -28,6 +28,7 @@ import '../../../core/theme/ui_kit.dart';
 import 'driver_location_screen.dart';
 import '../../../screens/settings_screen.dart';
 import '../../../screens/help_support_screen.dart';
+import '../../../features/legal/presentation/policy_screen.dart';
 import '../../../features/profile/providers/profile_provider.dart';
 import '../../../core/widgets/profile_widgets.dart';
 
@@ -838,6 +839,15 @@ class _ProfileTab extends StatelessWidget with LogoutMixin {
                       onTap: () => Navigator.of(context).push(
                         MaterialPageRoute(
                           builder: (_) => const HelpSupportScreen(),
+                        ),
+                      ),
+                    ),
+                    ProfileOption(
+                      icon: Icons.privacy_tip_outlined,
+                      title: 'Privacy & Terms',
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const PolicyScreen(),
                         ),
                       ),
                     ),

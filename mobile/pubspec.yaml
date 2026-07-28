@@ -119,6 +119,7 @@ flutter:
     - assets/images/splash-illustration.png
     - assets/images/splash-illustration-high-res.png
     - assets/images/welcome.png
+    - assets/legal/policy.json
 
   fonts:
     - family: Lexend
