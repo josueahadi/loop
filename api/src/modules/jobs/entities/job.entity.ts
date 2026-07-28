@@ -16,13 +16,16 @@ export class Job {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  // Nulled if the owner deletes their account — a completed job survives as an
+  // anonymised record so its messages/ratings remain for the counterparty
+  // (SET NULL, see DetachJobOwner migration).
   @Index()
-  @Column({ name: 'owner_id' })
-  ownerId: string;
+  @Column({ name: 'owner_id', nullable: true })
+  ownerId: string | null;
 
-  @ManyToOne(() => User, { onDelete: 'CASCADE' })
+  @ManyToOne(() => User, { onDelete: 'SET NULL' })
   @JoinColumn({ name: 'owner_id' })
-  owner: User;
+  owner: User | null;
 
   // Reverse-geocoded display text for the pin (nullable). The pin itself is the
   // geography point below.

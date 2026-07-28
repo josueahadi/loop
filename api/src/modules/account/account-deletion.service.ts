@@ -95,6 +95,15 @@ export class AccountDeletionService {
         [userId],
       );
 
+      // Counterparties this user rated. Their ratings survive with from_user_id
+      // nulled (SET NULL), so their stored average is unaffected by the delete;
+      // but capture them now so we can recompute below in case scores shift.
+      const ratedRows: { to_user_id: string }[] = await manager.query(
+        `SELECT DISTINCT to_user_id FROM ratings
+         WHERE from_user_id = $1 AND to_user_id <> $1`,
+        [userId],
+      );
+
       if (opts.blocklistReason) {
         await manager.query(
           `INSERT INTO account_blocklist (email_hash, phone_hash, reason)
@@ -108,10 +117,26 @@ export class AccountDeletionService {
         blocklisted = true;
       }
 
-      // The cascade does the rest (jobs, proposals, messages, ratings, tokens,
-      // notifications, message_reads, vehicles; payments payer/payee -> NULL;
-      // audit_logs actor -> NULL).
+      // Cascade removes the user's own records (jobs, proposals, own vehicles,
+      // received ratings, notifications, tokens); SET NULL detaches shared ones
+      // (messages sender/receiver, ratings.from_user, payments payer/payee,
+      // audit_logs actor) so the counterparty's copy survives.
       await manager.query(`DELETE FROM users WHERE id = $1`, [userId]);
+
+      // Recompute each surviving ratee's aggregate so a rating whose author is now
+      // null still reflects correctly (and any received rating that cascaded out
+      // is removed from their average).
+      for (const { to_user_id } of ratedRows) {
+        await manager.query(
+          `UPDATE users u SET
+             average_rating = COALESCE((
+               SELECT AVG(score) FROM ratings WHERE to_user_id = u.id), 0),
+             rating_count = (
+               SELECT COUNT(*) FROM ratings WHERE to_user_id = u.id)
+           WHERE u.id = $1`,
+          [to_user_id],
+        );
+      }
     });
 
     this.logger.log(

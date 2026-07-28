@@ -13,8 +13,9 @@ export class SendMessageDto {
 export class MessageResponseDto {
   @ApiProperty() id: string;
   @ApiProperty() jobId: string;
-  @ApiProperty() senderId: string;
-  @ApiProperty() receiverId: string;
+  // null once the participant has deleted their account.
+  @ApiProperty({ nullable: true }) senderId: string | null;
+  @ApiProperty({ nullable: true }) receiverId: string | null;
   @ApiProperty() content: string;
   @ApiProperty() sentAt: Date;
 

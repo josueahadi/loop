@@ -77,6 +77,34 @@ describe('AccountDeletionService', () => {
     expect(result).toEqual({ filesPurged: 3, blocklisted: false });
   });
 
+  it('recomputes the average of each counterparty the deleted user had rated', async () => {
+    const { service, manager } = make({
+      'FROM users WHERE id': [
+        { id: 'u3', email: 'r@loop.rw', phone: '+250780000003', role: 'driver' },
+      ],
+    });
+    // The deletion runs inside a transaction; make the manager answer the
+    // "who did this user rate" query with two counterparties.
+    manager.query.mockImplementation((sql: string) => {
+      if (sql.includes('SELECT DISTINCT to_user_id')) {
+        return Promise.resolve([{ to_user_id: 'owner-a' }, { to_user_id: 'owner-b' }]);
+      }
+      return Promise.resolve([]);
+    });
+
+    await service.deleteUser('u3');
+
+    const recomputes = manager.query.mock.calls
+      .map((c) => c[1] as unknown[])
+      .filter(
+        (params, i) =>
+          (manager.query.mock.calls[i][0] as string).includes(
+            'average_rating = COALESCE',
+          ),
+      );
+    expect(recomputes.map((p) => p[0])).toEqual(['owner-a', 'owner-b']);
+  });
+
   it('records a blocklist entry when a reason is given', async () => {
     const { service, manager } = make({
       'FROM users WHERE id': [
