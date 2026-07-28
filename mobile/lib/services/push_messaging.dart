@@ -33,7 +33,10 @@ class PushMessaging {
     : _auth = authService ?? AuthService();
 
   final AuthService _auth;
-  bool _started = false;
+  // Latches only once a real token has been registered — so a later call (e.g.
+  // after signup) still runs if an earlier attempt got no token.
+  bool _tokenRegistered = false;
+  bool _running = false;
 
   /// Called when a push arrives while the app is in the foreground — the app
   /// wires this to show an in-app banner and refresh the unread badge (the OS
@@ -43,8 +46,11 @@ class PushMessaging {
   /// Call once the user is authenticated (the API needs a JWT to store the
   /// token against the user). Safe to call more than once.
   Future<void> start() async {
-    if (_started) return;
-    _started = true;
+    // Skip only if a token is already registered, or a run is in flight. If a
+    // previous run finished WITHOUT a token, a later call (e.g. right after
+    // signup) is allowed through to try again.
+    if (_tokenRegistered || _running) return;
+    _running = true;
     try {
       await _initLocalNotifications();
 
@@ -56,20 +62,32 @@ class PushMessaging {
         'PushMessaging: permission = ${settings.authorizationStatus}',
       );
 
-      final token = await messaging.getToken();
+      // On a fresh install/signup FCM may not have provisioned the token yet, so
+      // getToken() can return null/empty on the first call. Retry a few times
+      // with a short backoff rather than giving up (which left new users with no
+      // token). onTokenRefresh below is the belt-and-suspenders if it arrives even
+      // later. Only ever register a real token — never overwrite a good one with ''.
+      var token = await messaging.getToken();
+      for (var attempt = 0; (token == null || token.isEmpty) && attempt < 4; attempt++) {
+        await Future<void>.delayed(const Duration(seconds: 2));
+        token = await messaging.getToken();
+      }
       debugPrint(
-        'PushMessaging: token = ${token == null || token.isEmpty ? 'EMPTY/null (not registered)' : 'obtained (${token.length} chars)'}',
+        'PushMessaging: token = ${token == null || token.isEmpty ? 'EMPTY/null after retries (not registered)' : 'obtained (${token.length} chars)'}',
       );
-      // Only register a real token — an empty/null one would overwrite a good
-      // server-side token with nothing (seen on emulators where getToken() can
-      // return empty).
       if (token != null && token.isNotEmpty) {
         await _auth.registerPushToken(token);
+        _tokenRegistered = true;
       }
 
-      // Token can rotate; keep the server copy current (real tokens only).
+      // Token can rotate or arrive late (after the retries above gave up); keep
+      // the server copy current — this also covers new users whose token wasn't
+      // ready during start().
       messaging.onTokenRefresh.listen((t) {
-        if (t.isNotEmpty) _auth.registerPushToken(t);
+        if (t.isNotEmpty) {
+          _auth.registerPushToken(t);
+          _tokenRegistered = true;
+        }
       });
 
       // Foreground pushes: the OS shows nothing on its own, so render a real
@@ -80,6 +98,8 @@ class PushMessaging {
       });
     } catch (e) {
       debugPrint('PushMessaging.start failed (continuing): $e');
+    } finally {
+      _running = false;
     }
   }
 
@@ -129,7 +149,8 @@ class PushMessaging {
   /// the device may receive a stray push until the token rotates; that is not
   /// worth hanging the sign-out on.
   void stop() {
-    _started = false;
+    _tokenRegistered = false;
+    _running = false;
     unawaited(_clearToken());
   }
 
