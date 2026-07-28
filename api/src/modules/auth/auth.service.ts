@@ -1,4 +1,5 @@
 import {
+  ForbiddenException,
   Injectable,
   Inject,
   Logger,
@@ -8,6 +9,7 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as argon2 from 'argon2';
 import { ActionTokenType, UserRole } from '../../common/enums';
+import { AccountDeletionService } from '../account/account-deletion.service';
 import { AuditContext, AuditService } from '../admin/audit.service';
 import { MAIL_SERVICE, MailService } from '../mail/mail.service';
 import { User } from '../users/entities/user.entity';
@@ -32,6 +34,7 @@ export class AuthService {
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
     private readonly audit: AuditService,
+    private readonly deletion: AccountDeletionService,
     @Inject(MAIL_SERVICE) private readonly mail: MailService,
   ) {}
 
@@ -59,6 +62,13 @@ export class AuthService {
   }
 
   async register(dto: RegisterDto): Promise<AuthResult> {
+    // Reject identifiers on the fraud blocklist (a driver removed for false
+    // documents cannot immediately re-register with the same email/phone).
+    if (await this.deletion.isBlocklisted(dto.email, dto.phone)) {
+      throw new ForbiddenException(
+        'This account cannot be registered. Contact support.',
+      );
+    }
     // Admin accounts are seeded, never self-registered.
     const role =
       dto.role === UserRole.DRIVER ? UserRole.DRIVER : UserRole.CARGO_OWNER;

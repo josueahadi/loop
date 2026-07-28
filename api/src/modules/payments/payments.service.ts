@@ -216,14 +216,18 @@ export class PaymentsService {
       throw err;
     }
 
-    // Best-effort push; never blocks or fails the webhook.
+    // Best-effort push; never blocks or fails the webhook. payer/payee are
+    // present during a live settlement (they are only nulled if an account is
+    // later deleted), but guard anyway now that the columns are nullable.
     if (outcome.status === PaymentStatus.SUCCESSFUL) {
-      void this.push.sendToUser(payment.payeeId, {
-        title: 'Payment received',
-        body: `You have been paid ${payment.amount} RWF.`,
-        data: { type: 'payment_success', jobId: payment.jobId },
-      });
-    } else {
+      if (payment.payeeId) {
+        void this.push.sendToUser(payment.payeeId, {
+          title: 'Payment received',
+          body: `You have been paid ${payment.amount} RWF.`,
+          data: { type: 'payment_success', jobId: payment.jobId },
+        });
+      }
+    } else if (payment.payerId) {
       void this.push.sendToUser(payment.payerId, {
         title: 'Payment failed',
         body: 'Your payment did not go through. You can try again.',

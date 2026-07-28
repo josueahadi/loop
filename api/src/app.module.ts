@@ -7,6 +7,7 @@ import { validationSchema } from './config/validation';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
+import { AccountModule } from './modules/account/account.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { GeocodeModule } from './modules/geocode/geocode.module';
@@ -53,6 +54,7 @@ import { VerificationModule } from './modules/verification/verification.module';
     MailModule,
     SmsModule,
     StorageModule,
+    AccountModule,
     NotificationsModule,
     PushModule,
     UsersModule,

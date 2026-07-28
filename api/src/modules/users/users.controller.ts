@@ -2,9 +2,11 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   Patch,
   Post,
+  UnauthorizedException,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
@@ -13,7 +15,9 @@ import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { UserRole } from '../../common/enums';
+import { AccountDeletionService } from '../account/account-deletion.service';
 import { StorageService } from '../storage/storage.service';
+import { DeleteMeDto } from './dto/delete-me.dto';
 import { UpdateAvailabilityDto } from './dto/update-availability.dto';
 import { UpdateMeDto } from './dto/update-me.dto';
 import { UserResponseDto } from './dto/user-response.dto';
@@ -26,6 +30,7 @@ export class UsersController {
   constructor(
     private readonly users: UsersService,
     private readonly storage: StorageService,
+    private readonly deletion: AccountDeletionService,
   ) {}
 
   @Get('me')
@@ -43,6 +48,21 @@ export class UsersController {
     @Body() dto: UpdateMeDto,
   ): Promise<UserResponseDto> {
     return UserResponseDto.from(await this.users.updateProfile(id, dto));
+  }
+
+  // Self-serve account deletion (Law No. 058/2021 erasure right). Irreversible:
+  // erases the account and all data it owns, purges verification documents, and
+  // detaches (does not delete) payment records. Re-authentication required.
+  @Delete('me')
+  async deleteMe(
+    @CurrentUser('id') id: string,
+    @Body() dto: DeleteMeDto,
+  ): Promise<{ deleted: true }> {
+    if (!(await this.users.verifyPassword(id, dto.password))) {
+      throw new UnauthorizedException('Password is incorrect.');
+    }
+    await this.deletion.deleteUser(id);
+    return { deleted: true };
   }
 
   // Register/refresh this device's FCM token for push (any signed-in user).
