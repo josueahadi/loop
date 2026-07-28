@@ -140,6 +140,16 @@ class AuthService {
     }
   }
 
+  /// Permanently delete the signed-in account. The API re-verifies [password]
+  /// before erasing. Throws a readable message on failure (e.g. wrong password).
+  Future<void> deleteAccount(String password) async {
+    try {
+      await _dio.delete('/me', data: {'password': password});
+    } on DioException catch (e) {
+      throw _mapError(e);
+    }
+  }
+
   Future<void> requestEmailVerification() async {
     try {
       await _dio.post('/auth/email/verify/request');

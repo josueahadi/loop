@@ -127,6 +127,33 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
+  /// Permanently delete the account (re-verified by [password] server-side),
+  /// then tear down the local session exactly like sign-out. Returns true on
+  /// success; on failure the session is left intact and [error] is set.
+  Future<bool> deleteAccount(String password) async {
+    try {
+      _setLoading(true);
+      _clearError();
+      await _authService.deleteAccount(password);
+      // Account is gone server-side; drop the local session (mirrors signOut,
+      // but the server tokens are already invalid so no revoke is needed).
+      _push.stop();
+      _user = null;
+      notifyListeners();
+      try {
+        await _authService.signOut();
+      } catch (_) {
+        // Already deleted; nothing actionable.
+      }
+      return true;
+    } catch (e) {
+      _setError(_clean(e));
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
   Future<bool> sendPasswordReset(String email) async {
     try {
       _setLoading(true);

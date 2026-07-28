@@ -121,6 +121,90 @@ class _SettingsScreenState extends State<SettingsScreen> with LogoutMixin {
     );
   }
 
+  // Irreversible account deletion. Guarded by BOTH re-entering the password
+  // (which the API also verifies) and typing DELETE, so it can't be triggered by
+  // an accidental tap. On success the session is gone and we route to welcome.
+  Future<void> _showDeleteAccountDialog() async {
+    final passwordController = TextEditingController();
+    final confirmController = TextEditingController();
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            final canDelete =
+                passwordController.text.isNotEmpty &&
+                confirmController.text.trim().toUpperCase() == 'DELETE';
+            return AlertDialog(
+              title: const Text('Delete account?'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'This permanently deletes your account and the data it '
+                    'owns. This cannot be undone.',
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: passwordController,
+                    obscureText: true,
+                    onChanged: (_) => setDialogState(() {}),
+                    decoration: const InputDecoration(
+                      labelText: 'Password',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: confirmController,
+                    onChanged: (_) => setDialogState(() {}),
+                    decoration: const InputDecoration(
+                      labelText: 'Type DELETE to confirm',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(false),
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: canDelete
+                      ? () => Navigator.of(dialogContext).pop(true)
+                      : null,
+                  style: TextButton.styleFrom(foregroundColor: Colors.red),
+                  child: const Text('Delete'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final ok = await authProvider.deleteAccount(passwordController.text);
+    if (!mounted) return;
+    if (ok) {
+      Navigator.of(
+        context,
+      ).pushNamedAndRemoveUntil('/', (route) => false);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(authProvider.error ?? 'Could not delete account.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   Widget _buildActionTile({
     required IconData icon,
     required String title,
@@ -232,6 +316,15 @@ class _SettingsScreenState extends State<SettingsScreen> with LogoutMixin {
               iconColor: Colors.red,
               textColor: Colors.red,
               onTap: () => showLogoutConfirmation(context),
+            ),
+
+            _buildActionTile(
+              icon: Icons.delete_forever,
+              title: 'Delete Account',
+              subtitle: 'Permanently delete your account and data',
+              iconColor: Colors.red,
+              textColor: Colors.red,
+              onTap: _showDeleteAccountDialog,
             ),
 
             const SizedBox(height: 16),

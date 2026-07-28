@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ArrowLeft, Eye, FileCheck } from 'lucide-react';
 import { DocumentPreviewDialog } from '@/features/verifications/components/DocumentPreviewDialog';
 import { ConfirmActionButton } from '@/features/admin-actions/ConfirmActionButton';
+import { DeleteUserButton } from '@/features/admin-actions/DeleteUserButton';
 import { useReopenVerification } from '@/features/admin-actions/hooks';
 import { useUserProfile } from '../hooks/useUsers';
 import type {
@@ -90,14 +91,27 @@ export function UserProfile({ id }: { id: string }) {
               <p className="text-sm text-muted-foreground">{u.email}</p>
               <p className="text-sm text-muted-foreground">{u.phone}</p>
             </div>
-            {u.role === 'driver' && (
-              <Button asChild variant="outline" size="sm">
-                <Link href={`/verifications?driver=${u.id}`}>
-                  <FileCheck data-icon="inline-start" />
-                  Verifications
-                </Link>
-              </Button>
-            )}
+            <div className="flex flex-wrap items-center gap-2">
+              {u.role === 'driver' && (
+                <Button asChild variant="outline" size="sm">
+                  <Link href={`/verifications?driver=${u.id}`}>
+                    <FileCheck data-icon="inline-start" />
+                    Verifications
+                  </Link>
+                </Button>
+              )}
+              {u.role !== 'admin' && (
+                <DeleteUserButton
+                  userId={u.id}
+                  userName={u.name}
+                  trigger={
+                    <Button variant="destructive" size="sm">
+                      Delete account
+                    </Button>
+                  }
+                />
+              )}
+            </div>
           </div>
         </CardHeader>
         <CardContent>
