@@ -44,18 +44,31 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
   Future<void> _checkVerification() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
+    // Re-fetch the user from the API so isVerified reflects the server truth.
     await authProvider.checkEmailVerification();
+    if (!mounted) return;
 
-    if (mounted) {
+    // Honour the result rather than claiming success unconditionally: only move
+    // on when the email is actually verified; otherwise keep the user here with
+    // an honest message so they go click the link.
+    if (authProvider.user?.isVerified == true) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Email verification status updated!'),
+          content: Text('Email verified!'),
           backgroundColor: Colors.green,
         ),
       );
-
-      // If verified, navigate to home
       Navigator.pushReplacementNamed(context, '/home');
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            "We couldn't confirm your email yet. Please click the link we "
+            'emailed you, then try again.',
+          ),
+          backgroundColor: Colors.orange,
+        ),
+      );
     }
   }
 
