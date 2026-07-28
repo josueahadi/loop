@@ -154,16 +154,22 @@ export class VerificationService {
       // approved), auto-activate them online as a one-time "you're live" signal.
       // The driver's manual toggle works normally afterward — this sets the
       // initial state once, it does not pin them online. Best-effort.
-      if (await this.isFullyVerified(record.driverId)) {
+      const nowFullyVerified = await this.isFullyVerified(record.driverId);
+      if (nowFullyVerified) {
         try {
           await this.users.activateOnVerification(record.driverId);
         } catch (err) {
           this.logger.error('Auto-activate on approval failed', err as Error);
         }
       }
+      // On the approval that completes verification, tell the driver they were
+      // set online (the privacy policy §6 commits to this); otherwise just
+      // acknowledge the single document.
       void this.push.sendToUser(record.driverId, {
-        title: 'Document approved',
-        body: `Your ${label} was approved.`,
+        title: nowFullyVerified ? "You're verified and online" : 'Document approved',
+        body: nowFullyVerified
+          ? `Your ${label} was approved. You're now verified and set online, so you can start receiving jobs. You can go offline any time.`
+          : `Your ${label} was approved.`,
         data: { type: 'verification_approved', documentType: record.documentType },
       });
     }

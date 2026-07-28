@@ -10,6 +10,7 @@ import {
   ClipboardCheck,
   LogOut,
   PackageOpen,
+  ShieldCheck,
   UserRoundCog,
   Users,
 } from 'lucide-react';
@@ -162,6 +163,20 @@ export function AdminNav({ children }: { children: ReactNode }) {
               {user?.email ?? 'Admin'}
             </span>
           </div>
+          <Button
+            asChild
+            variant="ghost"
+            size="sm"
+            title="Privacy & Terms"
+            className="justify-start group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0!"
+          >
+            <Link href="/privacy">
+              <ShieldCheck />
+              <span className="group-data-[collapsible=icon]:hidden">
+                Privacy &amp; Terms
+              </span>
+            </Link>
+          </Button>
           <Button
             variant="outline"
             size="sm"

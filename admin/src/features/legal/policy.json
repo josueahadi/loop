@@ -1,0 +1,208 @@
+{
+  "version": "1",
+  "lastUpdated": "July 28, 2026",
+  "contactEmail": "ahadihjosue@gmail.com",
+  "placeholders": {
+    "RETENTION_ACCOUNT": "",
+    "RETENTION_VERIFICATION": "",
+    "RETENTION_LOCATION": "",
+    "RETENTION_MESSAGES": "",
+    "RETENTION_JOBS": "",
+    "RETENTION_PAYMENTS": "",
+    "DELETION_PROCESS": ""
+  },
+  "sections": [
+    {
+      "number": 1,
+      "heading": "Who we are",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Loop is a platform that connects cargo owners with nearby verified vehicle drivers in Rwanda. Loop provides the matching service only. It is not a transport operator and does not carry goods. The contract of carriage is between the cargo owner and the driver."
+        }
+      ]
+    },
+    {
+      "number": 2,
+      "heading": "What we collect",
+      "blocks": [
+        {
+          "type": "list",
+          "items": [
+            "**Account information:** your name, phone number and email address.",
+            "**Driver verification documents:** driving licence, national identity document and vehicle registration, collected only from users registering as drivers.",
+            "**Location:** your device's coordinates. For drivers, this is collected while you are set to online, so that nearby jobs can be matched to you. For cargo owners, it is collected when you post a job, to establish the pickup point.",
+            "**Job information:** pickup and drop-off points, cargo description, weight, vehicle type and price.",
+            "**Messages** exchanged with your counterparty about a job.",
+            "**Ratings** you give and receive.",
+            "**Payment records:** the amount, the time, and the reference issued by our payment provider. We do not collect or store your card number, PIN or mobile-money credentials."
+          ]
+        }
+      ]
+    },
+    {
+      "number": 3,
+      "heading": "Why we collect it and on what basis",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Account information identifies you and lets your counterparty contact you about a job. Verification documents establish that a driver is licensed and that the vehicle is registered, which is the basis on which cargo owners trust the platform. Location makes matching possible; without it the service cannot function. Messages and job records provide a record of what was agreed. Ratings allow each side to build a reputation."
+        },
+        {
+          "type": "paragraph",
+          "text": "We process this information to provide the service you have asked for, and to meet our obligations under Law No. 058/2021 relating to the protection of personal data and privacy."
+        }
+      ]
+    },
+    {
+      "number": 4,
+      "heading": "Who we share it with",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Your counterparty on a job sees your name, your rating, your vehicle type where you are a driver, and your approximate location. They do not see your verification documents."
+        },
+        {
+          "type": "paragraph",
+          "text": "We also use the following service providers, which process data on our behalf:"
+        },
+        {
+          "type": "list",
+          "items": [
+            "**Flutterwave** — payment processing. Your card or mobile-money details are entered on Flutterwave's own page and are never transmitted to or stored by Loop.",
+            "**Africa's Talking** — delivery of SMS notifications to drivers.",
+            "**OpenStreetMap and OSRM** — route and distance calculation, and address lookup.",
+            "**Railway** — hosting of our servers and database."
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "Some of these providers operate outside Rwanda, so your information may be processed abroad. We do not sell your personal data to anyone, and we do not share it for advertising."
+        }
+      ]
+    },
+    {
+      "number": 5,
+      "heading": "Verification documents",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Verification documents receive stricter handling than other data. They are visible only to authorised Loop administrators reviewing a verification request, every access and decision is recorded in an audit log, and they are never shown to cargo owners or to other drivers."
+        },
+        {
+          "type": "paragraph",
+          "text": "You may ask us to delete them, and we will do so unless we are required to retain them. Deleting them will end your eligibility to be matched as a driver."
+        }
+      ]
+    },
+    {
+      "number": 6,
+      "heading": "Location data",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "As a driver, your location is used to match you to nearby jobs while you are online. Setting yourself offline stops your location being used for matching."
+        },
+        {
+          "type": "paragraph",
+          "text": "Verification and availability are separate states. Being approved does not keep you permanently visible. When your final verification document is approved, we set you online once so that you are immediately able to receive work without waiting for a further step, and we will tell you when this happens. From that point availability is entirely yours to control: you can go offline at any time, and we will not set you online again. An administrator can set you offline, but cannot set you online, because telling cargo owners you were available when you were not would be dishonest to both of you."
+        }
+      ]
+    },
+    {
+      "number": 7,
+      "heading": "Ratings, suspension and how to contest them",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Ratings are mutual. After a completed job, each party may rate the other, and your average rating is visible to users deciding whether to work with you."
+        },
+        {
+          "type": "paragraph",
+          "text": "An administrator may set a driver offline, or suspend an account where our terms have been breached. A suspended account cannot sign in and a suspended driver is excluded from matching. Every such action is logged with the administrator responsible and the time it was taken."
+        },
+        {
+          "type": "paragraph",
+          "text": "If you believe a rating is unfair or a suspension mistaken, contact us at the address above. We will review the decision and respond within 5 working days."
+        }
+      ]
+    },
+    {
+      "number": 8,
+      "heading": "How long we keep it and how to delete it",
+      "blocks": [
+        {
+          "type": "note",
+          "text": "**FILL THIS IN BEFORE PUBLISHING.** State a retention period for each category below, then describe how a user closes their account, what is deleted, what is retained, and why. This section is a legal requirement under Law No. 058/2021 and an empty version will be noticed."
+        },
+        {
+          "type": "list",
+          "items": [
+            "Account information: {{RETENTION_ACCOUNT}}",
+            "Verification documents: {{RETENTION_VERIFICATION}}",
+            "Location history: {{RETENTION_LOCATION}}",
+            "Messages: {{RETENTION_MESSAGES}}",
+            "Job records: {{RETENTION_JOBS}}",
+            "Payment references: {{RETENTION_PAYMENTS}}"
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "To close your account, {{DELETION_PROCESS}}."
+        }
+      ]
+    },
+    {
+      "number": 9,
+      "heading": "Your rights",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Under Law No. 058/2021 you may:"
+        },
+        {
+          "type": "list",
+          "items": [
+            "request a copy of the personal data we hold about you;",
+            "ask us to correct anything inaccurate;",
+            "ask us to delete your data;",
+            "object to particular processing;",
+            "complain to the national supervisory authority."
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "Contact us using the address above and we will respond within 5 working days."
+        }
+      ]
+    },
+    {
+      "number": 10,
+      "heading": "Terms of use",
+      "blocks": [
+        {
+          "type": "list",
+          "items": [
+            "You must be at least 18 years old to use Loop.",
+            "You must provide accurate information. Drivers must submit genuine documents; submitting false documents will result in permanent removal.",
+            "Loop matches cargo owners with drivers and does not transport goods. The agreement to carry is between you and your counterparty, and Loop is not a party to it.",
+            "Loop does not hold your money. Payments pass directly to the driver through our payment provider, and Loop never holds funds between you and your counterparty.",
+            "The price shown when a job is posted is an estimate produced by our pricing model, not a regulated tariff. The final price is what the two parties agree.",
+            "You may not use Loop to move goods you are not lawfully entitled to move, harass another user, or attempt to access another user's account or data.",
+            "You may close your account at any time."
+          ]
+        }
+      ]
+    },
+    {
+      "number": 11,
+      "heading": "Changes to this policy",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "If we change this policy we will update the date at the top and notify you in the application before the change takes effect."
+        }
+      ]
+    }
+  ]
+}
