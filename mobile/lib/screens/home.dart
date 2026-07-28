@@ -30,10 +30,8 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    // Re-attempt push registration on resume. Covers the case where a fresh
-    // signup's notification-permission prompt was answered late (or granted
-    // from system settings afterwards): start() is a no-op once a token is
-    // registered, but retries if the earlier attempt got none.
+    // Re-attempt push registration on resume for a signup whose permission was
+    // granted late or from settings. start() no-ops once a token is registered.
     if (state == AppLifecycleState.resumed) {
       context.read<AuthProvider>().push.start();
     }
