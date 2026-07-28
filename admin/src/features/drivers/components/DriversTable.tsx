@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { DataTable, type Column } from '@/components/data-table';
 import { DEFAULT_PAGE_SIZE } from '@/lib/pagination';
 import { ConfirmActionButton } from '@/features/admin-actions/ConfirmActionButton';
+import { DeleteUserButton } from '@/features/admin-actions/DeleteUserButton';
 import {
   useForceDriverOffline,
   useSetUserSuspension,
@@ -122,6 +123,15 @@ export function DriversTable() {
               suspension.mutate({ id: d.id, suspended: !d.suspendedAt })
             }
             pending={suspension.isPending}
+          />
+          <DeleteUserButton
+            userId={d.id}
+            userName={d.name}
+            trigger={
+              <Button variant="destructive" size="sm">
+                Delete
+              </Button>
+            }
           />
         </div>
       ),

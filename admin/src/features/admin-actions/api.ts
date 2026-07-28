@@ -18,3 +18,10 @@ export async function cancelJob(id: string): Promise<void> {
 export async function reopenVerification(id: string): Promise<void> {
   await api.patch(`/admin/verifications/${id}/reopen`);
 }
+
+export async function deleteUser(
+  id: string,
+  opts: { blocklist?: boolean; reason?: string } = {},
+): Promise<void> {
+  await api.delete(`/admin/users/${id}`, { data: opts });
+}

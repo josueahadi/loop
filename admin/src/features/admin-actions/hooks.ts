@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
   cancelJob,
+  deleteUser,
   forceDriverOffline,
   reopenVerification,
   setUserSuspension,
@@ -35,6 +36,28 @@ export function useSetUserSuspension() {
       qc.invalidateQueries({ queryKey: ['user'] });
     },
     onError: () => toast.error('Could not update the account.'),
+  });
+}
+
+export function useDeleteUser() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      blocklist,
+      reason,
+    }: {
+      id: string;
+      blocklist?: boolean;
+      reason?: string;
+    }) => deleteUser(id, { blocklist, reason }),
+    onSuccess: () => {
+      toast.success('Account deleted');
+      qc.invalidateQueries({ queryKey: ['users'] });
+      qc.invalidateQueries({ queryKey: ['drivers'] });
+      qc.invalidateQueries({ queryKey: ['metrics'] });
+    },
+    onError: () => toast.error('Could not delete the account.'),
   });
 }
 
