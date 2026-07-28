@@ -227,6 +227,9 @@ export class UsersService {
   }
 
   async setPushToken(id: string, token: string | null): Promise<void> {
-    await this.users.update({ id }, { fcmToken: token });
+    // Normalise an empty/blank token to NULL — "no device" is null, never an
+    // empty string, so the push send-path's fcmToken check stays unambiguous.
+    const normalised = token && token.trim().length > 0 ? token : null;
+    await this.users.update({ id }, { fcmToken: normalised });
   }
 }

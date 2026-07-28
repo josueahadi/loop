@@ -57,14 +57,19 @@ class PushMessaging {
       );
 
       final token = await messaging.getToken();
-      debugPrint('PushMessaging: token = ${token == null ? 'null' : 'obtained'}');
-      if (token != null) {
+      debugPrint(
+        'PushMessaging: token = ${token == null || token.isEmpty ? 'EMPTY/null (not registered)' : 'obtained (${token.length} chars)'}',
+      );
+      // Only register a real token — an empty/null one would overwrite a good
+      // server-side token with nothing (seen on emulators where getToken() can
+      // return empty).
+      if (token != null && token.isNotEmpty) {
         await _auth.registerPushToken(token);
       }
 
-      // Token can rotate; keep the server copy current.
+      // Token can rotate; keep the server copy current (real tokens only).
       messaging.onTokenRefresh.listen((t) {
-        _auth.registerPushToken(t);
+        if (t.isNotEmpty) _auth.registerPushToken(t);
       });
 
       // Foreground pushes: the OS shows nothing on its own, so render a real
@@ -129,13 +134,13 @@ class PushMessaging {
   }
 
   Future<void> _clearToken() async {
-    // Tell the API to forget the token first: /me/push-token is authenticated,
-    // so it has to go out before the caller clears the JWT.
+    // Tell the API to forget this device's token so a signed-out account stops
+    // receiving pushes. /me/push-token is authenticated, so it must go out before
+    // the caller clears the JWT. We deliberately do NOT call deleteToken() here:
+    // deleting the device token forces Firebase to regenerate one on the next
+    // login, which is slow and can yield an empty token on emulators — leaving
+    // the account with no push. Clearing the server copy is enough; the same
+    // device token is re-registered on the next start().
     await _auth.registerPushToken('');
-    try {
-      await FirebaseMessaging.instance.deleteToken();
-    } catch (_) {
-      // ignore — best-effort
-    }
   }
 }
