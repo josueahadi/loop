@@ -75,6 +75,24 @@ On a completed job the owner sees a prominent **"Pay driver · X RWF"** button. 
 
 Stripe still can't onboard a Rwanda merchant (unchanged). The **v3 hosted checkout does both card and Mobile Money** in one page, so it's the demo driver — no client-side encryption needed. (The `flutterwave_v4` driver was also built: v4 is MoMo-only in our provider and its card path needs undocumented client-side AES-GCM encryption, so we don't use it for the demo.)
 
+### Known issues — sandbox flakiness and diagnosis notes
+
+These are **Flutterwave sandbox** limitations, not defects in Loop. Documented so a failed demo is not misread as a bug in our integration.
+
+- **v3 hosted page intermittently shows "Cannot GET /".** Flutterwave's sandbox checkout host (`checkout-v2.dev-flutterwave.com`) is a client-side app that rewrites its own URL to `/v3/hosted/pay` (dropping the payment token) via `history.replaceState`. When their sandbox fails to render the widget, the browser is left on that tokenless path and **their** server returns "Cannot GET /". Reproduced directly (curl, and the emulator browser) — the checkout-creation API call succeeds and returns a valid link; the failure is entirely on Flutterwave's page load. It is **intermittent and tied to their sandbox uptime, not to the user**: verified in the DB that a brand-new account (0.1h old) paid successfully on the same day a 552h-old account got stuck, so "works for old users, not new" is coincidental timing, not account age.
+- **A stuck payment sits at `pending`** because the settlement only advances via the signature-verified webhook; if the user never completes payment on the (broken) hosted page, no webhook fires. The webhook endpoint itself is healthy — firing a correctly-signed `charge.completed` to `/payments/webhook` flips the row to `successful` as designed.
+- **`flutterwave_v4` returning-customer bug (fixed).** v4 rejects a duplicate customer with `RESOURCE_CONFLICT`; the recovery looked the customer up via `GET /customers?email=`, but the sandbox **ignores that filter** and returns the full list, so taking `[0]` picked the wrong id → the charge failed with `CUSTOMER_NOT_FOUND`. Fixed to match the returned list on email (`flutterwave-v4-payment.provider.ts`, `ensureCustomer`). So if the demo ever switches to v4, repeat payers work.
+
+### Switching drivers for the demo
+
+`PAYMENT_DRIVER` is a Railway env var on the `api` service — changing it redeploys automatically, no code change:
+
+- `flutterwave` — v3, card + MoMo (current). Depends on Flutterwave's sandbox hosted page being up.
+- `flutterwave_v4` — MoMo only, ends on our own approval page (`/payments/v4/simulate-approval/:id`) which fires a real signed webhook; **does not depend on the flaky hosted page**. Use as the reliable fallback if the v3 sandbox is down at recording time.
+- `stub` — always succeeds via a built-in signed-webhook page; the safest offline demo.
+
+Practical demo tip: **rehearse the payment right before recording** to confirm Flutterwave's sandbox is up that minute, and keep `stub`/`flutterwave_v4` as a fallback take.
+
 ---
 
 ## 2. Pricing v3 — weight is now a direct term + realistic rates
