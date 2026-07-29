@@ -57,6 +57,42 @@ export class FlutterwavePaymentProvider implements PaymentProvider {
     return { checkoutUrl: link, providerRef: req.paymentId };
   }
 
+  // Re-query the transaction by our tx_ref (= payment id). Used to resolve a
+  // payment stuck 'pending' when a webhook was missed — the truth still comes
+  // from Flutterwave, not from us.
+  async verifyTransaction(paymentId: string): Promise<WebhookOutcome | null> {
+    const res = await fetch(
+      `${FlutterwavePaymentProvider.baseUrl}/transactions/verify_by_reference?tx_ref=${encodeURIComponent(
+        paymentId,
+      )}`,
+      { headers: { Authorization: `Bearer ${this.config.secretKey}` } },
+    );
+    const body = (await res.json().catch(() => ({}))) as {
+      status?: string;
+      data?: {
+        status?: string;
+        flw_ref?: string;
+        processor_response?: string;
+      };
+    };
+    // No transaction found for this reference — nothing to resolve.
+    if (body.status !== 'success' || !body.data) return null;
+    const d = body.data;
+    const status =
+      d.status === 'successful'
+        ? PaymentStatus.SUCCESSFUL
+        : d.status === 'cancelled'
+          ? PaymentStatus.CANCELLED
+          : PaymentStatus.FAILED;
+    return {
+      paymentId,
+      providerRef: d.flw_ref ?? paymentId,
+      status,
+      failureReason:
+        status === PaymentStatus.SUCCESSFUL ? undefined : d.processor_response,
+    };
+  }
+
   verifyAndParseWebhook(
     headers: Record<string, string | string[] | undefined>,
     rawBody: unknown,

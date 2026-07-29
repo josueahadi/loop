@@ -38,3 +38,26 @@ export class PaymentResponseDto {
     };
   }
 }
+
+// A payment row for the admin oversight table (adds counterparty names; still no
+// raw webhook payload).
+export class AdminPaymentDto {
+  @ApiProperty() id: string;
+  @ApiProperty() jobId: string;
+  @ApiProperty() amount: number;
+  @ApiProperty() currency: string;
+  @ApiProperty() provider: string;
+  @ApiProperty() providerRef: string;
+  @ApiProperty({ enum: PaymentStatus }) status: PaymentStatus;
+  @ApiProperty() createdAt: string;
+  @ApiProperty({ nullable: true }) paidAt: string | null;
+  @ApiProperty({ nullable: true }) failureReason: string | null;
+  @ApiProperty({ nullable: true }) payerName: string | null;
+  @ApiProperty({ nullable: true }) payeeName: string | null;
+}
+
+export interface AdminRecheckResult {
+  status: PaymentStatus;
+  changed: boolean;
+  notFound?: boolean;
+}

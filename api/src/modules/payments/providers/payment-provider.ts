@@ -44,4 +44,12 @@ export interface PaymentProvider {
     headers: Record<string, string | string[] | undefined>,
     rawBody: unknown,
   ): Promise<WebhookOutcome | null>;
+
+  // Re-query the provider for the authoritative status of a transaction (by our
+  // payment id, used as the tx_ref/reference). Lets an admin resolve a payment
+  // that is stuck 'pending' because a webhook was missed — the status still comes
+  // from the provider, never from the admin. Returns null when the provider has
+  // no record of it, or the driver doesn't support look-up. Optional: not every
+  // provider implements it.
+  verifyTransaction?(paymentId: string): Promise<WebhookOutcome | null>;
 }
