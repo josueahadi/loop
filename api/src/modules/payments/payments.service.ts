@@ -7,14 +7,16 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { InjectRepository } from '@nestjs/typeorm';
-import { QueryFailedError, Repository } from 'typeorm';
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
+import { DataSource, QueryFailedError, Repository } from 'typeorm';
 import { JobStatus, PaymentStatus, ProposalStatus } from '../../common/enums';
 import { PushService } from '../push/push.service';
 import { Job } from '../jobs/entities/job.entity';
 import { Proposal } from '../proposals/entities/proposal.entity';
 import { User } from '../users/entities/user.entity';
 import {
+  AdminPaymentDto,
+  AdminRecheckResult,
   CreatePaymentResponseDto,
   PaymentResponseDto,
 } from './dto/payment.dto';
@@ -42,6 +44,7 @@ export class PaymentsService {
     private readonly proposals: Repository<Proposal>,
     @InjectRepository(User) private readonly users: Repository<User>,
     private readonly push: PushService,
+    @InjectDataSource() private readonly ds: DataSource,
   ) {
     this.provider = this.buildProvider();
   }
@@ -292,5 +295,65 @@ export class PaymentsService {
     if (!accepted) {
       throw new Error('Simulated webhook was rejected (check FLUTTERWAVE_WEBHOOK_HASH)');
     }
+  }
+
+  // --- Admin oversight (read + resolve-from-provider only; never admin-asserted) ---
+
+  // All payments, newest first, with job + counterparty context for the admin
+  // dashboard. Read-only.
+  async adminList(): Promise<AdminPaymentDto[]> {
+    const rows = await this.ds.query(
+      `SELECT p.id, p.job_id AS "jobId", p.amount, p.currency, p.provider,
+              p.provider_ref AS "providerRef", p.status,
+              p.created_at AS "createdAt", p.paid_at AS "paidAt",
+              p.failure_reason AS "failureReason",
+              payer.name AS "payerName", payee.name AS "payeeName"
+       FROM payments p
+       LEFT JOIN users payer ON payer.id = p.payer_id
+       LEFT JOIN users payee ON payee.id = p.payee_id
+       ORDER BY p.created_at DESC`,
+    );
+    return rows as AdminPaymentDto[];
+  }
+
+  // Re-query the provider for a payment's authoritative status and apply it. The
+  // status still comes from the provider (not the admin) — this only resolves a
+  // row the webhook missed. No-op if already terminal.
+  async adminRecheck(paymentId: string): Promise<AdminRecheckResult> {
+    const payment = await this.payments.findOne({ where: { id: paymentId } });
+    if (!payment) throw new NotFoundException('Payment not found');
+    if (payment.status !== PaymentStatus.PENDING) {
+      return { status: payment.status, changed: false };
+    }
+    if (!this.provider.verifyTransaction) {
+      throw new ConflictException(
+        'This payment provider does not support status re-check.',
+      );
+    }
+    const outcome = await this.provider.verifyTransaction(paymentId);
+    if (!outcome) {
+      return { status: payment.status, changed: false, notFound: true };
+    }
+    await this.applyOutcome(payment, outcome, {
+      source: 'admin-recheck',
+      outcome,
+    });
+    return { status: outcome.status, changed: true };
+  }
+
+  // Cancel a payment that is stuck 'pending' (e.g. the checkout was abandoned or
+  // a webhook never arrived), so the owner can start a fresh attempt. This does
+  // NOT assert the money moved — it only clears a dead pending attempt.
+  async adminCancelStuck(paymentId: string): Promise<void> {
+    const payment = await this.payments.findOne({ where: { id: paymentId } });
+    if (!payment) throw new NotFoundException('Payment not found');
+    if (payment.status !== PaymentStatus.PENDING) {
+      throw new ConflictException(
+        'Only a pending payment can be cancelled.',
+      );
+    }
+    payment.status = PaymentStatus.CANCELLED;
+    payment.failureReason = 'Cancelled by an administrator (stuck pending)';
+    await this.payments.save(payment);
   }
 }

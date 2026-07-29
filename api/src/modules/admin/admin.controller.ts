@@ -6,6 +6,7 @@ import {
   Param,
   ParseUUIDPipe,
   Patch,
+  Post,
   Query,
   Req,
 } from '@nestjs/common';
@@ -16,6 +17,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { UserRole, VerificationStatus } from '../../common/enums';
 import { AccountDeletionService } from '../account/account-deletion.service';
 import { JobsService } from '../jobs/jobs.service';
+import { PaymentsService } from '../payments/payments.service';
 import { StorageService } from '../storage/storage.service';
 import { UsersService } from '../users/users.service';
 import { VerificationResponseDto } from '../verification/dto/verification-response.dto';
@@ -44,6 +46,7 @@ export class AdminController {
     private readonly users: UsersService,
     private readonly jobs: JobsService,
     private readonly deletion: AccountDeletionService,
+    private readonly payments: PaymentsService,
   ) {}
 
   // Server-computed evaluation metrics — the dashboard only renders these.
@@ -226,5 +229,52 @@ export class AdminController {
       userAgent: req.headers['user-agent'] ?? null,
     });
     return job;
+  }
+
+  // Payment oversight — read-only list of all payments.
+  @Get('payments')
+  listPayments() {
+    return this.payments.adminList();
+  }
+
+  // Re-query the provider for a stuck payment's authoritative status and apply
+  // it. The status comes from the provider, never from the admin.
+  @Post('payments/:id/recheck')
+  async recheckPayment(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser('id') adminId: string,
+    @Req() req: Request,
+  ) {
+    const result = await this.payments.adminRecheck(id);
+    await this.audit.record({
+      actorId: adminId,
+      action: 'payment.rechecked',
+      targetType: 'payment',
+      targetId: id,
+      ip: req.ip,
+      userAgent: req.headers['user-agent'] ?? null,
+      metadata: { status: result.status, changed: result.changed },
+    });
+    return result;
+  }
+
+  // Cancel a payment stuck 'pending' so the owner can retry. Does NOT assert the
+  // money moved — only clears a dead pending attempt.
+  @Post('payments/:id/cancel')
+  async cancelPayment(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser('id') adminId: string,
+    @Req() req: Request,
+  ) {
+    await this.payments.adminCancelStuck(id);
+    await this.audit.record({
+      actorId: adminId,
+      action: 'payment.cancelled',
+      targetType: 'payment',
+      targetId: id,
+      ip: req.ip,
+      userAgent: req.headers['user-agent'] ?? null,
+    });
+    return { cancelled: true };
   }
 }

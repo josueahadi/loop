@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import { RefreshCw } from 'lucide-react';
 import {
   usePendingVerifications,
@@ -134,7 +135,12 @@ export function VerificationQueue({
                     {new Date(oldest).toLocaleDateString()}
                   </TableCell>
                   <TableCell>
-                    <div className="flex justify-end">
+                    <div className="flex justify-end gap-2">
+                      <Button asChild variant="ghost" size="sm">
+                        <Link href={`/users/${group.driver.id}`}>
+                          View profile
+                        </Link>
+                      </Button>
                       <Button
                         variant="outline"
                         size="sm"

@@ -8,6 +8,7 @@ import {
   BarChart3,
   BriefcaseBusiness,
   ClipboardCheck,
+  CreditCard,
   LogOut,
   PackageOpen,
   ShieldCheck,
@@ -60,6 +61,7 @@ const LINK_GROUPS = [
       { href: '/cargo-owners', label: 'Cargo owners', icon: PackageOpen },
       { href: '/users', label: 'Users', icon: UserRoundCog },
       { href: '/jobs', label: 'Jobs', icon: BriefcaseBusiness },
+      { href: '/payments', label: 'Payments', icon: CreditCard },
     ],
   },
 ];
@@ -71,6 +73,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/cargo-owners': 'Cargo owners',
   '/users': 'Users',
   '/jobs': 'Jobs',
+  '/payments': 'Payments',
 };
 
 // Resolve a title for a path, falling back to the top-level section for detail
