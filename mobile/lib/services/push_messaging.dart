@@ -91,6 +91,32 @@ class PushMessaging {
     }
   }
 
+  /// Whether the OS notification permission is currently granted. Drives the
+  /// "turn on notifications" banner: a user who dismissed or missed the initial
+  /// prompt shows up as not-authorized here, so we can nudge them.
+  Future<bool> hasPermission() async {
+    final settings =
+        await FirebaseMessaging.instance.getNotificationSettings();
+    return settings.authorizationStatus == AuthorizationStatus.authorized ||
+        settings.authorizationStatus == AuthorizationStatus.provisional;
+  }
+
+  /// Whether the OS has permanently denied notifications (user tapped "Don't
+  /// allow"). On this state a fresh requestPermission() no longer shows a
+  /// dialog, so the banner must send the user to system settings instead.
+  Future<bool> isPermanentlyDenied() async {
+    final settings =
+        await FirebaseMessaging.instance.getNotificationSettings();
+    return settings.authorizationStatus == AuthorizationStatus.denied;
+  }
+
+  /// Re-run permission + token registration on demand (from the banner's
+  /// "Enable" action). Clears the latch so a previously tokenless run retries.
+  Future<void> retry() async {
+    _tokenRegistered = false;
+    await start();
+  }
+
   // Idempotent — re-adding these on every start() would stack duplicate listeners.
   void _attachListeners() {
     if (_listenersAttached) return;

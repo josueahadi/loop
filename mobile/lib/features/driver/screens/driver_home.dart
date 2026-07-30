@@ -24,6 +24,7 @@ import '../../../providers/notification_provider.dart';
 import 'driver_job_detail_screen.dart';
 import '../../../screens/vehicle_details_screen.dart';
 import '../widgets/driver_verification_banner.dart';
+import '../../notifications/presentation/enable_notifications_banner.dart';
 import '../../../core/theme/ui_kit.dart';
 import 'driver_location_screen.dart';
 import '../../../screens/settings_screen.dart';
@@ -465,6 +466,9 @@ class _DashboardTabState extends State<_DashboardTab> {
                   ),
                 ),
                 const SizedBox(height: kGap),
+
+                // Nudge to enable notifications if the OS prompt was missed.
+                const EnableNotificationsBanner(),
 
                 // Onboarding nudge — add a vehicle + upload docs; hides once verified.
                 const DriverVerificationBanner(),

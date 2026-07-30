@@ -8,6 +8,7 @@ import '../../../core/models/user_model.dart';
 import '../../../core/repositories/job_repository.dart';
 import '../../jobs/presentation/owner_job_detail_screen.dart';
 import '../../ratings/presentation/my_ratings_screen.dart';
+import '../../notifications/presentation/enable_notifications_banner.dart';
 import '../../notifications/presentation/notification_bell.dart';
 import '../../notifications/presentation/notifications_screen.dart';
 import '../../../providers/notification_provider.dart';
@@ -220,6 +221,9 @@ class _DashboardTabState extends State<_DashboardTab> {
                   ),
                 ),
                 const SizedBox(height: kGap),
+
+                // Nudge to enable notifications if the OS prompt was missed.
+                const EnableNotificationsBanner(),
 
                 // Quick Stats
                 Row(
