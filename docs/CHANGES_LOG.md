@@ -62,8 +62,10 @@ Work only against test keys / the sandbox — never live.
 | Visa | 4187 4274 1556 4246 | 828 | 09/(future) | 3310 | 12345 |
 
 **Mobile Money (Rwanda):** on the hosted page enter a Rwanda MSISDN (e.g.
-`250780000000`) and pay. Flutterwave's sandbox auto-authorises Rwanda MoMo after a
-few seconds; if an OTP screen appears, the sandbox OTP is **12345**.
+`250780000000`) and pay. When the OTP screen appears, the MoMo sandbox OTP is
+**`123456`** (six digits) — this is **different** from the card OTP (`12345`,
+five digits); using the card OTP for MoMo is rejected. (Confirmed working
+2026-07; Flutterwave's sandbox values can change, so re-verify before a demo.)
 
 Always-current list: https://developer.flutterwave.com/docs/testing.
 
