@@ -49,7 +49,7 @@ Deleting your account (section 8) erases these documents. Deleting them ends you
 
 As a driver, your location is used to match you to nearby jobs while you are online. Setting yourself offline stops your location being used for matching.
 
-Verification and availability are separate states. Being approved does not keep you permanently visible. When your final verification document is approved, we set you online once so that you are immediately able to receive work without waiting for a further step, and we will tell you when this happens. From that point availability is entirely yours to control: you can go offline at any time, and we will not set you online again. An administrator can set you offline, but cannot set you online, because telling cargo owners you were available when you were not would be dishonest to both of you.
+Verification and availability are separate states. Being approved does not set you online or make you visible. When your verification is approved we tell you that you are verified and invite you to go online; you appear to cargo owners only once you choose to go online from the app, which is the moment your device shares your current location. We never mark you online on your behalf, because showing you as available without your live location would be dishonest to both you and the cargo owner. An administrator can set you offline, but cannot set you online, for the same reason.
 
 ## 7. Ratings, suspension and how to contest them
 

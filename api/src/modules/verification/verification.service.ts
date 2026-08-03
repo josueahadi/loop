@@ -150,25 +150,18 @@ export class VerificationService {
         data: { type: 'verification_rejected', documentType: record.documentType },
       });
     } else {
-      // If THIS approval completes the driver's verification (all required docs
-      // approved), auto-activate them online as a one-time "you're live" signal.
-      // The driver's manual toggle works normally afterward — this sets the
-      // initial state once, it does not pin them online. Best-effort.
+      // If THIS approval completes the driver's verification, nudge them to go
+      // online — we deliberately do NOT auto-set them online. Matching requires a
+      // stored location, which only the device can supply when the driver goes
+      // online from the app; setting status=online here without a location would
+      // show an ONLINE badge while leaving the driver invisible to owners. So
+      // "online" is only ever set by the driver's own go-online action (which
+      // captures GPS), keeping "online = genuinely available and locatable".
       const nowFullyVerified = await this.isFullyVerified(record.driverId);
-      if (nowFullyVerified) {
-        try {
-          await this.users.activateOnVerification(record.driverId);
-        } catch (err) {
-          this.logger.error('Auto-activate on approval failed', err as Error);
-        }
-      }
-      // On the approval that completes verification, tell the driver they were
-      // set online (the privacy policy §6 commits to this); otherwise just
-      // acknowledge the single document.
       void this.push.sendToUser(record.driverId, {
-        title: nowFullyVerified ? "You're verified and online" : 'Document approved',
+        title: nowFullyVerified ? "You're verified" : 'Document approved',
         body: nowFullyVerified
-          ? `Your ${label} was approved. You're now verified and set online, so you can start receiving jobs. You can go offline any time.`
+          ? `Your ${label} was approved. You're fully verified — go online in the app to start receiving jobs.`
           : `Your ${label} was approved.`,
         data: { type: 'verification_approved', documentType: record.documentType },
       });

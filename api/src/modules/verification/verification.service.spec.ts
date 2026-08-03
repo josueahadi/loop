@@ -60,9 +60,11 @@ describe('VerificationService.ownDocumentUrl', () => {
   });
 });
 
-// Auto-activate on verification approval: the driver is set online exactly when
-// the approval completes all three required documents — not on earlier docs.
-describe('VerificationService.review auto-activate', () => {
+// On the approval that completes all three required documents, the driver is
+// NOT auto-set online (that would show an ONLINE badge without a location and
+// leave them unmatchable). Instead the completion push nudges them to go online
+// from the app, where the go-online action captures their GPS.
+describe('VerificationService.review completion nudge', () => {
   const DRIVER = 'driver-1';
 
   // approvedCount = how many DISTINCT required docs are approved AFTER this review
@@ -91,6 +93,7 @@ describe('VerificationService.review auto-activate', () => {
     const storage = {};
     const push = { sendToUser: jest.fn() };
     const mail = { sendVerificationRejected: jest.fn() };
+    // activateOnVerification must NOT be called anymore.
     const users = {
       activateOnVerification: jest.fn(() => Promise.resolve()),
     };
@@ -101,24 +104,27 @@ describe('VerificationService.review auto-activate', () => {
       mail as any,
       users as any,
     );
-    return { service, users };
+    return { service, users, push };
   }
 
-  it('activates the driver online when the approval completes all 3 documents', async () => {
+  it('never auto-sets the driver online, even when all 3 docs are approved', async () => {
     const { service, users } = makeService(3);
-    await service.review('rec-1', VerificationStatus.APPROVED, 'admin-1');
-    expect(users.activateOnVerification).toHaveBeenCalledWith(DRIVER);
-  });
-
-  it('does NOT activate when fewer than 3 documents are approved', async () => {
-    const { service, users } = makeService(2);
     await service.review('rec-1', VerificationStatus.APPROVED, 'admin-1');
     expect(users.activateOnVerification).not.toHaveBeenCalled();
   });
 
-  it('does NOT activate on a rejection', async () => {
-    const { service, users } = makeService(3);
-    await service.review('rec-1', VerificationStatus.REJECTED, 'admin-1', 'blurry');
-    expect(users.activateOnVerification).not.toHaveBeenCalled();
+  it('nudges the driver to go online when the approval completes verification', async () => {
+    const { service, push } = makeService(3);
+    await service.review('rec-1', VerificationStatus.APPROVED, 'admin-1');
+    const msg = push.sendToUser.mock.calls.at(-1)?.[1];
+    expect(msg.title).toBe("You're verified");
+    expect(msg.body).toMatch(/go online/i);
+  });
+
+  it('does not nudge to go online on a non-final document approval', async () => {
+    const { service, push } = makeService(2);
+    await service.review('rec-1', VerificationStatus.APPROVED, 'admin-1');
+    const msg = push.sendToUser.mock.calls.at(-1)?.[1];
+    expect(msg.title).toBe('Document approved');
   });
 });
