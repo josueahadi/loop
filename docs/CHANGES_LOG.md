@@ -208,4 +208,4 @@ matching open job) — deferred as a demand/supply matching-loop improvement.
 
 ## Testing status
 
-API unit suite: **59 tests** across 8 suites (was 47) — includes pricing v3 weight cases, verification auto-activate, SMS provider tests, and a proposal-accept concurrency test. Plus one real PostGIS integration test. Admin (Vitest) 9, mobile (flutter_test) ~20+.
+API unit suite: **67 tests** across 10 suites (was 47) — includes pricing v3 weight cases, the verification go-online nudge on approval, account-deletion + fraud-blocklist, admin payment recheck/cancel, SMS provider tests, and a proposal-accept concurrency test. Plus one real PostGIS integration test. Admin (Vitest) 13, mobile (flutter_test) ~24+.
