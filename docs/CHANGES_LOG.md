@@ -129,9 +129,11 @@ Migration `1721100000000-PricingV3WeightTerm` adds `rate_per_kg` and updates the
 
 ---
 
-## 3. Auto-activate driver on verification approval
+## 3. Go-online nudge on verification approval
 
-When the approval of a driver's **final** required document completes all three (licence, national ID, vehicle reg), the driver is set **online** once as a "you're live" signal. Their manual online/offline toggle works normally afterward — approval sets the initial state, it does **not** pin them online. The matching query is unchanged and still requires `availability_status='online'`, so "online = genuinely available" holds.
+When the approval of a driver's **final** required document completes all three (licence, national ID, vehicle reg), the driver is notified that they are verified and **nudged to go online** — they are **not** set online automatically.
+
+An earlier version auto-set `availability_status='online'` on approval. That was a bug: matching requires **both** `availability_status='online'` **and** a stored `location`, and the server has no way to know the driver's location on approval (only the device does). So an auto-onlined driver showed an ONLINE badge but stayed invisible to owners until they manually toggled off→on, which is what captured their GPS. The fix removes the auto-online entirely: **"online" is only ever set by the driver's own go-online action**, which captures the device location in the same request — keeping "online = genuinely available **and** locatable".
 
 ---
 
