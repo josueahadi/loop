@@ -1,5 +1,7 @@
 # Loop
 
+📹 **[Watch the demo walkthrough](https://drive.google.com/drive/folders/19V9SplFLdkcaqbnbVAdXDNMCyUUCHTqn?usp=drive_link)** — the fastest way to see Loop working end to end.
+
 Real-time geo-matching platform connecting cargo owners with vehicle drivers in Rwanda. Monorepo:
 
 ```
@@ -35,7 +37,7 @@ The **API is the system of record** (PostgreSQL/PostGIS). The mobile app and adm
 | **Admin (web)** | <https://loop-admin-prod.up.railway.app> — sign in with the demo admin `admin@loop.rw` / `Admin@2026`, a throwaway account seeded for evaluation since there is no public admin signup at the moment. |
 | **API** | <https://loop-api-prod.up.railway.app> · Swagger at [`/docs`](https://loop-api-prod.up.railway.app/docs) |
 | **Mobile app (Android APK)** | Download and install — see [Install the Android app](#install-the-android-app-android-apk) below. Or build/run the Flutter app against the deployed API. |
-| **Demo video** | <https://youtu.be/iMEG5E_Awnc> |
+| **Demo video** | <https://drive.google.com/drive/folders/19V9SplFLdkcaqbnbVAdXDNMCyUUCHTqn?usp=drive_link> |
 
 The mobile app runs against the deployed API with no local backend:
 
@@ -107,7 +109,7 @@ Loop deploys to **Railway** as one project with three services (PostGIS DB, API,
 
 ## Walkthrough video
 
-📹 **[Watch the walkthrough (5 min)](https://youtu.be/iMEG5E_Awnc)** — the core loop end to end: driver verification, posting a job with a cost estimate, nearby matching, sending and accepting a proposal, in-app messaging, completing and rating, and the admin metrics dashboard.
+📹 **[Watch the walkthrough](https://drive.google.com/drive/folders/19V9SplFLdkcaqbnbVAdXDNMCyUUCHTqn?usp=drive_link)** — the core loop end to end: driver verification, posting a job with a cost estimate, nearby matching, sending and accepting a proposal, in-app messaging, completing and rating, and the admin metrics dashboard.
 
 ## Screenshots
 
